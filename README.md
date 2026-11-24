@@ -16,7 +16,9 @@ A native Swift 6 / SwiftUI SSH client and AI-powered fleet operations hub for **
 
 ### 1. Native Apple HIG & iOS 26 / 27 Liquid Glass UI
 - Adaptive `TabView` (floating Liquid Glass tab bar on iPhone with detached far-right AI Assistant button; collapsible sidebar on iPad) with iOS 17 clean fallbacks.
+- Unified `.insetGrouped` & 16–18pt rounded-card visual system across **Settings**, **Export & Import Backup**, **Terminal Engine & Themes** subpages, **License Agreement** onboarding (expanded, reflowed EULA cards), and a clean title-free AI Assistant toolbar.
 - Native **iOS 18+ Zoom Navigation Transitions** across Home cards, More hub tiles, Snippets, Identities, AI Providers, and About capabilities.
+- Configurable **Haptic Feedback** (enable toggle + `Soft` / `Medium` / `Heavy` intensity with live preview) when entering telemetry charts and confirming key actions.
 - Full 5-language localization: English (`en`), Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`), Japanese (`ja`), and Korean (`ko`).
 
 ### 2. Ghostty Terminal (Non-Jailbreak `iGhostVT` Mobile Ergonomics)
@@ -28,21 +30,22 @@ A native Swift 6 / SwiftUI SSH client and AI-powered fleet operations hub for **
 - **Ghost Remote**: Non-jailbreak LAN (`_ighostvt._tcp`) discovery, 6-digit TLS-PSK pairing, and `.vtrpsc` relay import.
 
 ### 3. Agentless Live Monitor & Animated Charts
-- **Home Telemetry Cards**: Symmetrical CPU, Memory/Swap, and Disk rings with live upload/download throughput and system load averages.
+- **Home Telemetry Cards**: Symmetrical CPU, Memory/Swap, and Disk rings with live upload/download throughput and system load averages, plus an **animated ring-and-shimmer connecting skeleton** that matches the loaded card geometry with zero layout shift during reconnection.
 - **Server Detail Inspector**:
   - **Overview**: CPU core breakdown, 2-row dot-matrix history, load rings, memory/cache breakdown, network interfaces & TCP stats, per-mount Disk I/O.
-  - **Charts**: 6 animated Swift Charts (`CPU`, `Memory / Swap`, `Disk`, `Processes`, `Upload / Download`, `TCP / UDP`) with staggered spring entrance, left-to-right sweep reveal, pulsing live beacons, horizontal scrub inspection, and pause/resume.
+  - **Charts**: 6 animated Swift Charts (`CPU`, `Memory / Swap`, `Disk`, `Processes`, `Upload / Download`, `TCP / UDP`) with staggered spring entrance, left-to-right sweep reveal, pulsing live beacons, horizontal scrub inspection, pause/resume, and entry haptic feedback.
   - **Processes & Containers**: Sortable process table (`kill` / `kill -9`) and Docker container stats & lifecycle actions.
 
 ### 4. In-App AI Fleet Assistant (MCP + Multi-Session History)
 - **23 Shared MCP Tools**: Reuses Tamio's `AgentServer` tools directly on iOS/iPadOS with concurrent execution and per-server `AgentActivity` history.
 - **10+ Remote AI Providers + Apple Intelligence**: OpenAI, Anthropic Claude, Google Gemini, DeepSeek, OpenRouter, Groq, xAI, Mistral, SiliconFlow, Ollama / OpenAI-compatible, plus on-device Apple Intelligence (`FoundationModels` on iOS 26+), with API keys stored in Keychain.
 - **14 Built-in Server Ops Skills**: Health checks, Docker/Nginx/systemd diagnostics, disk/security/network audits, plus custom `SKILL.md` import.
-- **FlowDown-Style Conversation Store**: Multi-session history, auto-titling, context compression, fork/edit/regenerate, collapsible reasoning & MCP tool cards, and strict inline approval before any write or command executes.
+- **FlowDown-Style Conversation Store & Stream Resilience**: Multi-session history, auto-titling, context compression, fork/edit/regenerate, collapsible reasoning & MCP tool cards, strict inline approval before writes/commands, dedicated long-lived streaming session with background-grace protection, automatic transient-error retry, partial response preservation, and one-tap **Retry** on error bubbles.
 
-### 5. SFTP, Sync & Security
+### 5. SFTP, Sync, Encrypted Backup & Security
+- **One-Click Encrypted Export & Import**: Export all servers, SSH keys, snippets, port forwards, AI providers & API keys, and custom Ops Skills into an **AES-256-GCM** (PBKDF2-HMAC-SHA256) passphrase-protected or plaintext `.tamiobackup.json` file via AirDrop/Share or Files, with visual **Merge / Replace** preview on import.
 - Concurrent `FileBrowser` + `TransferQueue` SFTP (dual-pane on iPad, overwrite conflict prompts, syntax-highlighted remote file editor).
-- Unified server & SSH key editors (Ed25519 generation, sealed private keys, per-server private passwords, Tailscale `None` auth).
+- Unified server & SSH key editors (Ed25519 generation, sealed private keys, per-server private passwords, Tailscale `None` auth) with non-blocking async save and batched live-status rendering for smooth scrolling.
 - End-to-end encrypted iCloud KVS & Keychain sync across Mac, iPhone, and iPad.
 - Face ID / Passcode App Lock with app-switcher privacy curtain.
 
