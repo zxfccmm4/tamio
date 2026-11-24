@@ -155,14 +155,33 @@ public struct GhosttyConfigurationView: View {
     /// One category's groups as cards: the iOS page pushed from the category list.
     private func categoryPage(_ category: ConfigLayout.Category) -> some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: RX.Space.s6) {
+            LazyVStack(alignment: .leading, spacing: 18) {
                 if category.previews {
-                    DisclosureGroup("Preview") {
-                        ConfigPreview(model: model)
-                            .rxCard(padding: 0)
-                            .padding(.top, RX.Space.s2)
+                    VStack(alignment: .leading, spacing: 0) {
+                        DisclosureGroup {
+                            ConfigPreview(model: model)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .padding(.top, 10)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "eye.fill")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.indigo)
+                                Text(ConfigLayout.tr("preview.title", default: "Preview"))
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                            }
+                        }
                     }
-                    .font(.rxBodyStrong)
+                    .padding(14)
+                    #if canImport(UIKit)
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+                    #else
+                    .rxCard(padding: 0)
+                    #endif
                 }
                 if category.id == "keyboard" {
                     ConfigKeybindingList(model: model)
@@ -172,9 +191,15 @@ public struct GhosttyConfigurationView: View {
                     }
                 }
             }
-            .padding(RX.Space.s4)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
+        #if canImport(UIKit)
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        #else
         .background(RXBackdrop().ignoresSafeArea())
+        #endif
         .navigationTitle(category.title)
     }
 
@@ -325,6 +350,19 @@ public struct GhosttyConfigurationView: View {
             model.document.overrides.keys.filter { ConfigLayout.categoryOfKey[$0]?.id == category.id }.count
         }
 
+        private func categoryTint(_ id: String) -> Color {
+            switch id {
+            case "text": .indigo
+            case "colors": .pink
+            case "cursor": .orange
+            case "window": .blue
+            case "input": .teal
+            case "keyboard": .purple
+            case "advanced": .secondary
+            default: .blue
+            }
+        }
+
         var body: some View {
             Group {
                 if search.isEmpty {
@@ -337,14 +375,29 @@ public struct GhosttyConfigurationView: View {
                                         NavigationLink {
                                             categoryPage(category)
                                         } label: {
-                                            HStack {
-                                                Label(category.title, rx: category.icon)
+                                            let tint = categoryTint(category.id)
+                                            HStack(spacing: 12) {
+                                                Image(systemName: category.icon)
+                                                    .font(.system(size: 13.5, weight: .semibold))
+                                                    .symbolRenderingMode(.hierarchical)
+                                                    .foregroundStyle(tint)
+                                                    .frame(width: 28, height: 28)
+                                                    .background(
+                                                        tint.opacity(0.13),
+                                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                    )
+                                                Text(category.title)
+                                                    .font(.body)
+                                                    .foregroundStyle(.primary)
                                                 Spacer()
                                                 let count = modifiedCount(category)
                                                 if count > 0 {
                                                     Text(String(format: ConfigLayout.tr("category.changed_count", default: "%d changed"), count))
-                                                        .font(.rxHelp)
-                                                        .foregroundStyle(.rxInkSecondary)
+                                                        .font(.caption.weight(.medium).monospacedDigit())
+                                                        .foregroundStyle(tint)
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 3)
+                                                        .background(tint.opacity(0.12), in: Capsule())
                                                 }
                                             }
                                         }
@@ -353,12 +406,13 @@ public struct GhosttyConfigurationView: View {
                             }
                         }
                     }
+                    .listStyle(.insetGrouped)
                 } else {
                     searchContent()
+                        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
                 }
             }
             .searchable(text: $search, prompt: Text(ConfigLayout.tr("search.prompt", default: "Search settings")))
-            .navigationTitle(ConfigLayout.tr("navigation.settings", default: "Settings"))
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {

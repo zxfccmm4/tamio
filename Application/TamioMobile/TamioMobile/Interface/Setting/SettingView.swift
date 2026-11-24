@@ -2,8 +2,8 @@
 //  SettingView.swift
 //  TamioMobile
 //
-//  Clean, lightweight Apple native Settings list: plain semantic labels,
-//  system Picker / Toggle / Stepper controls, zero visual clutter.
+//  Unified Apple Settings-style `.insetGrouped` layout with tinted
+//  `AppleFeatureBadge` icons matching MoreView, AboutView, and BackupTransferView.
 //
 
 import MachineStatusView
@@ -18,6 +18,8 @@ struct SettingView: View {
     @ObservedObject private var sync = CloudSync.shared
 
     @AppStorage(AppearancePreference.key) private var appearance = AppearancePreference.system.rawValue
+    @AppStorage(HapticsPreference.enabledKey) private var hapticsEnabled = true
+    @AppStorage(HapticsPreference.intensityKey) private var hapticsIntensity = HapticsIntensity.medium.rawValue
     @AppStorage(MobileTerminalPreferences.keepScreenAwakeKey) private var keepAwake = true
     @AppStorage(MobileTerminalPreferences.autoReconnectKey) private var autoReconnect = true
     @AppStorage(AppLockManager.enabledKey) private var appLockEnabled = false
@@ -32,36 +34,80 @@ struct SettingView: View {
 
     var body: some View {
         List {
+            // MARK: Appearance & Terminal
             Section("Appearance & Terminal") {
-                Picker("Appearance", selection: $appearance) {
+                Picker(selection: $appearance) {
                     Text("System").tag(AppearancePreference.system.rawValue)
                     Text("Light").tag(AppearancePreference.light.rawValue)
                     Text("Dark").tag(AppearancePreference.dark.rawValue)
+                } label: {
+                    settingLabel("Appearance", icon: "circle.lefthalf.filled", tint: .indigo)
                 }
                 .onChange(of: appearance) { _, raw in
                     (AppearancePreference(rawValue: raw) ?? .system).apply()
                 }
 
-                NavigationLink("Terminal Engine & Themes") {
-                    GhosttySettingsDestination()
+                Toggle(isOn: $hapticsEnabled) {
+                    settingLabel("Haptic Feedback", icon: "iphone.radiowaves.left.and.right", tint: .orange)
+                }
+                .onChange(of: hapticsEnabled) { _, enabled in
+                    if enabled { HapticsPreference.impact() }
                 }
 
-                Button("Keyboard Bar") {
+                if hapticsEnabled {
+                    Picker(selection: $hapticsIntensity) {
+                        ForEach(HapticsIntensity.allCases) { level in
+                            Text(level.localizedTitle).tag(level.rawValue)
+                        }
+                    } label: {
+                        settingLabel("Haptic Intensity", icon: "waveform", tint: .orange)
+                    }
+                    .onChange(of: hapticsIntensity) { _, raw in
+                        HapticsPreference.preview(HapticsIntensity(rawValue: raw) ?? .medium)
+                    }
+                }
+
+                NavigationLink {
+                    GhosttySettingsDestination()
+                } label: {
+                    settingLabel("Terminal Engine & Themes", icon: "paintpalette.fill", tint: .pink)
+                }
+
+                Button {
                     showsKeyboardEditor = true
+                } label: {
+                    HStack(spacing: 12) {
+                        settingLabel("Keyboard Bar", icon: "keyboard.fill", tint: .purple)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 .foregroundStyle(.primary)
 
-                Toggle("Allow Programs to Copy (OSC 52)", isOn: $allowsRemoteClipboard)
+                Toggle(isOn: $allowsRemoteClipboard) {
+                    settingLabel("Allow Programs to Copy (OSC 52)", icon: "doc.on.clipboard.fill", tint: .teal)
+                }
             }
 
+            // MARK: Sessions & Security
             Section {
-                Toggle("Open Terminal Automatically", isOn: $store.openInterfaceAutomatically)
-                Toggle("Confirm Before Closing", isOn: Binding(
+                Toggle(isOn: $store.openInterfaceAutomatically) {
+                    settingLabel("Open Terminal Automatically", icon: "terminal.fill", tint: .blue)
+                }
+                Toggle(isOn: Binding(
                     get: { !store.disableConformation },
                     set: { store.disableConformation = !$0 }
-                ))
-                Toggle("Keep Screen Awake", isOn: $keepAwake)
-                Toggle("Auto-Reconnect on Resume", isOn: $autoReconnect)
+                )) {
+                    settingLabel("Confirm Before Closing", icon: "exclamationmark.shield.fill", tint: .orange)
+                }
+                Toggle(isOn: $keepAwake) {
+                    settingLabel("Keep Screen Awake", icon: "sun.max.fill", tint: .yellow)
+                }
+                Toggle(isOn: $autoReconnect) {
+                    settingLabel("Auto-Reconnect on Resume", icon: "arrow.triangle.2.circlepath", tint: .green)
+                }
             } header: {
                 Text("Sessions")
             } footer: {
@@ -69,12 +115,16 @@ struct SettingView: View {
             }
 
             Section {
-                Toggle("Face ID / Passcode Lock", isOn: $appLockEnabled)
+                Toggle(isOn: $appLockEnabled) {
+                    settingLabel("Face ID / Passcode Lock", icon: "faceid", tint: .green)
+                }
                 if appLockEnabled {
-                    Picker("Require After", selection: $lockTimeout) {
+                    Picker(selection: $lockTimeout) {
                         Text("Immediately").tag(0)
                         Text("1 minute").tag(60)
                         Text("5 minutes").tag(300)
+                    } label: {
+                        settingLabel("Require After", icon: "timer", tint: .secondary)
                     }
                 }
             } header: {
@@ -83,48 +133,83 @@ struct SettingView: View {
                 Text("Blurs the app switcher preview and locks Tamio after leaving the app.")
             }
 
+            // MARK: Sync, Backup & Files
             Section("Sync & Files") {
                 NavigationLink {
                     ScrollView {
-                        CloudSyncSettings()
-                            .padding(16)
+                        VStack(spacing: 16) {
+                            CloudSyncSettings()
+                                .padding(16)
+                                .background(
+                                    Color(uiColor: .secondarySystemGroupedBackground),
+                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                )
+                        }
+                        .padding(16)
                     }
                     .appleGroupedBackground()
                     .navigationTitle("iCloud Sync")
                     .navigationBarTitleDisplayMode(.inline)
                 } label: {
-                    LabeledContent("iCloud Sync", value: syncStatusLabel)
+                    HStack(spacing: 12) {
+                        settingLabel("iCloud Sync", icon: "icloud.fill", tint: .blue)
+                        Spacer()
+                        Text(syncStatusLabel)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 NavigationLink {
                     BackupTransferView()
                 } label: {
-                    Label("Export & Import Backup", systemImage: "arrow.up.arrow.down.circle")
+                    settingLabel("Export & Import Backup", icon: "arrow.up.arrow.down.circle.fill", tint: .cyan)
                 }
 
-                Toggle("Show Hidden Files in SFTP", isOn: $showsHidden)
+                Toggle(isOn: $showsHidden) {
+                    settingLabel("Show Hidden Files in SFTP", icon: "eye.fill", tint: .indigo)
+                }
 
-                Button("Open App Files") {
+                Button {
                     UIBridge.openFileContainer()
+                } label: {
+                    HStack(spacing: 12) {
+                        settingLabel("Open App Files", icon: "folder.fill", tint: .blue)
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 .foregroundStyle(.primary)
             }
 
+            // MARK: SSH & Monitor
             Section("SSH & Monitor") {
                 Stepper(value: $store.timeout, in: 2 ... 30) {
-                    LabeledContent("Connection Timeout", value: String(localized: "\(store.timeout) s"))
+                    HStack(spacing: 12) {
+                        settingLabel("Connection Timeout", icon: "clock.fill", tint: .orange)
+                        Spacer()
+                        Text(String(localized: "\(store.timeout) s"))
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
-                Toggle("Live Server Status", isOn: $live.isEnabled)
+                Toggle(isOn: $live.isEnabled) {
+                    settingLabel("Live Server Status", icon: "waveform.path.ecg", tint: .green)
+                }
 
                 if live.isEnabled {
-                    Picker("Refresh Interval", selection: Binding(
+                    Picker(selection: Binding(
                         get: { max(3, store.monitorInterval) },
                         set: { store.monitorInterval = $0 }
                     )) {
                         ForEach(refreshIntervals, id: \.self) { seconds in
                             Text(String(localized: "Every \(seconds) s")).tag(seconds)
                         }
+                    } label: {
+                        settingLabel("Refresh Interval", icon: "gauge.with.dots.needle.67percent", tint: .teal)
                     }
                 }
 
@@ -139,25 +224,39 @@ struct SettingView: View {
                         hostKeyCount = KnownHosts.shared.count
                     }
                 } label: {
-                    LabeledContent("Forget Saved Host Keys", value: "\(hostKeyCount)")
+                    HStack(spacing: 12) {
+                        AppleFeatureBadge(systemImage: "key.slash.fill", tint: .red, size: 28)
+                        Text("Forget Saved Host Keys")
+                        Spacer()
+                        Text("\(hostKeyCount)")
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .disabled(hostKeyCount == 0)
             }
 
+            // MARK: AI Assistant
             Section {
                 NavigationLink {
                     AIProviderSettingsView(store: AIProviderStore.shared)
                 } label: {
                     let appleReady = AppleIntelligenceStatus.current == .available
                     let selection = AIProviderStore.shared.effectiveSelection(appleIntelligenceAvailable: appleReady)
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         AIProviderInlineIcon(
                             source: AIProviderIconSource.from(selection: selection, store: AIProviderStore.shared),
-                            length: 18
+                            length: 22
+                        )
+                        .frame(width: 28, height: 28)
+                        .background(
+                            Color.purple.opacity(0.11),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
                         )
                         Text("AI Providers")
                         Spacer()
                         Text(AIProviderStore.shared.activeDisplayName(appleIntelligenceAvailable: appleReady))
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -169,10 +268,16 @@ struct SettingView: View {
                         showsDoneButton: false
                     )
                 } label: {
-                    LabeledContent("Ops Skills", value: "\(ServerOpsSkillStore.shared.enabledSkills.count)")
+                    HStack(spacing: 12) {
+                        settingLabel("Ops Skills", icon: "wand.and.stars", tint: .purple)
+                        Spacer()
+                        Text("\(ServerOpsSkillStore.shared.enabledSkills.count)")
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
-                Picker("Context Budget", selection: Binding(
+                Picker(selection: Binding(
                     get: { ServerAssistant.shared.contextTokenBudget },
                     set: { ServerAssistant.shared.contextTokenBudget = $0 }
                 )) {
@@ -180,27 +285,37 @@ struct SettingView: View {
                     Text("32K").tag(32_000)
                     Text("64K").tag(64_000)
                     Text("128K").tag(128_000)
+                } label: {
+                    settingLabel("Context Budget", icon: "memorychip.fill", tint: .indigo)
                 }
 
-                Toggle("Cross-Session Memory", isOn: Binding(
+                Toggle(isOn: Binding(
                     get: { ServerAssistant.shared.crossSessionMemoryEnabled },
                     set: { ServerAssistant.shared.crossSessionMemoryEnabled = $0 }
-                ))
+                )) {
+                    settingLabel("Cross-Session Memory", icon: "brain.head.profile", tint: .pink)
+                }
             } header: {
                 Text("AI Assistant")
             } footer: {
                 Text("Cross-Session Memory summarizes past ops sessions locally so new chats remember recent findings.")
             }
 
+            // MARK: Activity & Diagnostics
             Section("Activity & Diagnostics") {
-                NavigationLink("MCP Agent Activity") {
+                NavigationLink {
                     MobileAgentActivityPage()
+                } label: {
+                    settingLabel("MCP Agent Activity", icon: "sparkles", tint: .purple)
                 }
-                NavigationLink("Diagnostic Logs") {
+                NavigationLink {
                     LogView()
+                } label: {
+                    settingLabel("Diagnostic Logs", icon: "doc.text.magnifyingglass", tint: .secondary)
                 }
             }
 
+            // MARK: About
             Section("About") {
                 NavigationLink {
                     AboutView()
@@ -221,6 +336,7 @@ struct SettingView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .appleGroupedBackground()
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .onAppear { hostKeyCount = KnownHosts.shared.count }
@@ -228,6 +344,14 @@ struct SettingView: View {
             NavigationStack {
                 KeyboardBarEditorSheet()
             }
+        }
+    }
+
+    private func settingLabel(_ title: LocalizedStringKey, icon: String, tint: Color) -> some View {
+        HStack(spacing: 12) {
+            AppleFeatureBadge(systemImage: icon, tint: tint, size: 28)
+            Text(title)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -252,7 +376,7 @@ private struct GhosttySettingsDestination: View {
                 if let size { store.terminalFontSize = Int(size.rounded()) }
             }
         )
-        .navigationTitle("Terminal Engine")
+        .navigationTitle("Terminal Engine & Themes")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -312,36 +436,6 @@ private struct MobileAgentActivityPage: View {
     }
 }
 
-private struct AcknowledgementsPage: View {
-    var body: some View {
-        List {
-            Section("Contributors") {
-                Text(verbatim: "@mizorewww · @missuo · @Lakr233 · @sarkrui · @SukkaW · @thedavidweng · @delete-cloud · @FahimFBA · @NyaMisty · @FaiChou")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Section("Upstream") {
-                LabeledContent("Based on", value: "mizorewww/catussh · Lakr233/Rayon")
-                Text("Originally created by Lakr Aream (@Lakr233) with @__oquery, @zlind0, @unixzii, @82flex and @xnth97. This version is not affiliated with or endorsed by them.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            Section("Open Source") {
-                Text("Ghostty and its configuration catalog (MIT, Ghostty contributors).")
-                    .font(.subheadline)
-                Text("Mobile terminal UX & Ghost Remote concepts inspired by iGhostVT (MIT, owngoal-dev).")
-                    .font(.subheadline)
-                Text("Libraries: libssh2 · NSRemoteShell · XMLCoder · SymbolPicker · Keychain · Runestone · Lucide Icons.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Acknowledgements")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 enum AppearancePreference: String, CaseIterable {
     case system
     case light
@@ -370,5 +464,67 @@ enum AppearancePreference: String, CaseIterable {
     static func applyStored() {
         let raw = UserDefaults.standard.string(forKey: key) ?? AppearancePreference.system.rawValue
         (AppearancePreference(rawValue: raw) ?? .system).apply()
+    }
+}
+
+enum HapticsIntensity: String, CaseIterable, Identifiable {
+    case light
+    case medium
+    case heavy
+
+    var id: String { rawValue }
+
+    var localizedTitle: LocalizedStringKey {
+        switch self {
+        case .light: return "Soft"
+        case .medium: return "Medium"
+        case .heavy: return "Heavy"
+        }
+    }
+
+    var feedbackStyle: UIImpactFeedbackGenerator.FeedbackStyle {
+        switch self {
+        case .light: return .light
+        case .medium: return .medium
+        case .heavy: return .heavy
+        }
+    }
+
+    var intensityValue: CGFloat {
+        switch self {
+        case .light: return 0.55
+        case .medium: return 0.80
+        case .heavy: return 1.0
+        }
+    }
+}
+
+enum HapticsPreference {
+    static let enabledKey = "sb.moe.tamio.haptics.enabled"
+    static let intensityKey = "sb.moe.tamio.haptics.intensity"
+
+    static var isEnabled: Bool {
+        if let stored = UserDefaults.standard.object(forKey: enabledKey) as? Bool {
+            return stored
+        }
+        return true
+    }
+
+    static var intensity: HapticsIntensity {
+        let raw = UserDefaults.standard.string(forKey: intensityKey) ?? HapticsIntensity.medium.rawValue
+        return HapticsIntensity(rawValue: raw) ?? .medium
+    }
+
+    @MainActor
+    static func impact() {
+        guard isEnabled else { return }
+        preview(intensity)
+    }
+
+    @MainActor
+    static func preview(_ level: HapticsIntensity) {
+        let generator = UIImpactFeedbackGenerator(style: level.feedbackStyle)
+        generator.prepare()
+        generator.impactOccurred(intensity: level.intensityValue)
     }
 }

@@ -17,6 +17,7 @@ struct TamioMobileApp: App {
     // WindowGroup root; individual views subscribe via @EnvironmentObject.
     private let store = TamioStore.shared
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showingAgreement = false
 
     init() {
         #if DEBUG
@@ -102,10 +103,14 @@ struct TamioMobileApp: App {
             }
             .onAppear {
                 AppearancePreference.applyStored()
-                checkAgreement()
+                showingAgreement = !store.licenseAgreed
             }
-            .onReceive(store.$licenseAgreed.removeDuplicates()) { _ in
-                checkAgreement()
+            .onReceive(store.$licenseAgreed.removeDuplicates()) { agreed in
+                showingAgreement = !agreed
+            }
+            .sheet(isPresented: $showingAgreement) {
+                AgreementView()
+                    .interactiveDismissDisabled(true)
             }
             .onChange(of: scenePhase) { _, phase in
                 LiveStatusCenter.shared.setWindowVisible(phase == .active)
@@ -148,15 +153,5 @@ struct TamioMobileApp: App {
                 UIBridge.presentError(with: error.localizedDescription)
             }
         }
-    }
-
-    func checkAgreement() {
-        guard !store.licenseAgreed else { return }
-        let host = UIHostingController(rootView: AgreementView())
-        host.preferredContentSize = preferredPopOverSize
-        host.isModalInPresentation = true
-        host.modalTransitionStyle = .coverVertical
-        host.modalPresentationStyle = .formSheet
-        PresentationQueue.present(next: host)
     }
 }

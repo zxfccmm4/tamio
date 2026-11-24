@@ -5,21 +5,25 @@
 //  Created by Lakr Aream on 2022/3/4.
 //
 
-import TamioModule
 import SwiftUI
+import TamioModule
 
 struct LicenseView: View {
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Divider().hidden()
-                LicenseTextView(resource: "LICENSE")
-            }
-            .padding(.bottom)
-            .padding(.horizontal)
+            LicenseTextView(resource: "LICENSE")
+                .lineSpacing(3)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    Color(uiColor: .secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+                .padding(16)
         }
-        .background(RXBackdrop().ignoresSafeArea())
+        .appleGroupedBackground()
         .navigationTitle("License")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -33,7 +37,7 @@ struct LicenseTextView: View {
         Text(text)
             .textSelection(.enabled)
             .font(.footnote)
-            .foregroundStyle(.rxInkSecondary)
+            .foregroundStyle(.secondary)
             .task {
                 guard text.isEmpty else { return }
                 text = await Self.load(resource: resource)
@@ -54,6 +58,8 @@ struct LicenseTextView: View {
 
 struct LicenseView_Previews: PreviewProvider {
     static var previews: some View {
-        LicenseView()
+        NavigationStack {
+            LicenseView()
+        }
     }
 }

@@ -2,9 +2,11 @@
 //  BackupTransferView.swift
 //  TamioMobile
 //
-//  One-click Export & Import UI for transferring all servers, SSH keys,
-//  snippets, port forwards, AI providers (with API keys), and custom ops
-//  skills to another device via AirDrop, Files, or iCloud Drive.
+//  Polished Apple HIG Export & Import hub aligned with AboutView & SettingView:
+//  - Hero icon header & compact 2×2 current inventory grid
+//  - Selective backup toggles with tinted AppleFeatureBadge icons
+//  - Optional AES-256-GCM passphrase protection + prominent Liquid Glass CTAs
+//  - Clean fileImporter flow with encrypted unlock & visual Import Preview sheet
 //
 
 import SPIndicator
@@ -40,6 +42,10 @@ struct BackupTransferView: View {
         skillStore.skills.filter { !$0.isBuiltIn }.count
     }
 
+    private var snippetsAndForwardsCount: Int {
+        store.snippetGroup.snippets.count + store.portForwardGroup.forwards.count
+    }
+
     private var canExport: Bool {
         guard options.hasAnySelection else { return false }
         if encryptBackup {
@@ -49,73 +55,172 @@ struct BackupTransferView: View {
     }
 
     var body: some View {
-        List {
-            // MARK: Current Inventory
+        Form {
+            // MARK: Hero Header
             Section {
-                LabeledContent("Servers", value: "\(store.machineGroup.machines.count)")
-                LabeledContent("SSH Keys & Credentials", value: "\(store.identityGroup.identities.count)")
-                LabeledContent("Snippets & Port Forwards", value: "\(store.snippetGroup.snippets.count + store.portForwardGroup.forwards.count)")
-                LabeledContent("AI Providers", value: "\(providerStore.providers.count)")
-                LabeledContent("Custom Ops Skills", value: "\(customSkillCount)")
+                VStack(spacing: 8) {
+                    AppleFeatureBadge(systemImage: "arrow.up.arrow.down.circle.fill", tint: .blue, size: 58)
+                        .padding(.bottom, 2)
+                        .accessibilityHidden(true)
+
+                    Text("Export & Import")
+                        .font(.title2.bold())
+                        .foregroundStyle(.primary)
+
+                    Text("Transfer all servers, SSH credentials, AI providers, and custom skills across devices.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 2, trailing: 16))
+
+            // MARK: Compact 2×2 Inventory Grid
+            Section {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 10),
+                        GridItem(.flexible(), spacing: 10),
+                    ],
+                    spacing: 10
+                ) {
+                    inventoryTile(
+                        title: String(localized: "Servers"),
+                        count: store.machineGroup.machines.count,
+                        icon: "server.rack",
+                        tint: .blue
+                    )
+                    inventoryTile(
+                        title: String(localized: "SSH Keys"),
+                        count: store.identityGroup.identities.count,
+                        icon: "key.fill",
+                        tint: .orange
+                    )
+                    inventoryTile(
+                        title: String(localized: "AI Providers"),
+                        count: providerStore.providers.count,
+                        icon: "sparkles",
+                        tint: .purple
+                    )
+                    inventoryTile(
+                        title: String(localized: "Snippets & Skills"),
+                        count: snippetsAndForwardsCount + customSkillCount,
+                        icon: "wand.and.stars",
+                        tint: .teal
+                    )
+                }
             } header: {
                 Text("Current Device")
             }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
 
-            // MARK: One-Click Export
+            // MARK: Export Content Selection
             Section {
-                Toggle("Servers & SSH Credentials", isOn: $options.includeServersAndCredentials)
-                Toggle("Snippets & Port Forwards", isOn: $options.includeSnippetsAndForwards)
-                Toggle("AI Providers & API Keys", isOn: $options.includeAIProvidersAndKeys)
-                Toggle("Ops Skills & AI Preferences", isOn: $options.includeSkillsAndPreferences)
-
-                Toggle("Encrypt with Passphrase", isOn: $encryptBackup)
-
-                if encryptBackup {
-                    SecureField("Passphrase (min 4 characters)", text: $exportPassphrase)
-                        .textInputAutocapitalization(.never)
-                        .disableAutocorrection(true)
+                Toggle(isOn: $options.includeServersAndCredentials) {
+                    optionLabel("Servers & SSH Credentials", icon: "server.rack", tint: .blue)
                 }
-
-                Button {
-                    triggerExport(saveToFiles: false)
-                } label: {
-                    Label("Export & Share Backup", systemImage: "square.and.arrow.up")
-                        .font(.body.weight(.semibold))
-                        .frame(maxWidth: .infinity)
+                Toggle(isOn: $options.includeSnippetsAndForwards) {
+                    optionLabel("Snippets & Port Forwards", icon: "arrow.left.arrow.right", tint: .indigo)
                 }
-                .disabled(!canExport)
-
-                Button {
-                    triggerExport(saveToFiles: true)
-                } label: {
-                    Label("Save Backup to Files…", systemImage: "folder.badge.plus")
-                        .frame(maxWidth: .infinity)
+                Toggle(isOn: $options.includeAIProvidersAndKeys) {
+                    optionLabel("AI Providers & API Keys", icon: "sparkles", tint: .purple)
                 }
-                .disabled(!canExport)
+                Toggle(isOn: $options.includeSkillsAndPreferences) {
+                    optionLabel("Ops Skills & AI Preferences", icon: "wand.and.stars", tint: .teal)
+                }
             } header: {
                 Text("Export Configuration")
+            }
+
+            // MARK: Protection & Export Actions
+            Section {
+                Toggle(isOn: $encryptBackup) {
+                    optionLabel("Encrypt with Passphrase", icon: "lock.shield.fill", tint: .green)
+                }
+
+                if encryptBackup {
+                    HStack(spacing: 10) {
+                        SecureField("Passphrase (min 4 characters)", text: $exportPassphrase)
+                            .textInputAutocapitalization(.never)
+                            .disableAutocorrection(true)
+
+                        if exportPassphrase.trimmingCharacters(in: .whitespacesAndNewlines).count >= 4 {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                        }
+                    }
+                }
             } footer: {
                 Text(encryptBackup
                     ? "Exports an AES-256-GCM encrypted backup file you can AirDrop or save to Files for importing on another device."
                     : "Unencrypted JSON contains plaintext SSH passwords, private keys, and AI API keys. Keep the file private and delete it after transfer.")
             }
 
-            // MARK: One-Click Import
+            Section {
+                VStack(spacing: 10) {
+                    Button {
+                        triggerExport(saveToFiles: false)
+                    } label: {
+                        Label("Export & Share Backup", systemImage: "square.and.arrow.up")
+                            .font(.body.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                    }
+                    .appleProminentButton()
+                    .controlSize(.large)
+                    .disabled(!canExport)
+
+                    Button {
+                        triggerExport(saveToFiles: true)
+                    } label: {
+                        Label("Save Backup to Files…", systemImage: "folder.badge.plus")
+                            .font(.body.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 4)
+                    }
+                    .appleGlassButton()
+                    .controlSize(.large)
+                    .disabled(!canExport)
+                }
+            }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 4, trailing: 0))
+
+            // MARK: Import Section
             Section {
                 Button {
                     showingImporter = true
                 } label: {
-                    Label("Import Backup File…", systemImage: "square.and.arrow.down")
-                        .font(.body.weight(.semibold))
-                        .frame(maxWidth: .infinity)
+                    HStack(spacing: 12) {
+                        AppleFeatureBadge(systemImage: "square.and.arrow.down.fill", tint: .cyan, size: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Import Backup File…")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.primary)
+                            Text("Restore from AirDrop or Files")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 2)
                 }
+                .buttonStyle(.plain)
             } header: {
                 Text("Import Configuration")
             } footer: {
                 Text("Choose a .tamiobackup.json file exported from another device. You can preview all items and choose Merge or Replace before applying.")
             }
         }
-        .listStyle(.insetGrouped)
+        .appleGroupedBackground()
         .navigationTitle("Export & Import")
         .navigationBarTitleDisplayMode(.inline)
         .fileExporter(
@@ -161,26 +266,70 @@ struct BackupTransferView: View {
         }
     }
 
+    // MARK: - Helper Subviews
+
+    private func inventoryTile(title: String, count: Int, icon: String, tint: Color) -> some View {
+        HStack(spacing: 10) {
+            AppleFeatureBadge(systemImage: icon, tint: tint, size: 32)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(count)")
+                    .font(.headline.weight(.bold).monospacedDigit())
+                    .foregroundStyle(.primary)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Color(uiColor: .secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+    }
+
+    private func optionLabel(_ title: LocalizedStringKey, icon: String, tint: Color) -> some View {
+        HStack(spacing: 12) {
+            AppleFeatureBadge(systemImage: icon, tint: tint, size: 28)
+            Text(title)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
     // MARK: - Passphrase Unlock Sheet
 
     private var passphrasePromptSheet: some View {
         NavigationStack {
             Form {
                 Section {
+                    VStack(spacing: 8) {
+                        AppleFeatureBadge(systemImage: "lock.fill", tint: .green, size: 48)
+                        Text("Encrypted Backup")
+                            .font(.headline)
+                        Text("Enter the passphrase used when exporting this backup.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color.clear)
+
+                Section {
                     SecureField("Backup Passphrase", text: $decryptPassphrase)
                         .textInputAutocapitalization(.never)
                         .disableAutocorrection(true)
-                } header: {
-                    Text("Encrypted Backup")
                 } footer: {
                     if let decryptError {
                         Text(decryptError)
                             .foregroundStyle(.red)
-                    } else {
-                        Text("Enter the passphrase used when exporting this backup.")
                     }
                 }
             }
+            .appleGroupedBackground()
             .navigationTitle("Unlock Backup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -220,9 +369,25 @@ struct BackupTransferView: View {
     private func importPreviewSheet(_ preview: TamioBackupPreview) -> some View {
         NavigationStack {
             Form {
-                Section("Backup Contents") {
-                    LabeledContent("Exported", value: preview.exportedAt.formatted(date: .abbreviated, time: .shortened))
-                    LabeledContent("Encryption", value: preview.wasEncrypted ? String(localized: "AES-256-GCM") : String(localized: "Plain JSON"))
+                Section {
+                    VStack(spacing: 6) {
+                        AppleFeatureBadge(
+                            systemImage: preview.wasEncrypted ? "lock.shield.fill" : "doc.text.fill",
+                            tint: preview.wasEncrypted ? .green : .blue,
+                            size: 48
+                        )
+                        Text("Backup Contents")
+                            .font(.headline)
+                        Text(preview.exportedAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+                }
+                .listRowBackground(Color.clear)
+
+                Section {
                     LabeledContent("Servers", value: "\(preview.serverCount)")
                     LabeledContent("SSH Keys", value: "\(preview.sharedIdentityCount)")
                     LabeledContent("Snippets", value: "\(preview.snippetCount)")
@@ -247,6 +412,7 @@ struct BackupTransferView: View {
                         : "Replaces all existing servers, SSH keys, snippets, port forwards, and AI providers with the contents of this backup.")
                 }
             }
+            .appleGroupedBackground()
             .navigationTitle("Confirm Import")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

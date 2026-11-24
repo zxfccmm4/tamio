@@ -105,20 +105,42 @@ struct ConfigGroupCard: View {
         }).compactMap { ConfigCatalog.shared.setting(key: $0) }
         if !hosts.isEmpty || !settings.isEmpty {
             VStack(alignment: .leading, spacing: RX.Space.s2) {
-                CapsLabel(group.title)
-                    .padding(.leading, RX.Space.s4)
-                VStack(spacing: 0) {
-                    ForEach(hosts) { $0.content }
-                    if !settings.isEmpty {
-                        RXDividedStack {
-                            ForEach(settings) { setting in
-                                ConfigSettingRow(model: model, setting: setting, query: query).id(setting.key)
+                #if os(iOS) && !targetEnvironment(macCatalyst)
+                    Text(group.title.uppercased())
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 14)
+                    VStack(spacing: 0) {
+                        ForEach(hosts) { $0.content }
+                        if !settings.isEmpty {
+                            RXDividedStack {
+                                ForEach(settings) { setting in
+                                    ConfigSettingRow(model: model, setting: setting, query: query).id(setting.key)
+                                }
                             }
                         }
                     }
-                }
-                .padding(.horizontal, RX.Space.s4)
-                .background(Color.clear.rxCard(padding: 0))
+                    .padding(.horizontal, 14)
+                    .background(
+                        Color(uiColor: .secondarySystemGroupedBackground),
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+                #else
+                    CapsLabel(group.title)
+                        .padding(.leading, RX.Space.s4)
+                    VStack(spacing: 0) {
+                        ForEach(hosts) { $0.content }
+                        if !settings.isEmpty {
+                            RXDividedStack {
+                                ForEach(settings) { setting in
+                                    ConfigSettingRow(model: model, setting: setting, query: query).id(setting.key)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, RX.Space.s4)
+                    .background(Color.clear.rxCard(padding: 0))
+                #endif
             }
         }
     }

@@ -174,6 +174,7 @@ struct DetailChartsTab: View {
     @ObservedObject var session: MonitorSession
     @ObservedObject private var model: MobileTelemetryChartsStore
     @State private var appeared = false
+    @State private var containerWidth: CGFloat = 0
 
     init(session: MonitorSession, machineID: RDMachine.ID) {
         self.session = session
@@ -181,39 +182,39 @@ struct DetailChartsTab: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let columns = gridColumns(for: proxy.size.width)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    statusStrip
+        let columns = gridColumns(for: containerWidth)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                statusStrip
 
-                    if !session.status.hasData && model.samples.isEmpty {
-                        HStack(spacing: 10) {
-                            ProgressView()
-                            Text("Loading metrics…")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 56)
-                    } else {
-                        LazyVGrid(columns: columns, spacing: 12) {
-                            cpuChartCard
-                            memorySwapChartCard
-                            diskChartCard
-                            processesChartCard
-                            bandwidthChartCard
-                            socketChartCard
-                        }
+                if !session.status.hasData && model.samples.isEmpty {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Loading metrics…")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 56)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        cpuChartCard
+                        memorySwapChartCard
+                        diskChartCard
+                        processesChartCard
+                        bandwidthChartCard
+                        socketChartCard
                     }
                 }
-                .padding(.horizontal, 14)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
             }
-            .appleGroupedBackground()
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 28)
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
+        .appleGroupedBackground()
         .onAppear {
+            HapticsPreference.impact()
             model.sync(from: session)
             if !appeared {
                 appeared = true

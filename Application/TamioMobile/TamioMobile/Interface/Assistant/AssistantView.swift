@@ -80,7 +80,7 @@ struct AssistantView: View {
             }
         }
         .appleGroupedBackground()
-        .navigationTitle(hasContent ? activeConversation.title : String(localized: "Assistant"))
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {

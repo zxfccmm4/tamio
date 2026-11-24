@@ -441,13 +441,20 @@ private struct CardLiveBody: View {
     @State private var showsNetTotals = false
 
     var body: some View {
-        if session.phase == .connected, session.status.hasData {
-            connectedBody(session.status)
-        } else if case let .failed(reason) = session.phase, !session.status.hasData {
-            offlineBody(reason: reason)
-        } else {
-            connectingBody
+        let isConnected = session.phase == .connected && session.status.hasData
+        Group {
+            if isConnected {
+                connectedBody(session.status)
+                    .transition(.opacity)
+            } else if case let .failed(reason) = session.phase, !session.status.hasData {
+                offlineBody(reason: reason)
+                    .transition(.opacity)
+            } else {
+                CardConnectingSkeleton()
+                    .transition(.opacity)
+            }
         }
+        .animation(.easeInOut(duration: 0.25), value: isConnected)
     }
 
     // MARK: Connected
@@ -643,51 +650,6 @@ private struct CardLiveBody: View {
         .fixedSize()
     }
 
-    // MARK: Connecting (Placeholder gauges keep card height steady)
-
-    private var connectingBody: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 8) {
-                placeholderSlot(String(localized: "CPU"))
-                placeholderSlot(String(localized: "Memory"))
-                placeholderSlot(String(localized: "Disk"))
-            }
-            .padding(.horizontal, 14)
-            .padding(.bottom, 14)
-            .opacity(0.6)
-
-            Divider()
-                .opacity(colorScheme == .dark ? 0.5 : 0.45)
-                .padding(.horizontal, 18)
-
-            HStack(spacing: 7) {
-                ProgressView()
-                    .controlSize(.mini)
-                Text("Connecting…")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 11)
-        }
-    }
-
-    private func placeholderSlot(_ title: String) -> some View {
-        VStack(spacing: 7) {
-            CleanRingGauge(fraction: 0, lineWidth: 5.5, size: 58, centerText: "—", empty: true)
-            VStack(spacing: 1) {
-                Text(title)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Text("—")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
     // MARK: Offline
 
     private func offlineBody(reason: String) -> some View {
@@ -725,6 +687,124 @@ private struct CardLiveBody: View {
         }
         .padding(.horizontal, 18)
         .padding(.bottom, 14)
+    }
+}
+
+// MARK: - Animated Connecting Skeleton (Matches Connected Card Geometry)
+
+private struct CardConnectingSkeleton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var rotation: Double = 0
+    @State private var shimmerPhase = false
+
+    private var trackColor: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07)
+    }
+
+    private var pillBaseColor: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.11 : 0.08)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Three symmetrical animated ring placeholders matching connectedBody
+            HStack(alignment: .top, spacing: 8) {
+                skeletonSlot(title: String(localized: "CPU"), detailWidth: 44, angleOffset: 0)
+                skeletonSlot(title: String(localized: "Memory"), detailWidth: 64, angleOffset: 120)
+                skeletonSlot(title: String(localized: "Disk"), detailWidth: 56, angleOffset: 240)
+            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 14)
+
+            Divider()
+                .opacity(colorScheme == .dark ? 0.5 : 0.45)
+                .padding(.horizontal, 18)
+
+            // Footer strip matching connectedBody height & alignment
+            HStack(alignment: .center, spacing: 10) {
+                HStack(spacing: 10) {
+                    networkSkeletonPill(symbol: "arrow.up", width: 42)
+                    networkSkeletonPill(symbol: "arrow.down", width: 42)
+                }
+
+                Spacer(minLength: 6)
+
+                HStack(spacing: 6) {
+                    ProgressView()
+                        .controlSize(.mini)
+                    Text("Connecting…")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.vertical, 11)
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 1.35).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+            withAnimation(.easeInOut(duration: 1.05).repeatForever(autoreverses: true)) {
+                shimmerPhase = true
+            }
+        }
+    }
+
+    private func skeletonSlot(title: String, detailWidth: CGFloat, angleOffset: Double) -> some View {
+        VStack(spacing: 7) {
+            ZStack {
+                Circle()
+                    .stroke(trackColor, lineWidth: 5.5)
+
+                Circle()
+                    .trim(from: 0.0, to: 0.30)
+                    .stroke(
+                        AngularGradient(
+                            gradient: Gradient(colors: [
+                                Color.accentColor.opacity(0.0),
+                                Color.accentColor.opacity(0.55),
+                            ]),
+                            center: .center,
+                            startAngle: .degrees(0),
+                            endAngle: .degrees(108)
+                        ),
+                        style: StrokeStyle(lineWidth: 5.5, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(rotation + angleOffset - 90))
+
+                Capsule()
+                    .fill(pillBaseColor)
+                    .frame(width: 24, height: 11)
+                    .opacity(shimmerPhase ? 0.95 : 0.42)
+            }
+            .frame(width: 58, height: 58)
+
+            VStack(spacing: 1) {
+                Text(title)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+
+                Capsule()
+                    .fill(pillBaseColor)
+                    .frame(width: detailWidth, height: 10)
+                    .padding(.vertical, 2)
+                    .opacity(shimmerPhase ? 0.95 : 0.42)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func networkSkeletonPill(symbol: String, width: CGFloat) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(Color(uiColor: .tertiaryLabel))
+            Capsule()
+                .fill(pillBaseColor)
+                .frame(width: width, height: 10)
+                .opacity(shimmerPhase ? 0.95 : 0.42)
+        }
     }
 }
 
