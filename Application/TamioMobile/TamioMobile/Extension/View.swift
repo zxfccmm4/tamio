@@ -34,6 +34,7 @@ struct DefaultModalPresenter<Content: View>: View {
     }
 }
 
+@MainActor
 func createPreview(creation: () -> AnyView) -> some View {
     Group {
         NavigationStack {
