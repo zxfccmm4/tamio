@@ -13,7 +13,9 @@ import TamioTerminal
 
 @main
 struct TamioMobileApp: App {
-    @StateObject private var store = TamioStore.shared
+    // Non-observing reference so TamioStore edits do not re-evaluate the entire
+    // WindowGroup root; individual views subscribe via @EnvironmentObject.
+    private let store = TamioStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -21,17 +23,17 @@ struct TamioMobileApp: App {
             NSLog("\nCommand Arguments:\n" + CommandLine.arguments.joined(separator: "\n"))
         #endif
 
-        // Shared file-transfer core lives in TamioModule; register the
-        // platform UI handler it delegates to.
         FileTransferInterface.uiHandler = IOSFileTransferUIHandler()
 
         _ = LogRedirect.shared
         _ = TamioStore.shared
         CloudSync.shared.preferences = SyncedSettings.all
         CloudSync.shared.start()
-        // Every server card shows live status without opening a monitor.
         LiveStatusCenter.shared.start()
+        MobileAgentBridge.shared.install()
         PortForwardBackend.shared.reportProblem = { UIBridge.presentError(with: $0) }
+        NetworkPathWatcher.shared.start()
+        BackgroundGraceController.install()
 
         #if DEBUG
             Self.addPreviewServer()
@@ -40,10 +42,6 @@ struct TamioMobileApp: App {
     }
 
     #if DEBUG
-        /// A debug build started with TAMIO_PREVIEW_SERVER=user@host:port and
-        /// TAMIO_PREVIEW_KEY=<private key path> has that server, with that
-        /// key, in its store: the simulator can then be run against a
-        /// throwaway sshd without typing into it.
         private static func addPreviewServer() {
             let environment = ProcessInfo.processInfo.environment
             guard let server = environment["TAMIO_PREVIEW_SERVER"], let keyPath = environment["TAMIO_PREVIEW_KEY"],
@@ -61,7 +59,6 @@ struct TamioMobileApp: App {
             machine.associatedIdentity = identity.id.uuidString
             store.identityGroup.insert(identity)
             store.machineGroup.insert(machine)
-            // A snippet and a forward through it, so those pages have rows.
             if store.snippetGroup.snippets.isEmpty {
                 var snippet = RDSnippet()
                 snippet.name = "Disk usage"
@@ -79,7 +76,6 @@ struct TamioMobileApp: App {
                 forward.targetPort = 80
                 store.portForwardGroup.insert(forward)
             }
-            // TAMIO_PREVIEW_OPEN=terminal opens its terminal once the window is up.
             if environment["TAMIO_PREVIEW_OPEN"] == "terminal" {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                     TerminalManager.shared.begin(for: machine.id)
@@ -90,54 +86,77 @@ struct TamioMobileApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(store)
-                // The shared server views (cards, table, inspector) act through these.
-                .environment(\.serverActions, .ios)
-                #if DEBUG
-                .fullScreenCover(isPresented: .constant(ProcessInfo.processInfo.environment["TAMIO_PREVIEW_EDITOR"] != nil)) {
-                    EditorPreviewScreen()
+            ZStack {
+                ContentView()
+                    .environmentObject(store)
+                    .environment(\.serverActions, .ios)
+                AppLockOverlay()
+            }
+            #if DEBUG
+            .fullScreenCover(isPresented: .constant(ProcessInfo.processInfo.environment["TAMIO_PREVIEW_EDITOR"] != nil)) {
+                EditorPreviewScreen()
+            }
+            #endif
+            .onOpenURL { url in
+                handleIncomingURL(url)
+            }
+            .onAppear {
+                AppearancePreference.applyStored()
+                checkAgreement()
+            }
+            .onReceive(store.$licenseAgreed.removeDuplicates()) { _ in
+                checkAgreement()
+            }
+            .onChange(of: scenePhase) { _, phase in
+                LiveStatusCenter.shared.setWindowVisible(phase == .active)
+                AppLockManager.shared.handleScenePhase(phase)
+                if phase == .active, MobileTerminalPreferences.autoReconnect {
+                    TerminalManager.shared.reconnectDroppedSessions()
                 }
-                #endif
-                .onAppear {
-                    // Warm the shared WebKit process pool so the first
-                    // editor (snippet or remote file) skips the cold
-                    // start. SCodeEditor builds its web view lazily now,
-                    // so nothing else pays this at launch; the hidden view
-                    // gets a second to finish its page load before being
-                    // released, or the load would be cancelled and the
-                    // warm-up defeated.
-                    let prewarm = CodeEditorView()
-                    AppearancePreference.applyStored()
-                    checkAgreement()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                        withExtendedLifetime(prewarm) {
-                            debugPrint("editor \(prewarm) prewarm done")
-                        }
-                    }
-                }
-                .onChange(of: store.licenseAgreed) { _ in
-                    checkAgreement()
-                }
-                // The quiet status sessions run only while the app is on
-                // screen; in the background iOS would cut them off anyway.
-                .onChange(of: scenePhase) { phase in
-                    LiveStatusCenter.shared.setWindowVisible(phase == .active)
-                }
+            }
+        }
+    }
+
+    private func handleIncomingURL(_ url: URL) {
+        if url.scheme == "tamio",
+           let rawID = url.pathComponents.dropFirst().first,
+           let uuid = UUID(uuidString: rawID)
+        {
+            if url.host == "session",
+               let existing = TerminalManager.shared.terminals.first(where: { $0.id == uuid })
+            {
+                TerminalManager.shared.activeTerminalID = existing.id
+                let host = UIHostingController(rootView: TerminalContext.DefaultPresent(context: existing))
+                host.modalTransitionStyle = .coverVertical
+                host.modalPresentationStyle = UIDevice.current.userInterfaceIdiom == .phone ? .fullScreen : .formSheet
+                host.preferredContentSize = preferredPopOverSize
+                PresentationQueue.present(next: host)
+                return
+            }
+            if url.host == "server", store.machineGroup[uuid].isNotPlaceholder() {
+                TerminalManager.shared.begin(for: uuid, force: true)
+                return
+            }
+        }
+        if url.pathExtension.lowercased() == "vtrpsc" {
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let data = try Data(contentsOf: url)
+                _ = try GhostRemoteStore.shared.importRelay(data: data)
+            } catch {
+                UIBridge.presentError(with: error.localizedDescription)
+            }
         }
     }
 
     func checkAgreement() {
-        guard !store.licenseAgreed else {
-            return
-        }
+        guard !store.licenseAgreed else { return }
         let host = UIHostingController(rootView: AgreementView())
         host.preferredContentSize = preferredPopOverSize
         host.isModalInPresentation = true
         host.modalTransitionStyle = .coverVertical
         host.modalPresentationStyle = .formSheet
-        // At launch the window is not in the hierarchy yet; the queue
-        // replays the present once it is.
         PresentationQueue.present(next: host)
     }
 }

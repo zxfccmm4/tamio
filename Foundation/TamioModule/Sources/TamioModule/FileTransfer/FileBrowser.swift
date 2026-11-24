@@ -157,7 +157,15 @@ public struct FileBrowserError: Error, Sendable {
 
 @MainActor
 public final class LocalBrowser: FileBrowser {
-    public override init(path: String = NSHomeDirectory()) {
+    public static var defaultPath: String {
+        #if os(macOS)
+            NSHomeDirectory()
+        #else
+            FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.path ?? NSHomeDirectory()
+        #endif
+    }
+
+    public override init(path: String = LocalBrowser.defaultPath) {
         super.init(path: path)
     }
 
@@ -221,12 +229,16 @@ public final class LocalBrowser: FileBrowser {
         }
     }
 
-    /// To the Trash, so it can be put back.
+    /// To the Trash on macOS; removed directly on iOS where local Documents has no Trash.
     override public func delete(_ entries: [FileEntry]) async -> FileBrowserError? {
         defer { reload() }
         for entry in entries {
             do {
-                try FileManager.default.trashItem(at: URL(fileURLWithPath: entry.path), resultingItemURL: nil)
+                #if os(macOS)
+                    try FileManager.default.trashItem(at: URL(fileURLWithPath: entry.path), resultingItemURL: nil)
+                #else
+                    try FileManager.default.removeItem(atPath: entry.path)
+                #endif
             } catch {
                 return FileBrowserError(error.localizedDescription)
             }

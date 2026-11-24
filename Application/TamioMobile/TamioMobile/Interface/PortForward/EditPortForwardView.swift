@@ -2,14 +2,15 @@
 //  EditPortForwardView.swift
 //  TamioMobile
 //
-//  Created by Lakr Aream on 2022/3/12.
+//  Native Apple HIG Form for creating and editing SSH port forwards.
 //
 
-import TamioModule
 import SwiftUI
+import TamioModule
 
 struct EditPortForwardView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var store = TamioStore.shared
 
     let inEditWith: UUID?
 
@@ -17,150 +18,124 @@ struct EditPortForwardView: View {
         inEditWith = requestPortForward
     }
 
-    @State var initializedOnce = false
+    @State private var initializedOnce = false
+    @State private var forwardOrientation: RDPortForward.ForwardOrientation = .listenLocal
+    @State private var bindPort = "3000"
+    @State private var targetHost = "127.0.0.1"
+    @State private var targetPort = "3000"
+    @State private var usingMachine: RDMachine.ID?
 
-    @State var forwardOrientation: RDPortForward.ForwardOrientation = .listenLocal
-    @State var bindPort: String = "3000"
-    @State var targetHost: String = "127.0.0.1"
-    @State var targetPort: String = "3000"
-    @State var usingMachine: RDMachine.ID? = nil
-
-    var parsedBindPort: Int? {
-        guard let value = Int(bindPort), (0 ... 65535).contains(value) else { return nil }
+    private var parsedBindPort: Int? {
+        guard let value = Int(bindPort), (1 ... 65535).contains(value) else { return nil }
         return value
     }
 
-    var parsedTargetPort: Int? {
-        guard let value = Int(targetPort), (0 ... 65535).contains(value) else { return nil }
+    private var parsedTargetPort: Int? {
+        guard let value = Int(targetPort), (1 ... 65535).contains(value) else { return nil }
         return value
     }
 
-    var portsValid: Bool {
-        parsedBindPort != nil && parsedTargetPort != nil
+    private var portsValid: Bool {
+        parsedBindPort != nil && parsedTargetPort != nil && !targetHost.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    var generateObject: RDPortForward {
+    private var previewObject: RDPortForward {
         RDPortForward(
             forwardOrientation: forwardOrientation,
             bindPort: parsedBindPort ?? 0,
-            targetHost: targetHost,
+            targetHost: targetHost.trimmingCharacters(in: .whitespaces),
             targetPort: parsedTargetPort ?? 0,
             usingMachine: usingMachine
         )
     }
 
-    var forwardDescription: String {
-        generateObject.shortDescription()
-    }
-
     var body: some View {
-        List {
-            Section {
-                Picker("Forward Orientation", selection: $forwardOrientation) {
-                    ForEach(RDPortForward.ForwardOrientation.allCases, id: \.self) { acase in
-                        Text(acase.rawValue)
-                            .tag(acase)
+        Form {
+            Section("Direction") {
+                Picker("Direction", selection: $forwardOrientation) {
+                    Text("Local Forward (-L)").tag(RDPortForward.ForwardOrientation.listenLocal)
+                    Text("Remote Forward (-R)").tag(RDPortForward.ForwardOrientation.listenRemote)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Section("Bind Port") {
+                LabeledContent("Port") {
+                    TextField("3000", text: $bindPort)
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospaced())
+                        .keyboardType(.numberPad)
+                }
+            }
+
+            Section("Destination") {
+                LabeledContent("Host") {
+                    TextField("127.0.0.1", text: $targetHost)
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospaced())
+                        .disableAutocorrection(true)
+                        .textInputAutocapitalization(.never)
+                }
+                LabeledContent("Port") {
+                    TextField("3000", text: $targetPort)
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospaced())
+                        .keyboardType(.numberPad)
+                }
+            }
+
+            Section("Through Server") {
+                Picker("Server", selection: $usingMachine) {
+                    Text("None").tag(RDMachine.ID?.none)
+                    ForEach(store.machineGroup.machines) { machine in
+                        Text(machine.name).tag(RDMachine.ID?.some(machine.id))
                     }
                 }
-                .pickerStyle(MenuPickerStyle())
-            } header: {
-                RXSectionHeader("Orientation")
-            }
-
-            Section {
-                TextField("Bind Port", text: $bindPort)
-                    .disableAutocorrection(true)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.numberPad)
-            } header: {
-                RXSectionHeader("Bind Port")
-            }
-
-            Section {
-                TextField("Target Address", text: $targetHost)
-                    .disableAutocorrection(true)
-                    .textInputAutocapitalization(.never)
-                TextField("Target Port", text: $targetPort)
-                    .disableAutocorrection(true)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.numberPad)
-            } header: {
-                RXSectionHeader("Target Host")
-            }
-
-            Section {
-                Button {
-                    Task { @MainActor in
-                        let machine = await TamioUtil.selectOneMachine()
-                        usingMachine = machine.first
-                    }
-                } label: {
-                    Label("Select Machine", systemImage: "arrow.right")
-                        .foregroundColor(.accentColor)
-                }
-            } header: {
-                RXSectionHeader("Machine")
             }
 
             Section {} footer: {
                 if portsValid {
-                    Text(forwardDescription)
+                    Text(previewObject.shortDescription())
                 } else {
-                    Text("Ports must be numbers between 0 and 65535")
-                        .foregroundStyle(.rxDanger)
+                    Text("Ports must be numbers between 1 and 65535.")
+                        .foregroundStyle(.red)
                 }
+            }
+        }
+        .navigationTitle(inEditWith == nil ? String(localized: "New Port Forward") : String(localized: "Edit Port Forward"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { completeSheet() }
+                    .bold()
+                    .disabled(!portsValid)
             }
         }
         .onAppear {
-            if initializedOnce { return }
+            guard !initializedOnce else { return }
             initializedOnce = true
-            // Writing the fields synchronously in onAppear races the
-            // sheet's own first update: on iOS 15 the values could be
-            // swallowed and the form stayed empty. One runloop hop lets
-            // the current update cycle finish before the state changes.
-            DispatchQueue.main.async {
-                if let edit = inEditWith {
-                    let read = TamioStore.shared.portForwardGroup[edit]
-                    forwardOrientation = read.forwardOrientation
-                    bindPort = String(read.bindPort)
-                    targetHost = read.targetHost
-                    targetPort = String(read.targetPort)
-                    usingMachine = read.usingMachine
-                }
-            }
-        }
-        .rxGroupedList()
-        .navigationTitle("Edit Forward")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    completeSheet()
-                } label: {
-                    Text("Save").bold()
-                }
-                .disabled(!portsValid)
+            if let edit = inEditWith {
+                let read = store.portForwardGroup[edit]
+                forwardOrientation = read.forwardOrientation
+                bindPort = String(read.bindPort)
+                targetHost = read.targetHost
+                targetPort = String(read.targetPort)
+                usingMachine = read.usingMachine
             }
         }
     }
 
-    func completeSheet() {
+    private func completeSheet() {
         guard portsValid else {
-            UIBridge.presentError(with: "Invalid Port")
+            UIBridge.presentError(with: String(localized: "Invalid port or destination address."))
             return
         }
-        var object = generateObject
-        if let edit = inEditWith {
-            object.id = edit
-        }
-        TamioStore.shared.portForwardGroup.insert(object)
+        var object = previewObject
+        if let edit = inEditWith { object.id = edit }
+        store.portForwardGroup.insert(object)
         dismiss()
-    }
-}
-
-struct EditPortForwardView_Previews: PreviewProvider {
-    static var previews: some View {
-        createPreview {
-            AnyView(EditPortForwardView())
-        }
     }
 }

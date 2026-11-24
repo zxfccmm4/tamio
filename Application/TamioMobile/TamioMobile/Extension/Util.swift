@@ -28,7 +28,7 @@ enum TamioUtil {
                 return
             }
             let context = LAContext()
-            let reason = "Performing privacy sensitive operation requires device ownership authenticated"
+            let reason = String(localized: "Authenticate to access sensitive credentials or unlock Tamio.")
             context.evaluatePolicy(
                 .deviceOwnerAuthentication,
                 localizedReason: reason
@@ -53,6 +53,25 @@ enum TamioUtil {
     /// whether it went up.
     @MainActor static func presentModalSheet<Content: View>(rootView: Content, completion: ((Bool) -> Void)? = nil) {
         let controller = UIHostingController(rootView: rootView)
+        controller.isModalInPresentation = true
+        controller.modalTransitionStyle = .coverVertical
+        controller.modalPresentationStyle = .formSheet
+        controller.preferredContentSize = preferredPopOverSize
+        PresentationQueue.present(controller, completion: completion)
+    }
+
+    /// Presents a SwiftUI view with a direct UIKit dismiss closure so forms
+    /// with active keyboards close immediately without fighting SwiftUI's
+    /// Environment.dismiss bridge across a UIHostingController + NavigationStack.
+    @MainActor static func presentModalSheet<Content: View>(
+        @ViewBuilder content: @escaping (_ dismissModal: @escaping () -> Void) -> Content,
+        completion: ((Bool) -> Void)? = nil
+    ) {
+        let controller = UIHostingController<AnyView>(rootView: AnyView(EmptyView()))
+        controller.rootView = AnyView(content { [weak controller] in
+            controller?.view.endEditing(true)
+            controller?.dismiss(animated: true)
+        })
         controller.isModalInPresentation = true
         controller.modalTransitionStyle = .coverVertical
         controller.modalPresentationStyle = .formSheet

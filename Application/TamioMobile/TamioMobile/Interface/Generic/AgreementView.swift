@@ -2,32 +2,35 @@
 //  AgreementView.swift
 //  TamioMobile
 //
-//  Created by Lakr Aream on 2022/3/4.
+//  Native Apple onboarding license agreement sheet.
 //
 
-import TamioModule
 import SwiftUI
+import TamioModule
 
 struct AgreementView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        contentView
-    }
-
-    var contentView: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 5) {
-                Divider().hidden()
-                LicenseTextView(resource: "EULA")
-                Divider().hidden()
-
-                HStack {
-                    Spacer()
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    LicenseTextView(resource: "EULA")
+                        .padding(16)
+                        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+                .padding(16)
+            }
+            .appleGroupedBackground()
+            .navigationTitle("License Agreement")
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 0) {
+                    Divider()
                     Button {
                         UIBridge.requiresConfirmation(
-                            message: "Accept the license?",
-                            confirmTitle: "Agree",
+                            message: String(localized: "Accept the license?"),
+                            confirmTitle: String(localized: "Agree"),
                             destructive: false
                         ) { yes in
                             if yes {
@@ -37,21 +40,16 @@ struct AgreementView: View {
                         }
                     } label: {
                         Text("I Agree")
+                            .font(.headline)
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
                     }
-                    .buttonStyle(.rxPrimary)
-                    Spacer()
+                    .appleProminentButton()
+                    .controlSize(.large)
+                    .padding(16)
                 }
+                .background(.bar)
             }
-            .padding()
         }
-        .background(RXBackdrop().ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct AgreementView_Previews: PreviewProvider {
-    static var previews: some View {
-        AgreementView()
     }
 }

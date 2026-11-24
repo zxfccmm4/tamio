@@ -50,6 +50,11 @@ enum SyncedSettings {
                 get: { store.disableConformation },
                 set: { if store.disableConformation != $0 { store.disableConformation = $0 } }
             ),
+            .bool(
+                FilesPreference.showsHiddenKey,
+                get: { defaults.bool(forKey: FilesPreference.showsHiddenKey) },
+                set: { if defaults.bool(forKey: FilesPreference.showsHiddenKey) != $0 { defaults.set($0, forKey: FilesPreference.showsHiddenKey) } }
+            ),
             .int(
                 "sb.moe.tamio.timeout",
                 get: { store.timeout },

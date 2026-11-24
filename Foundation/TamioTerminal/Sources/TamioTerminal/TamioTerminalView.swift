@@ -9,7 +9,56 @@ import SwiftUI
 #else
     import UIKit
 
-    public typealias PlatformTerminalView = UITerminalView
+    /// Lockable Ghostty terminal view on iOS (inspired by iGhostVT's LockableTerminalView):
+    /// - `isInteractionLocked`: refuses touch hit testing and first responder to prevent accidental taps.
+    /// - `isSoftwareKeyboardLocked`: keeps touches, scrolling, selection, and hardware keys working while suppressing the on-screen keyboard.
+    @MainActor
+    public final class TamioUITerminalView: UITerminalView {
+        public var isInteractionLocked = false {
+            didSet {
+                guard isInteractionLocked, isFirstResponder else { return }
+                resignFirstResponder()
+            }
+        }
+
+        #if !targetEnvironment(macCatalyst)
+            private lazy var suppressedInputView = UIView(frame: .zero)
+
+            public var isSoftwareKeyboardLocked = false {
+                didSet {
+                    guard isSoftwareKeyboardLocked != oldValue else { return }
+                    if isSoftwareKeyboardLocked {
+                        inputAssistantItem.leadingBarButtonGroups = []
+                        inputAssistantItem.trailingBarButtonGroups = []
+                    }
+                    if isFirstResponder { reloadInputViews() }
+                }
+            }
+
+            override public var inputView: UIView? {
+                isSoftwareKeyboardLocked ? suppressedInputView : super.inputView
+            }
+
+            override public var inputAccessoryView: UIView? {
+                isSoftwareKeyboardLocked ? nil : super.inputAccessoryView
+            }
+
+            override public func toggleSoftwareKeyboard() {
+                guard !isInteractionLocked, !isSoftwareKeyboardLocked else { return }
+                super.toggleSoftwareKeyboard()
+            }
+        #endif
+
+        override public var canBecomeFirstResponder: Bool {
+            !isInteractionLocked && super.canBecomeFirstResponder
+        }
+
+        override public func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
+            isInteractionLocked ? nil : super.hitTest(point, with: event)
+        }
+    }
+
+    public typealias PlatformTerminalView = TamioUITerminalView
 #endif
 
 /// One native terminal per SSH context. Copies of this SwiftUI value share the
@@ -24,7 +73,10 @@ public struct TamioTerminalView {
     /// folder. Input and output never pass through Tamio.
     nonisolated public init(localShell: Bool) { session = TamioTerminalSession(localShell: localShell) }
 
-    nonisolated public func write(_ string: String) { session.output.write(Data(string.utf8)) }
+    nonisolated public func write(_ string: String) {
+        session.transcript.append(string)
+        session.output.write(Data(string.utf8))
+    }
 
     nonisolated public func setTerminalFontSize(with size: Int, preferConfigured: Bool = false) {
         session.callbacks.setFontSize(size)
@@ -38,6 +90,45 @@ public struct TamioTerminalView {
     /// terminal stops rendering and gives up keyboard focus (so typing never
     /// lands in a session you can't see); shown again, it takes focus back.
     @MainActor public func setActive(_ active: Bool) { session.setActive(active) }
+
+    /// Executes a Ghostty binding action (e.g. `search:needle`, `navigate_search:next`, `end_search`, `scroll_to_bottom`).
+    @MainActor @discardableResult
+    public func performBindingAction(_ action: String) -> Bool {
+        session.platformView().performBindingAction(action)
+    }
+
+    /// Reads the currently visible terminal viewport text from Ghostty.
+    @MainActor public func readViewportText() -> String? {
+        session.backend.readViewportText()
+    }
+
+    /// Returns the recent plain-text transcript captured from this session's output.
+    nonisolated public func readTranscript() -> String {
+        session.transcript.snapshot()
+    }
+
+    /// Sends text through the terminal's input callback (e.g. from a snippet panel or custom bar).
+    nonisolated public func sendInputText(_ text: String) {
+        session.callbacks.receiveInput(Data(text.utf8))
+    }
+
+    #if os(iOS) && !targetEnvironment(macCatalyst)
+        @MainActor public func snapshotImage() -> UIImage? {
+            session.platformView().snapshotImage()
+        }
+
+        @MainActor public func setInteractionLocked(_ locked: Bool) {
+            session.platformView().isInteractionLocked = locked
+        }
+
+        @MainActor public func setSoftwareKeyboardLocked(_ locked: Bool) {
+            session.platformView().isSoftwareKeyboardLocked = locked
+        }
+
+        @MainActor public func setInputAccessoryItems(_ items: [TerminalInputAccessoryItem]) {
+            session.platformView().inputAccessoryItems = items
+        }
+    #endif
 
     @discardableResult
     nonisolated public func setupBufferChain(callback: ((String) -> Void)?) -> Self {
@@ -90,10 +181,88 @@ private struct TerminalSurfaceHost {
     }
 #else
     extension TerminalSurfaceHost: UIViewRepresentable {
-        func makeUIView(context _: Context) -> UITerminalView { session.platformView() }
-        func updateUIView(_: UITerminalView, context _: Context) {}
+        func makeUIView(context _: Context) -> PlatformTerminalView { session.platformView() }
+        func updateUIView(_: PlatformTerminalView, context _: Context) {}
     }
 #endif
+
+/// Bounded ANSI-stripped transcript for fast scrollback search counts and export.
+final class TerminalTranscriptBuffer: @unchecked Sendable {
+    private let lock = NSLock()
+    private var text = ""
+    private let maxCharacters = 256_000
+
+    func append(_ raw: String) {
+        let stripped = Self.stripANSI(raw)
+        guard !stripped.isEmpty else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        text.append(stripped)
+        if text.count > maxCharacters {
+            text.removeFirst(text.count - maxCharacters)
+        }
+    }
+
+    func snapshot() -> String {
+        lock.lock()
+        defer { lock.unlock() }
+        return text
+    }
+
+    private static func stripANSI(_ input: String) -> String {
+        var result = String()
+        result.reserveCapacity(input.count)
+        var i = input.startIndex
+        while i < input.endIndex {
+            let ch = input[i]
+            if ch == "\u{1B}" {
+                let next = input.index(after: i)
+                if next < input.endIndex {
+                    let intro = input[next]
+                    if intro == "[" {
+                        // CSI sequence: ESC [ ... final byte 0x40-0x7E
+                        var j = input.index(after: next)
+                        while j < input.endIndex {
+                            if let ascii = input[j].asciiValue, ascii >= 0x40, ascii <= 0x7E {
+                                j = input.index(after: j)
+                                break
+                            }
+                            j = input.index(after: j)
+                        }
+                        i = j
+                        continue
+                    } else if intro == "]" {
+                        // OSC sequence: ESC ] ... BEL or ESC \
+                        var j = input.index(after: next)
+                        while j < input.endIndex {
+                            if input[j] == "\u{07}" {
+                                j = input.index(after: j)
+                                break
+                            }
+                            if input[j] == "\u{1B}" {
+                                let afterEsc = input.index(after: j)
+                                if afterEsc < input.endIndex, input[afterEsc] == "\\" {
+                                    j = input.index(after: afterEsc)
+                                    break
+                                }
+                            }
+                            j = input.index(after: j)
+                        }
+                        i = j
+                        continue
+                    }
+                }
+                i = next < input.endIndex ? input.index(after: next) : input.endIndex
+                continue
+            }
+            if ch != "\r" {
+                result.append(ch)
+            }
+            i = input.index(after: i)
+        }
+        return result
+    }
+}
 
 /// Only the immutable/thread-safe transport objects cross queues. AppKit storage
 /// and all Ghostty view operations are explicitly main-actor isolated.
@@ -101,6 +270,7 @@ final class TamioTerminalSession: @unchecked Sendable {
     let callbacks: TerminalCallbacks
     let backend: InMemoryTerminalSession
     let output: TerminalOutputBuffer
+    let transcript = TerminalTranscriptBuffer()
     let localShell: Bool
     let clipboardNotice = RemoteClipboardNotice()
     @MainActor private var presentation: TerminalPresentation?

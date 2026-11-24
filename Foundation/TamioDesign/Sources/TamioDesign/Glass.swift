@@ -40,13 +40,23 @@ public enum RXGlass {
     #endif
 
     /// Read where the environment does not reach (the terminal's configuration).
+    /// Frosted desktop-blur glass is macOS-only; iOS renders opaque surfaces
+    /// and uses native material/Liquid Glass on floating chrome instead.
     public static var isOn: Bool {
-        UserDefaults.standard.object(forKey: key) as? Bool ?? true
+        #if os(macOS)
+            UserDefaults.standard.object(forKey: key) as? Bool ?? true
+        #else
+            false
+        #endif
     }
 }
 
 private struct RXGlassKey: EnvironmentKey {
-    static let defaultValue = true
+    #if os(macOS)
+        static let defaultValue = true
+    #else
+        static let defaultValue = false
+    #endif
 }
 
 private struct RXOpenWidthKey: EnvironmentKey {

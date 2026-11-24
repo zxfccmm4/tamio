@@ -2,12 +2,12 @@
 //  PortForwardView.swift
 //  TamioMobile
 //
-//  Forwards: orientation, bind, through server, target, status and an
-//  on/off switch, as on the Mac.
+//  Native Apple HIG `.insetGrouped` port forwards list with inline toggle
+//  switches, swipe-to-edit/delete, and clear Local/Remote direction badges.
 //
 
-import MachineStatusView
 import SwiftUI
+import TamioDesign
 import TamioModule
 
 struct PortForwardView: View {
@@ -15,7 +15,6 @@ struct PortForwardView: View {
     @ObservedObject var backend = PortForwardBackend.shared
 
     @State private var searchText = ""
-    @State private var selection: RDPortForward.ID?
     @State private var editor: EditorTarget?
 
     struct EditorTarget: Identifiable {
@@ -23,7 +22,7 @@ struct PortForwardView: View {
         let forward: RDPortForward.ID?
     }
 
-    var filtered: [RDPortForward] {
+    private var filtered: [RDPortForward] {
         let all = store.portForwardGroup.forwards
         guard !searchText.isEmpty else { return all }
         let key = searchText.lowercased()
@@ -36,50 +35,86 @@ struct PortForwardView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: RX.Space.s3) {
-                if store.portForwardGroup.forwards.isEmpty {
-                    EmptyStateView(
-                        "No port forwards",
-                        systemImage: "arrow.right",
-                        actionTitle: "New Port Forward"
-                    ) {
+        Group {
+            if store.portForwardGroup.forwards.isEmpty {
+                ContentUnavailableView {
+                    Label("No Port Forwards", systemImage: "arrow.left.arrow.right")
+                } description: {
+                    Text("Create an SSH tunnel to securely forward local or remote ports through your saved servers.")
+                } actions: {
+                    Button {
                         editor = EditorTarget(forward: nil)
+                    } label: {
+                        Label("New Port Forward", systemImage: "plus")
                     }
-                    .rxCard()
-                } else if filtered.isEmpty {
-                    EmptyStateView("No matches", systemImage: "magnifyingglass")
-                        .rxCard()
-                } else {
-                    PortForwardTable(forwards: filtered, selection: $selection, edit: { editor = EditorTarget(forward: $0) }) { forward in
-                        let running = backend.sessionExists(withPortForwardID: forward.id)
-                        Button("Edit…") { editor = EditorTarget(forward: forward.id) }.disabled(running)
-                        Button("Duplicate") { PortForwardActions.duplicate(forward.id) }
-                        Button("Copy SSH Command") { UIBridge.sendPasteboard(str: forward.getCommand() ?? "") }
-                            .disabled(forward.getCommand() == nil)
-                        Divider()
-                        Button("Delete…", role: .destructive) { PortForwardActions.delete(forward.id) }
+                    .appleProminentButton()
+                    .controlSize(.large)
+                }
+                .appleGroupedBackground()
+            } else if filtered.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+                    .appleGroupedBackground()
+            } else {
+                List {
+                    Section {
+                        ForEach(filtered) { forward in
+                            PortForwardListRow(
+                                forward: forward,
+                                isRunning: backend.sessionExists(withPortForwardID: forward.id),
+                                onToggle: { isOn in
+                                    if isOn {
+                                        backend.createSession(withPortForwardID: forward.id)
+                                    } else {
+                                        backend.endSession(withPortForwardID: forward.id)
+                                    }
+                                }
+                            )
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    PortForwardActions.delete(forward.id)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+
+                                Button {
+                                    editor = EditorTarget(forward: forward.id)
+                                } label: {
+                                    Label("Edit", systemImage: "pencil")
+                                }
+                                .tint(.orange)
+                                .disabled(backend.sessionExists(withPortForwardID: forward.id))
+                            }
+                            .contextMenu {
+                                let running = backend.sessionExists(withPortForwardID: forward.id)
+                                Button("Edit…") { editor = EditorTarget(forward: forward.id) }.disabled(running)
+                                Button("Duplicate") { PortForwardActions.duplicate(forward.id) }
+                                Button("Copy SSH Command") { UIBridge.sendPasteboard(str: forward.getCommand() ?? "") }
+                                    .disabled(forward.getCommand() == nil)
+                                Divider()
+                                Button("Delete…", role: .destructive) { PortForwardActions.delete(forward.id) }
+                            }
+                        }
+                    } header: {
+                        Text("Tunnels")
                     }
                 }
+                .listStyle(.insetGrouped)
             }
-            .padding(.horizontal, RX.Space.s4)
-            .padding(.top, RX.Space.s1)
-            .padding(.bottom, RX.Space.s6)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(RXBackdrop().ignoresSafeArea())
         .navigationTitle("Port Forward")
-        .searchable(text: $searchText, prompt: "Search forwards")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: Text("Search forwards"))
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    for context in backend.container {
-                        backend.endSession(withPortForwardID: context.info.id)
+                if !backend.container.isEmpty {
+                    Button {
+                        for context in backend.container {
+                            backend.endSession(withPortForwardID: context.info.id)
+                        }
+                    } label: {
+                        Label("Stop All", systemImage: "stop.circle")
                     }
-                } label: {
-                    Label("Stop All", systemImage: "stop.circle")
                 }
-                .disabled(backend.container.isEmpty)
                 Button { editor = EditorTarget(forward: nil) } label: {
                     Label("New Port Forward", systemImage: "plus")
                 }
@@ -88,6 +123,48 @@ struct PortForwardView: View {
         .sheet(item: $editor) { target in
             NavigationStack { EditPortForwardView(requestPortForward: target.forward) }
         }
+    }
+}
+
+private struct PortForwardListRow: View {
+    let forward: RDPortForward
+    let isRunning: Bool
+    let onToggle: (Bool) -> Void
+
+    private var isLocal: Bool { forward.forwardOrientation == .listenLocal }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: isLocal ? "arrow.right" : "arrow.left")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(isRunning ? .green : .secondary)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(":\(forward.bindPort) → \(forward.targetHost):\(forward.targetPort)")
+                    .font(.subheadline.weight(.medium).monospaced())
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    Text(isLocal ? String(localized: "Local") : String(localized: "Remote"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("·")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    Text(forward.getMachineName() ?? String(localized: "No server selected"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Toggle("", isOn: Binding(get: { isRunning }, set: onToggle))
+                .labelsHidden()
+                .disabled(forward.usingMachine == nil)
+        }
+        .padding(.vertical, 2)
     }
 }
 

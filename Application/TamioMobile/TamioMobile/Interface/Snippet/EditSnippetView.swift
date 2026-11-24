@@ -2,16 +2,17 @@
 //  EditSnippetView.swift
 //  TamioMobile
 //
-//  Created by Lakr Aream on 2022/3/3.
+//  Native Apple HIG Form for creating and editing shell snippets.
 //
 
 import CodeEditorUI
-import TamioModule
 import SwiftUI
 import SymbolPicker
+import TamioModule
 
 struct EditSnippetView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var store = TamioStore.shared
 
     let inEditWith: UUID?
 
@@ -19,119 +20,120 @@ struct EditSnippetView: View {
         inEditWith = requestSnippet
     }
 
-    // Pinned in state so the editor's factory and its view stay paired while
-    // SwiftUI recreates this view.
-    @State var editor = SCodeEditor()
+    @State private var editor = SCodeEditor()
+    @State private var initializedOnce = false
+    @State private var name = ""
+    @State private var group = ""
+    @State private var code = ""
+    @State private var comment = ""
+    @State private var avatar = ""
+    @State private var openSymbolPicker = false
 
-    @State var initializedOnce = false
-
-    @State var name: String = ""
-    @State var group: String = ""
-    @State var code: String = ""
-    @State var comment: String = ""
-    @State var avatar: String = ""
-
-    @State var openSymbolPicker: Bool = false
+    private var existingGroups: [String] {
+        Set(store.snippetGroup.snippets.map(\.group)).filter { !$0.isEmpty }.sorted()
+    }
 
     var body: some View {
-        List {
-            Section {
+        Form {
+            Section("Details") {
                 TextField("Name", text: $name)
+
                 Button {
                     openSymbolPicker = true
                 } label: {
-                    if avatar.isEmpty {
-                        Text("Select SF Symbol")
-                    } else {
-                        Label("Select SF Symbol", systemImage: avatar.isEmpty ? "square.dashed" : avatar)
+                    HStack {
+                        Text("Icon")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: avatar.isEmpty ? "chevron.left.forwardslash.chevron.right" : avatar)
+                            .foregroundStyle(Color.accentColor)
                     }
                 }
-                TextField("Group", text: $group)
-                TextField("Comment", text: $comment)
-            } header: {
-                RXSectionHeader("Name")
+
+                HStack {
+                    TextField("Group (optional)", text: $group)
+                    if !existingGroups.isEmpty {
+                        Menu {
+                            ForEach(existingGroups, id: \.self) { item in
+                                Button(item) { group = item }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down.circle")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                TextField("Comment (optional)", text: $comment)
             }
 
-            Section {
+            Section("Shell Command") {
                 editor
                     .onContentChange { code = $0 }
-                    .frame(height: 250)
-            } header: {
-                RXSectionHeader("Code")
+                    .frame(height: 240)
             }
 
-            if let identity = inEditWith {
+            if let snippetID = inEditWith {
                 Section {
-                    Button {
+                    Button(role: .destructive) {
                         UIBridge.requiresConfirmation(
-                            message: "Delete this snippet?"
+                            message: String(localized: "Delete this snippet?"),
+                            confirmTitle: String(localized: "Delete"),
+                            destructive: true
                         ) { confirmed in
                             if confirmed {
-                                TamioStore.shared.snippetGroup.delete(identity)
+                                store.snippetGroup.delete(snippetID)
                                 dismiss()
                             }
                         }
                     } label: {
                         Label("Delete Snippet", systemImage: "trash")
-                            .foregroundColor(.red)
                     }
                 }
             }
         }
+        .navigationTitle(inEditWith == nil ? String(localized: "New Snippet") : String(localized: "Edit Snippet"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { completeSheet() }
+                    .bold()
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .sheet(isPresented: $openSymbolPicker) {
+            SymbolPicker(symbol: $avatar)
+        }
         .onAppear {
-            if initializedOnce { return }
+            guard !initializedOnce else { return }
             initializedOnce = true
-            // Writing the fields synchronously in onAppear races the
-            // sheet's own first update: on iOS 15 the values could be
-            // swallowed and the form stayed empty. One runloop hop lets
-            // the current update cycle finish before the state changes.
             DispatchQueue.main.async {
                 if let edit = inEditWith {
-                    let read = TamioStore.shared.snippetGroup[edit]
+                    let read = store.snippetGroup[edit]
                     name = read.name
                     group = read.group
                     code = read.code
                     comment = read.comment
                     avatar = read.getSFAvatar()
                 }
-                if comment.isEmpty {
-                    comment = "Created at: " + Date().formatted()
-                }
-                if code.isEmpty {
-                    editor.setDocumentData("#!/bin/bash\n\n")
-                } else {
-                    editor.setDocumentData(code)
-                }
-            }
-        }
-        .sheet(isPresented: $openSymbolPicker, onDismiss: nil) {
-            SymbolPicker(symbol: $avatar)
-        }
-        .rxGroupedList()
-        .navigationTitle(inEditWith == nil ? "New Snippet" : "Edit Snippet")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button {
-                    completeSheet()
-                } label: {
-                    Text("Save").bold()
-                }
+                editor.setDocumentData(code.isEmpty ? "#!/bin/bash\n\n" : code)
             }
         }
     }
 
-    func completeSheet() {
-        guard !name.isEmpty else {
-            UIBridge.presentError(with: "Empty Name")
+    private func completeSheet() {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            UIBridge.presentError(with: String(localized: "Snippet name cannot be empty."))
             return
         }
-
-        let id = inEditWith ?? UUID()
-
         var newSnippet = RDSnippet(
-            id: id,
-            name: name,
-            group: group,
+            id: inEditWith ?? UUID(),
+            name: trimmedName,
+            group: group.trimmingCharacters(in: .whitespaces),
             code: code,
             comment: comment,
             attachment: [:]
@@ -141,15 +143,7 @@ struct EditSnippetView: View {
         } else {
             newSnippet.setSFAvatar(sfSymbol: avatar)
         }
-
-        TamioStore.shared.snippetGroup.insert(newSnippet)
-
+        store.snippetGroup.insert(newSnippet)
         dismiss()
-    }
-}
-
-struct EditSnippetView_Previews: PreviewProvider {
-    static var previews: some View {
-        createPreview { AnyView(EditSnippetView()) }
     }
 }

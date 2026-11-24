@@ -13,6 +13,9 @@ the user. To release, rename that heading to the version and date
 
 ## [Unreleased]
 
+### Added
+- **iOS and iPadOS app brought up to Mac v0.2.21 with non-jailbreak iGhostVT terminal UX.** `TamioMobile` now includes the unified server and SSH key editors (Ed25519 generation, sealed private keys, per-server private passwords, Tailscale `None` auth), concurrent `FileBrowser`/`TransferQueue` SFTP with dual panes on iPad and overwrite prompts, iCloud KVS/Keychain sync entitlements, local network and privacy manifests, Face ID app lock, Live Activities (`TamioMobileWidgets`), customizable keyboard bar, terminal Find, swipeable floating tab bar with live-thumbnail Tab Switcher, tab/keyboard locks, snippet drawer, transcript export, network-recovery auto-reconnect, and App Store-safe Ghost Remote LAN discovery and `.vtrpsc` relay support.
+
 ## [0.2.21] - 2026-11-07
 
 ### Added

@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct RDIdentityGroup: Codable, Identifiable, RDGroup {
+public struct RDIdentityGroup: Codable, Identifiable, Equatable, RDGroup {
     public typealias AssociatedType = RDIdentity
 
     public var id = UUID()
@@ -27,5 +27,9 @@ public struct RDIdentityGroup: Codable, Identifiable, RDGroup {
 
     public static func accepts(_ item: RDIdentity) -> Bool {
         item.hasCredentials || !item.name.isEmpty
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.identities == rhs.identities
     }
 }

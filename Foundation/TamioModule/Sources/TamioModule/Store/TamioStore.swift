@@ -161,6 +161,7 @@ public class TamioStore: ObservableObject, @unchecked Sendable {
 
     @Published public var openInterfaceAutomatically: Bool = true {
         didSet {
+            guard openInterfaceAutomatically != oldValue else { return }
             storeEncryptedDefault(
                 to: .openInterfaceAutomatically,
                 with: openInterfaceAutomatically
@@ -170,6 +171,7 @@ public class TamioStore: ObservableObject, @unchecked Sendable {
 
     @Published public var identityGroup: RDIdentityGroup = .init() {
         didSet {
+            guard identityGroup != oldValue else { return }
             workerState.withLock { $0.identities = identityGroup.identities }
             storeEncryptedDefault(
                 to: .identityGroupEncrypted,
@@ -189,6 +191,7 @@ public class TamioStore: ObservableObject, @unchecked Sendable {
 
     @Published public var machineRedacted: RDMachine.RedactedLevel = .none {
         didSet {
+            guard machineRedacted != oldValue else { return }
             storeEncryptedDefault(
                 to: .machineRedacted,
                 with: machineRedacted
@@ -198,6 +201,7 @@ public class TamioStore: ObservableObject, @unchecked Sendable {
 
     @Published public var machineGroup: RDMachineGroup = .init() {
         didSet {
+            guard machineGroup != oldValue else { return }
             workerState.withLock { $0.machines = machineGroup.machines }
             storeEncryptedDefault(
                 to: .machineGroupEncrypted,

@@ -105,11 +105,13 @@ public struct RDIdentity: Codable, Identifiable, Equatable, Sendable {
             return
         }
         let date = Date()
-        let fmt = DateFormatter()
-        fmt.dateStyle = .full
-        fmt.timeStyle = .full
-        debugPrint("Identity \(id) was used to authentic session at \(fmt.string(from: date))")
         onMainThread {
+            let group = TamioStore.shared.identityGroup
+            guard group.identities.contains(where: { $0.id == id }) else { return }
+            let current = group[id]
+            // Avoid churning TamioStore, LiveStatusCenter, and CloudSync on
+            // every background monitor reconnect or tool call.
+            guard abs(date.timeIntervalSince(current.lastRecentUsed)) >= 300 else { return }
             TamioStore.shared.identityGroup[id].lastRecentUsed = date
         }
     }

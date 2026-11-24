@@ -2,17 +2,18 @@
 //  PickIdentityView.swift
 //  TamioMobile
 //
-//  Created by Lakr Aream on 2022/3/3.
+//  Native Apple HIG identity picker sheet.
 //
 
-import TamioModule
 import SwiftUI
+import TamioModule
 
 struct PickIdentityView: View {
     @ObservedObject var store = TamioStore.shared
 
     @Binding var selection: RDIdentity.ID?
     @State var rawSelection: RDIdentity.ID? = nil
+    @State private var creatingNew = false
 
     init(selection: Binding<RDIdentity.ID?>) {
         _selection = selection
@@ -20,8 +21,6 @@ struct PickIdentityView: View {
 
     private var completion: ((RDIdentity.ID?) -> Void)?
 
-    /// MAKE SURE THIS VIEW IS NOT DISMISSABLE BY DRAG
-    /// - Parameter completion: only called when touch checkmark button
     init(completion: @escaping ((RDIdentity.ID?) -> Void)) {
         self.completion = completion
         _selection = Binding<RDIdentity.ID?> { nil } set: { _ in }
@@ -29,84 +28,86 @@ struct PickIdentityView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State var openCreate: Bool = false
-
     var body: some View {
         List {
             Section {
-                if let sid = rawSelection {
-                    Label(
-                        store
-                            .identityGroup[sid]
-                            .shortDescription(),
-                        systemImage: "person"
-                    )
+                Button {
+                    creatingNew = true
+                } label: {
+                    Label("New SSH Key…", systemImage: "plus.circle.fill")
+                }
+            }
+
+            Section("Available Identities") {
+                if store.identityGroup.shared.isEmpty {
+                    Text("No saved identities yet.")
+                        .foregroundStyle(.secondary)
                 } else {
-                    Label("Not Selected", systemImage: "questionmark.square.dashed")
-                }
-            } header: {
-                RXSectionHeader("Selected Identity")
-            }
-
-            Section {
-                Button {
-                    openCreate = true
-                } label: {
-                    Label("Create New Identity", systemImage: "arrow.right")
-                }
-                .background(
-                    NavigationLink(isActive: $openCreate) {
-                        EditIdentityView()
-                    } label: {
-                        Group {}
-                    }
-                )
-                ForEach(
-                    store
-                        .identityGroup
-                        .identities
-                ) { identity in
-                    Button {
-                        rawSelection = identity.id
-                    } label: {
-                        Label(identity.shortDescription(), systemImage: "person")
+                    ForEach(store.identityGroup.shared) { identity in
+                        let isSelected = rawSelection == identity.id
+                        Button {
+                            rawSelection = identity.id
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(identity.displayName)
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(.primary)
+                                    if !identity.group.isEmpty {
+                                        Text(identity.group)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-            } header: {
-                RXSectionHeader("Available Identities")
             }
 
-            Section {
-                Button {
-                    rawSelection = nil
-                } label: {
-                    Label("Clear Selection", systemImage: "xmark")
+            if rawSelection != nil {
+                Section {
+                    Button(role: .destructive) {
+                        rawSelection = nil
+                    } label: {
+                        Label("Clear Selection", systemImage: "xmark.circle")
+                    }
                 }
-                .disabled(rawSelection == nil)
             }
         }
-        .rxGroupedList()
+        .listStyle(.insetGrouped)
         .navigationTitle("Choose Identity")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem {
-                Button {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                    completion?(nil)
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
                     dismiss()
                     completion?(rawSelection)
-                } label: {
-                    Text("Save").bold()
+                }
+                .bold()
+            }
+        }
+        .sheet(isPresented: $creatingNew) {
+            NavigationStack {
+                EditIdentityView { created in
+                    rawSelection = created
                 }
             }
         }
-        .onChange(of: rawSelection) { newValue in
+        .onChange(of: rawSelection) { _, newValue in
             selection = newValue
         }
-    }
-}
-
-struct PickIdentityView_Previews: PreviewProvider {
-    @State static var selection: RDIdentity.ID? = nil
-
-    static var previews: some View {
-        createPreview { AnyView(PickIdentityView(selection: $selection)) }
     }
 }

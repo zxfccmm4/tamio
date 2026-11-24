@@ -165,18 +165,22 @@ public final class LiveStatusCenter: ObservableObject {
             wanted = []
         }
         let wantedIDs = Set(wanted.map(\.id))
+        var nextSessions = sessions
         for (id, session) in sessions where !wantedIDs.contains(id) {
             session.shutdown()
-            sessions[id] = nil
+            nextSessions[id] = nil
             startedFrom[id] = nil
         }
         for machine in wanted {
             let identity = store.associatedIdentity(for: machine)
             let fingerprint = Fingerprint(machine, identity)
-            if sessions[machine.id] != nil, startedFrom[machine.id] == fingerprint { continue }
-            sessions[machine.id]?.shutdown()
-            sessions[machine.id] = MonitorSession(machine: machine, identity: identity, recordsConnection: false, detailed: false)
+            if nextSessions[machine.id] != nil, startedFrom[machine.id] == fingerprint { continue }
+            nextSessions[machine.id]?.shutdown()
+            nextSessions[machine.id] = MonitorSession(machine: machine, identity: identity, recordsConnection: false, detailed: false)
             startedFrom[machine.id] = fingerprint
+        }
+        if nextSessions != sessions {
+            sessions = nextSessions
         }
     }
 }

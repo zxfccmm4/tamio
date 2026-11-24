@@ -136,7 +136,12 @@ public final class TransferJob: ObservableObject, Identifiable {
         let server = to?.name ?? String(localized: "server")
         switch direction {
         case .upload: return String(localized: "\(what) → \(server)")
-        case .download: return String(localized: "\(what) → this Mac")
+        case .download:
+            #if os(macOS)
+                return String(localized: "\(what) → this Mac")
+            #else
+                return String(localized: "\(what) → this device")
+            #endif
         case .relay: return String(localized: "\(what) → \(server)")
         }
     }
@@ -371,13 +376,17 @@ public enum TransferPlacement {
         shell.requestDelete(forFileAndWait: path, withProgressBlock: { _ in }, withContinuationHandler: { true })
     }
 
-    /// To the Trash, so what was replaced can be put back.
+    /// To the Trash on macOS; removed directly on iOS where local storage has no Trash.
     static func removeLocal(_ path: String) -> Bool {
-        (try? FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)) != nil
+        #if os(macOS)
+            (try? FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)) != nil
+        #else
+            (try? FileManager.default.removeItem(atPath: path)) != nil
+        #endif
     }
 
-    /// Copies from one folder on this Mac to another, as Finder does: a copy
-    /// that replaces sends what was there to the Trash first, a folder whole.
+    /// Copies from one local folder to another: replaces send what was there
+    /// to the Trash on macOS (or remove it on iOS).
     public static func copyLocally(_ paths: [String], into folder: String, _ collision: TransferJob.Collision) throws {
         var existing = localNames(in: folder)
         for path in paths {
@@ -387,10 +396,14 @@ public enum TransferPlacement {
             let taken = existing[name] != nil
             guard let place = place(name, isDirectory: isDirectory.boolValue, among: &existing, collision) else { continue }
             let target = (folder as NSString).appendingPathComponent(place.name)
-            // Replacing an item with itself would only send it to the Trash.
+            // Replacing an item with itself would only delete it.
             if target == path { continue }
             if taken, collision == .replace {
-                try FileManager.default.trashItem(at: URL(fileURLWithPath: target), resultingItemURL: nil)
+                #if os(macOS)
+                    try FileManager.default.trashItem(at: URL(fileURLWithPath: target), resultingItemURL: nil)
+                #else
+                    try FileManager.default.removeItem(atPath: target)
+                #endif
             }
             try FileManager.default.copyItem(atPath: path, toPath: target)
         }

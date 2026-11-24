@@ -1,6 +1,7 @@
 # The iOS and iPadOS app: SwiftUI on UIKit, sharing TamioModule, the Ghostty
-# terminal and the status views with the Mac app. Regenerate the project
-# with: xcodegen generate
+# terminal and the status views with the Mac app, plus non-jailbreak iGhostVT
+# terminal UX, Live Activities, and Ghost Remote support.
+# Regenerate the project with: xcodegen generate
 name: TamioMobile
 options:
   developmentLanguage: en
@@ -8,6 +9,9 @@ options:
     - Base
     - en
     - zh-Hans
+    - zh-Hant
+    - ja
+    - ko
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -15,18 +19,21 @@ options:
 packages:
   TamioModule: { path: ../../Foundation/TamioModule }
   TamioTerminal: { path: ../../Foundation/TamioTerminal }
+  TamioDesign: { path: ../../Foundation/TamioDesign }
   MachineStatus: { path: ../../Foundation/MachineStatus }
   MachineStatusView: { path: ../../Foundation/MachineStatusView }
   SymbolPicker: { path: ../../Foundation/SymbolPicker }
   SPIndicator: { path: ../../Foundation/SPIndicator }
   StripedTextTable: { path: ../../Foundation/StripedTextTable }
   TamioEditor: { path: ../../Foundation/TamioEditor }
+  Keychain: { path: ../../Foundation/Keychain }
+  NSRemoteShell: { path: ../../External/NSRemoteShell }
   CodeMirrorUI: { path: ../../External/CodeMirrorUI }
 settings:
   base:
     SWIFT_VERSION: "6.0"
     # The same version as the Mac app: one changelog, one release.
-    MARKETING_VERSION: "0.2.13"
+    MARKETING_VERSION: "0.2.21"
     CURRENT_PROJECT_VERSION: $(MARKETING_VERSION)
     DEVELOPMENT_TEAM: NCFNX3LJ83
 targets:
@@ -37,6 +44,7 @@ targets:
       - path: TamioMobile
         excludes:
           - Info.plist
+      - path: SharedActivity
       - path: ../../Resources/EULA
         buildPhase: resources
       - path: ../../Resources/LICENSE
@@ -49,17 +57,17 @@ targets:
         PRODUCT_NAME: Tamio
         ASSETCATALOG_COMPILER_APPICON_NAME: Tamio
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        CODE_SIGN_ENTITLEMENTS: TamioMobile/TamioMobile.entitlements
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_FILE: TamioMobile/Info.plist
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         INFOPLIST_KEY_CFBundleDisplayName: Tamio
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: YES
-        INFOPLIST_KEY_NSFaceIDUsageDescription: "Face ID confirms it is you before a sensitive step."
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "Face ID confirms it is you before a sensitive step or unlocking Tamio."
         INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 MOE AI LLC. Based on Rayon: © 2022 Lakr Aream, © 2026 mizorewww and catussh contributors."
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UIApplicationSupportsMultipleScenes: YES
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
@@ -72,24 +80,56 @@ targets:
       configs:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: sb.moe.tamio.debug
+          CODE_SIGN_ENTITLEMENTS: TamioMobile/TamioMobile-Debug.entitlements
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: sb.moe.tamio
+          CODE_SIGN_ENTITLEMENTS: TamioMobile/TamioMobile.entitlements
     dependencies:
+      - target: TamioMobileWidgets
+        embed: true
       - package: TamioModule
       - package: TamioTerminal
+      - package: TamioDesign
       - package: MachineStatus
       - package: MachineStatusView
       - package: SymbolPicker
       - package: SPIndicator
       - package: StripedTextTable
       - package: TamioEditor
+      - package: Keychain
+      - package: NSRemoteShell
       - package: CodeMirrorUI
         product: CodeEditorUI
+  TamioMobileWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: TamioMobileWidgets
+        excludes:
+          - Info.plist
+      - path: SharedActivity
+    settings:
+      base:
+        PRODUCT_NAME: TamioMobileWidgets
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: TamioMobileWidgets/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Tamio Widgets
+        SKIP_INSTALL: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: sb.moe.tamio.debug.widgets
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: sb.moe.tamio.widgets
 schemes:
   TamioMobile:
     build:
       targets:
         TamioMobile: all
+        TamioMobileWidgets: all
     run:
       config: Debug
     archive:

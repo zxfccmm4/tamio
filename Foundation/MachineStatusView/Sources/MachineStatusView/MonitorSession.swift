@@ -17,16 +17,27 @@ import TamioModule
 public struct MonitorHistory: Equatable {
     public static let capacity = 60
 
+    public private(set) var timestamps: [Date] = []
     public private(set) var cpu: [Double] = []
     public private(set) var memory: [Double] = []
+    public private(set) var swap: [Double] = []
+    public private(set) var disk: [Double] = []
+    public private(set) var processes: [Double] = []
     public private(set) var receive: [Double] = []
     public private(set) var transmit: [Double] = []
 
     public init() {}
 
-    mutating func record(_ status: ServerStatus) {
+    mutating func record(_ status: ServerStatus, at date: Date = Date()) {
+        timestamps.append(date)
+        if timestamps.count > Self.capacity {
+            timestamps.removeFirst(timestamps.count - Self.capacity)
+        }
         Self.push(Double(status.processor.summary.sumUsed), to: &cpu)
         Self.push(status.memoryUsedPercent, to: &memory)
+        Self.push(status.swapUsedPercent, to: &swap)
+        Self.push(status.primaryDiskUsedPercent, to: &disk)
+        Self.push(Double(status.system.totalProcs), to: &processes)
         Self.push(Double(status.totalReceivePerSecond), to: &receive)
         Self.push(Double(status.totalTransmitPerSecond), to: &transmit)
     }
@@ -46,6 +57,19 @@ public extension ServerStatus {
         network.elements.map(\.txBytesPerSec).reduce(0, &+)
     }
 
+    /// Physical interfaces when present, falling back to all interfaces.
+    var physicalReceivePerSecond: Int {
+        let physical = network.elements.filter { !NetworkFilter.isVirtual($0.device) }
+        let source = physical.isEmpty ? network.elements : physical
+        return source.map(\.rxBytesPerSec).reduce(0, &+)
+    }
+
+    var physicalTransmitPerSecond: Int {
+        let physical = network.elements.filter { !NetworkFilter.isVirtual($0.device) }
+        let source = physical.isEmpty ? network.elements : physical
+        return source.map(\.txBytesPerSec).reduce(0, &+)
+    }
+
     /// Memory readings are stored in kB on every platform.
     var memoryUsedKB: Double {
         Double(max(0, memory.memTotal - memory.memFree - memory.memCached - memory.memBuffers))
@@ -58,6 +82,17 @@ public extension ServerStatus {
     var memoryUsedPercent: Double {
         guard memory.memTotal > 0 else { return 0 }
         return memoryUsedKB / Double(memory.memTotal) * 100
+    }
+
+    var swapUsedPercent: Double {
+        guard memory.swapTotal > 0 else { return 0 }
+        return min(max(memory.swapUsed * 100, 0), 100)
+    }
+
+    /// Root volume usage when present, otherwise the first reported volume.
+    var primaryDiskUsedPercent: Double {
+        let primary = fileSystem.elements.first(where: { $0.mountPoint == "/" }) ?? fileSystem.elements.first
+        return Double(primary?.percent ?? 0)
     }
 
     /// CPUs: the reported count, else the per-core rows, else one.
@@ -95,13 +130,14 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
             #endif
         }
     }
-    @Published public private(set) var history = MonitorHistory()
+    /// Updated right before `lastUpdate`, so observers redraw once per refresh
+    /// instead of firing separate publishes for status, history, and timestamp.
+    public private(set) var history = MonitorHistory()
     @Published public private(set) var lastUpdate: Date?
-    @Published public private(set) var isRefreshing = false
+    public private(set) var isRefreshing = false
 
     private var shell: NSRemoteShell
     private var updateTask: Task<Void, Never>?
-    private var cancellables = Set<AnyCancellable>()
 
     private static let queue = DispatchQueue(label: "sb.moe.tamio.monitor", attributes: .concurrent)
 
@@ -130,10 +166,6 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
         self.recordsConnection = recordsConnection
         detailHolders = .init(initialState: detailed ? 1 : 0)
         shell = NSRemoteShell.configured(for: machine, timeout: TamioStore.shared.timeoutNumber)
-        // Re-publish nested status changes so one observer is enough.
-        status.objectWillChange
-            .sink { [weak self] _ in self?.objectWillChange.send() }
-            .store(in: &cancellables)
         updateTask = Task.detached { [weak self] in
             await self?.updateLoop()
         }
@@ -152,9 +184,6 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
             recordsConnection = false
             detailHolders = .init(initialState: 1)
             shell = NSRemoteShell()
-            status.objectWillChange
-                .sink { [weak self] _ in self?.objectWillChange.send() }
-                .store(in: &cancellables)
             let core = ServerStatus.ProcessPercentInfo(system: 6.2, user: 18.4, iowait: 1.1, nice: 0.3, sum: 26)
             var cores: [String: ServerStatus.ProcessPercentInfo] = [:]
             for index in 0 ..< 8 {
@@ -179,7 +208,7 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
                     .init(device: "eth0", rxBytesPerSec: 1_600_000 + (step % 7) * 260_000, txBytesPerSec: 400_000 + (step % 5) * 90_000),
                     .init(device: "docker0", rxBytesPerSec: 81_000, txBytesPerSec: 96_000),
                 ])
-                history.record(status)
+                history.record(status, at: Date().addingTimeInterval(Double(step - 39) * 3))
             }
             lastUpdate = Date()
         }
@@ -211,7 +240,7 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
             if shell.isConnected, shell.isAuthenticated {
                 failures = 0
                 onMainThread {
-                    self.phase = .connected
+                    if self.phase != .connected { self.phase = .connected }
                     self.isRefreshing = true
                     guard self.recordsConnection else { return }
                     var read = TamioStore.shared.machineGroup[self.machine.id]

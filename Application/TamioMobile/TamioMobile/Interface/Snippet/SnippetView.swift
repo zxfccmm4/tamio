@@ -2,27 +2,30 @@
 //  SnippetView.swift
 //  TamioMobile
 //
-//  Snippet cards with their SF Symbol, group, comment, the command on
-//  `terminal-bg`, and Run… (server picker, then the run sheet): the Mac's
-//  Snippets page.
+//  Native Apple HIG snippets gallery with horizontal group filter pills,
+//  touch-friendly command cards, and one-tap Run across servers.
 //
 
-import MachineStatusView
 import SwiftUI
+import TamioDesign
 import TamioModule
 
 struct SnippetView: View {
     @EnvironmentObject var store: TamioStore
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var searchText = ""
     @State private var groupFilter: String?
     @State private var creating = false
     @State private var editing: RDSnippet.ID?
+    @Namespace private var zoomNamespace
 
-    var groupNames: [String] {
-        Set(store.snippetGroup.snippets.map(\.group)).filter { !$0.isEmpty }.sorted()
+    private var groupNames: [String] {
+        Set(store.snippetGroup.snippets.map(\.group))
+            .filter { !$0.isEmpty }
+            .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
-    var filtered: [RDSnippet] {
+    private var filtered: [RDSnippet] {
         var result = store.snippetGroup.snippets
         if let groupFilter {
             result = result.filter { $0.group == groupFilter }
@@ -33,71 +36,67 @@ struct SnippetView: View {
         return result.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: RX.Space.s3) {
-                if store.snippetGroup.snippets.isEmpty {
-                    EmptyStateView(
-                        "No snippets yet",
-                        systemImage: "chevron.left.forwardslash.chevron.right",
-                        actionTitle: "New Snippet"
-                    ) {
-                        creating = true
-                    }
-                    .rxCard()
-                } else if filtered.isEmpty {
-                    EmptyStateView("No matches", systemImage: "magnifyingglass")
-                        .rxCard()
-                } else {
-                    LazyVGrid(
-                        columns: [GridItem(.adaptive(minimum: 280), spacing: RX.Space.s4, alignment: .top)],
-                        alignment: .leading,
-                        spacing: RX.Space.s4
-                    ) {
-                        ForEach(Array(filtered.enumerated()), id: \.element.id) { index, snippet in
-                            SnippetTile(snippet: snippet, run: { SnippetActions.run(snippet.id) }, edit: { editing = snippet.id }) {
-                                Button("Run…") { SnippetActions.run(snippet.id) }
-                                Button("Edit…") { editing = snippet.id }
-                                Button("Duplicate") { SnippetActions.duplicate(snippet.id) }
-                                Button("Copy Command") { UIBridge.sendPasteboard(str: snippet.code) }
-                                Divider()
-                                Button("Delete…", role: .destructive) { SnippetActions.delete(snippet.id) }
-                            }
-                            .rxRise(index)
-                            .transition(.scale(scale: 0.96).combined(with: .opacity))
-                        }
-                    }
-                    .animation(.rxMove, value: filtered.map(\.id))
-                }
-            }
-            .padding(.horizontal, RX.Space.s4)
-            .padding(.top, RX.Space.s1)
-            .padding(.bottom, RX.Space.s6)
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private var columns: [GridItem] {
+        if sizeClass == .compact {
+            return [GridItem(.flexible(), spacing: 14)]
         }
-        .background(RXBackdrop().ignoresSafeArea())
-        .navigationTitle("Snippets")
-        .searchable(text: $searchText, prompt: "Search snippets")
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                if !groupNames.isEmpty {
-                    Menu {
-                        Picker("Group", selection: $groupFilter) {
-                            Text("All Groups").tag(String?.none)
-                            Divider()
-                            ForEach(groupNames, id: \.self) { Text($0).tag(String?.some($0)) }
-                        }
+        return [GridItem(.adaptive(minimum: 300, maximum: 420), spacing: 16, alignment: .top)]
+    }
+
+    var body: some View {
+        Group {
+            if store.snippetGroup.snippets.isEmpty {
+                ContentUnavailableView {
+                    Label("No Snippets Yet", systemImage: "chevron.left.forwardslash.chevron.right")
+                } description: {
+                    Text("Save reusable shell commands and run them across one or many servers in a single tap.")
+                } actions: {
+                    Button {
+                        creating = true
                     } label: {
-                        Label(groupFilter ?? String(localized: "All Groups"), systemImage: "folder")
+                        Label("New Snippet", systemImage: "plus")
                     }
-                    .help(String(localized: "Filter by group"))
+                    .appleProminentButton()
+                    .controlSize(.large)
                 }
+                .appleGroupedBackground()
+            } else if filtered.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+                    .appleGroupedBackground()
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        MobileGroupFilterBar(groups: groupNames, selection: $groupFilter)
+
+                        LazyVGrid(columns: columns, spacing: 14) {
+                            ForEach(filtered) { snippet in
+                                MobileSnippetCard(
+                                    snippet: snippet,
+                                    onRun: { SnippetActions.run(snippet.id) },
+                                    onEdit: { editing = snippet.id }
+                                )
+                                .appleZoomSource(id: snippet.id, in: zoomNamespace, cornerRadius: 16)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.top, 4)
+                    .padding(.bottom, 28)
+                }
+                .appleGroupedBackground()
+            }
+        }
+        .navigationTitle("Snippets")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: Text("Search snippets"))
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
                 Button { creating = true } label: {
                     Label("New Snippet", systemImage: "plus")
                 }
             }
         }
-        .onChange(of: groupNames) { names in
+        .onChange(of: groupNames) { _, names in
             if let groupFilter, !names.contains(groupFilter) { self.groupFilter = nil }
         }
         .sheet(isPresented: $creating) {
@@ -105,11 +104,71 @@ struct SnippetView: View {
         }
         .sheet(item: Binding(get: { editing.map(EditingID.init) }, set: { editing = $0?.id })) { item in
             NavigationStack { EditSnippetView(requestSnippet: item.id) }
+                .appleGroupedBackground()
+                .appleZoomDestination(sourceID: item.id, in: zoomNamespace)
         }
     }
 
-    private struct EditingID: Identifiable {
-        let id: RDSnippet.ID
+    private struct EditingID: Identifiable { let id: RDSnippet.ID }
+}
+
+private struct MobileSnippetCard: View {
+    let snippet: RDSnippet
+    let onRun: () -> Void
+    let onEdit: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: snippet.getSFAvatar())
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(snippet.name)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if !snippet.comment.isEmpty {
+                        Text(snippet.comment)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 8)
+                Button(action: onRun) {
+                    Image(systemName: "play.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: 34, height: 30)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Run…")
+            }
+
+            Text(snippet.code.trimmingCharacters(in: .whitespacesAndNewlines))
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+        .padding(14)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture(perform: onEdit)
+        .contextMenu {
+            Button("Run…", action: onRun)
+            Button("Edit…", action: onEdit)
+            Button("Duplicate") { SnippetActions.duplicate(snippet.id) }
+            Button("Copy Command") { UIBridge.sendPasteboard(str: snippet.code) }
+            Divider()
+            Button("Delete…", role: .destructive) { SnippetActions.delete(snippet.id) }
+        }
     }
 }
 
@@ -127,7 +186,7 @@ enum SnippetActions {
     static func duplicate(_ id: RDSnippet.ID) {
         var copy = TamioStore.shared.snippetGroup[id]
         copy.id = UUID()
-        copy.name += " copy"
+        copy.name += " " + String(localized: "copy")
         TamioStore.shared.snippetGroup.insert(copy)
     }
 

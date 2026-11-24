@@ -1,0 +1,161 @@
+name: iOS Build & IPA Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Application/TamioMobile/**"
+      - "Foundation/**"
+      - "External/**"
+      - ".github/workflows/ios.yml"
+    tags:
+      - "v*"
+  pull_request:
+    paths:
+      - "Application/TamioMobile/**"
+      - "Foundation/**"
+      - "External/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Package IPA and publish to GitHub Releases"
+        type: boolean
+        default: true
+      upload_testflight:
+        description: "Archive and upload to TestFlight (requires App Store Connect secrets)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-simulator:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build TamioMobile for iOS Simulator
+        run: |
+          set -euo pipefail
+          SIM_ID="$(xcrun simctl list devices available | grep -m1 -E 'iPhone [0-9]+' | sed -E 's/.*\(([0-9A-F-]+)\).*/\1/')"
+          echo "Using simulator: $SIM_ID"
+          xcodebuild \
+            -workspace TamioMobile.xcworkspace \
+            -scheme TamioMobile \
+            -destination "platform=iOS Simulator,id=$SIM_ID" \
+            -derivedDataPath DerivedData/iOS \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+  package-ipa-release:
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Release App & Package IPA
+        id: package
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            VERSION="$(grep -E 'MARKETING_VERSION:' Application/TamioMobile/project.yml | head -1 | sed -E 's/.*"(.*)".*/\1/')"
+            TAG="v${VERSION}-ios-$(date +%Y%m%d%H%M)"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+          xcodebuild \
+            -workspace TamioMobile.xcworkspace \
+            -scheme TamioMobile \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath DerivedData/iOSRelease \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+          APP_PATH="DerivedData/iOSRelease/Build/Products/Release-iphoneos/Tamio.app"
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "::error::Tamio.app not found at $APP_PATH"
+            exit 1
+          fi
+
+          rm -rf build/ipa
+          mkdir -p build/ipa/Payload
+          cp -R "$APP_PATH" build/ipa/Payload/Tamio.app
+          IPA_NAME="TamioMobile-${TAG}.ipa"
+          (cd build/ipa && zip -r -q "../../${IPA_NAME}" Payload)
+          echo "ipa_name=${IPA_NAME}" >> "$GITHUB_OUTPUT"
+          ls -lh "${IPA_NAME}"
+
+      - name: Publish IPA to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.package.outputs.tag }}"
+          IPA="${{ steps.package.outputs.ipa_name }}"
+          gh release create "$TAG" "$IPA" \
+            --title "TamioMobile ${TAG}" \
+            --notes "Unsigned sideloadable IPA for iOS 17+ / iPadOS 17+ (AltStore, SideStore, Sideloadly, TrollStore). Built from [zxfccmm4/tamio](https://github.com/zxfccmm4/tamio) (forked from [missuo/tamio](https://github.com/missuo/tamio))." \
+            --latest
+
+  testflight:
+    if: github.event_name == 'workflow_dispatch' && inputs.upload_testflight == true
+    runs-on: macos-26
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Archive and upload to TestFlight
+        env:
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$ASC_API_KEY_P8" ]]; then
+            echo "::error::Missing ASC_API_KEY_P8 secret for TestFlight upload."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/keys"
+          KEY_PATH="$RUNNER_TEMP/keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          printf '%s' "$ASC_API_KEY_P8" > "$KEY_PATH"
+          xcodebuild archive \
+            -workspace TamioMobile.xcworkspace \
+            -scheme TamioMobile \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath DerivedData/TamioMobile.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID"
+          cat > "$RUNNER_TEMP/ExportOptions.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath DerivedData/TamioMobile.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath DerivedData/Export \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_API_ISSUER_ID"
+          rm -rf "$RUNNER_TEMP/keys" "$RUNNER_TEMP/ExportOptions.plist"

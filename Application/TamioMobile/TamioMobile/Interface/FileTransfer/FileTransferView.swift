@@ -2,406 +2,940 @@
 //  FileTransferView.swift
 //  TamioMobile
 //
-//  Created by Lakr Aream on 2022/3/18.
+//  Concurrent SFTP built on TamioModule's FileBrowser and TransferQueue:
+//  - iPad (regular width >= 720pt): dual-pane browser (Local + Server, or any
+//    two servers for direct relay copies), mirroring the Mac app.
+//  - iPhone (compact): full-screen browser with instant Local/Remote switcher.
+//  - Non-blocking background TransferQueue bar & expandable sheet with speed,
+//    progress, cancel, retry, and collision confirmation (Replace / Keep Both /
+//    Skip).
+//  - Inline Runestone remote text editing via RemoteFileEditorView.
 //
 
-import TamioModule
 import SPIndicator
 import SwiftUI
+import TamioDesign
+import TamioModule
 import UIKit
+import UniformTypeIdentifiers
+
+enum FilesPreference {
+    static let showsHiddenKey = "sb.moe.tamio.files.showsHidden"
+}
+
+@MainActor
+final class MobileFilePaneModel: ObservableObject {
+    enum SortColumn: String, CaseIterable {
+        case name = "Name"
+        case modified = "Modified"
+        case size = "Size"
+        case kind = "Kind"
+
+        var localizedTitle: String {
+            switch self {
+            case .name: return String(localized: "Name")
+            case .modified: return String(localized: "Modified")
+            case .size: return String(localized: "Size")
+            case .kind: return String(localized: "Kind")
+            }
+        }
+    }
+
+    @Published var browser: FileBrowser
+    @Published var filter = ""
+    @Published var sort: SortColumn = .name
+    @Published var ascending = true
+
+    init(browser: FileBrowser) {
+        self.browser = browser
+        browser.reload()
+    }
+
+    func switchTo(_ next: FileBrowser) {
+        filter = ""
+        browser = next
+        next.reload()
+    }
+
+    func entries(_ all: [FileEntry], showsHidden: Bool) -> [FileEntry] {
+        let needle = filter.trimmingCharacters(in: .whitespaces).lowercased()
+        let visible = showsHidden ? all : all.filter { !$0.name.hasPrefix(".") }
+        let shown = needle.isEmpty ? visible : visible.filter { $0.name.lowercased().contains(needle) }
+        return shown.sorted { lhs, rhs in
+            if lhs.isDirectory != rhs.isDirectory { return lhs.isDirectory }
+            let ordered: Bool
+            switch sort {
+            case .name: ordered = lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
+            case .modified: ordered = (lhs.modified ?? .distantPast) < (rhs.modified ?? .distantPast)
+            case .size: ordered = (lhs.size ?? 0) < (rhs.size ?? 0)
+            case .kind: ordered = lhs.kind.localizedStandardCompare(rhs.kind) == .orderedAscending
+            }
+            return ascending ? ordered : !ordered
+        }
+    }
+}
 
 struct FileTransferView: View {
     @ObservedObject var context: FileTransferContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    @ObservedObject private var queue = TransferQueue.shared
+    @ObservedObject private var directories = TerminalDirectories.shared
 
-    @State var openFilePicker: Bool = false
-    @State var searchKey: String = ""
-    /// The remote file open in the editor.
-    @State var editing: EditedFile?
+    @StateObject private var localPane: MobileFilePaneModel
+    @StateObject private var remotePane: MobileFilePaneModel
+    @State private var activeCompactPane: CompactPane = .remote
+    @State private var pageWidth: CGFloat = 0
+    @State private var showsQueueSheet = false
+    @State private var editing: EditedFile?
+    @State private var pendingCollision: PendingTransfer?
+    @State private var followedSerial: Int?
+
+    enum CompactPane: String, CaseIterable {
+        case remote = "Server"
+        case local = "Local"
+    }
 
     struct EditedFile: Identifiable {
         let path: String
         var id: String { path }
     }
 
-    var fileList: [FileTransferContext.RemoteFile] {
-        if searchKey.isEmpty {
-            return context.currentFileList
-        }
-        let key = searchKey.lowercased()
-        return context.currentFileList
-            .filter { file in
-                if file.name.lowercased().contains(key) {
-                    return true
-                }
-                return false
-            }
+    struct PendingTransfer: Identifiable {
+        let id = UUID()
+        let sources: [String]
+        let from: RDMachine?
+        let to: RDMachine?
+        let destination: String
+        let conflictNames: [String]
+        let onDone: () -> Void
+    }
+
+    private var dualPane: Bool { sizeClass == .regular && pageWidth >= 720 }
+
+    init(context: FileTransferContext) {
+        self.context = context
+        _localPane = StateObject(wrappedValue: MobileFilePaneModel(browser: LocalBrowser()))
+        _remotePane = StateObject(wrappedValue: MobileFilePaneModel(browser: RemoteBrowser(machine: context.machine)))
     }
 
     var body: some View {
-        Group {
-            if context.destroyedSession {
-                EmptyStateView("Connection closed", systemImage: "bolt.horizontal")
+        VStack(spacing: 0) {
+            if dualPane {
+                HStack(spacing: 0) {
+                    MobileBrowserPane(
+                        model: localPane,
+                        peer: remotePane,
+                        onEdit: { editing = EditedFile(path: $0) },
+                        onTransfer: startTransfer
+                    )
+                    Hairline(vertical: true)
+                    MobileBrowserPane(
+                        model: remotePane,
+                        peer: localPane,
+                        onEdit: { editing = EditedFile(path: $0) },
+                        onTransfer: startTransfer
+                    )
+                }
             } else {
-                VStack(spacing: RX.Space.s3) {
-                    mainView
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    bottomToolbar
-                        .disabled(context.processConnection)
-                        .disabled(context.isProgressRunning)
-                    hintView
+                Picker("Pane", selection: $activeCompactPane) {
+                    Text(remotePane.browser.title).tag(CompactPane.remote)
+                    Text(localPane.browser.title).tag(CompactPane.local)
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, RX.Space.s4)
+                .padding(.vertical, RX.Space.s2)
+
+                if activeCompactPane == .remote {
+                    MobileBrowserPane(
+                        model: remotePane,
+                        peer: localPane,
+                        onEdit: { editing = EditedFile(path: $0) },
+                        onTransfer: startTransfer
+                    )
+                } else {
+                    MobileBrowserPane(
+                        model: localPane,
+                        peer: remotePane,
+                        onEdit: { editing = EditedFile(path: $0) },
+                        onTransfer: startTransfer
+                    )
+                }
+            }
+
+            if !queue.jobs.isEmpty {
+                TransferBarStrip(showsSheet: $showsQueueSheet)
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { pageWidth = $0 }
+        .background(RXBackdrop().ignoresSafeArea())
+        .navigationTitle(context.machine.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button {
+                    showsQueueSheet = true
+                } label: {
+                    Label("Transfers", systemImage: queue.active.isEmpty ? "arrow.up.arrow.down.circle" : "arrow.up.arrow.down.circle.fill")
+                }
+                .badge(queue.active.count)
+
+                Button {
+                    UIBridge.openFileContainer()
+                } label: {
+                    Label("Open Files App", systemImage: "folder")
+                }
+
+                Button(role: .destructive) {
+                    FileTransferManager.shared.end(for: context.id)
+                    dismiss()
+                } label: {
+                    Label("Close", rx: "xmark")
                 }
             }
         }
-        .padding(.horizontal, RX.Space.s4)
-        .padding(.bottom, RX.Space.s3)
-        .background(RXBackdrop().ignoresSafeArea())
-        .animation(.interactiveSpring(), value: context.currentFileList)
-        .animation(.interactiveSpring(), value: context.currentHint)
-        .animation(.interactiveSpring(), value: context.currentProcessingFile)
-        .animation(.interactiveSpring(), value: context.processConnection)
-        .navigationTitle(context.machine.name)
-        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showsQueueSheet) {
+            NavigationStack {
+                TransferQueueSheet()
+            }
+        }
         .fullScreenCover(item: $editing) { file in
             RemoteFileEditorView(context: context, remotePath: file.path)
         }
+        .confirmationDialog(
+            collisionTitle,
+            isPresented: Binding(get: { pendingCollision != nil }, set: { if !$0 { pendingCollision = nil } }),
+            titleVisibility: .visible
+        ) {
+            if let pending = pendingCollision {
+                Button("Replace", role: .destructive) {
+                    enqueueTransfer(pending, collision: .replace)
+                    pendingCollision = nil
+                }
+                Button("Keep Both") {
+                    enqueueTransfer(pending, collision: .keepBoth)
+                    pendingCollision = nil
+                }
+                Button("Skip") {
+                    enqueueTransfer(pending, collision: .skip)
+                    pendingCollision = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    pendingCollision = nil
+                }
+            }
+        } message: {
+            Text(collisionMessage)
+        }
+        .onAppear {
+            wireQueueCompletion()
+            followTerminalDirectory()
+        }
+        .onChange(of: directories.latest[context.machine.id]) { _, _ in
+            followTerminalDirectory()
+        }
     }
 
-    var mainView: some View {
-        Group {
-            if context.isProgressRunning || context.processConnection {
-                progressView
-            } else if !context.connected {
-                EmptyStateView(
-                    "Connection closed",
-                    systemImage: "bolt.horizontal",
-                    message: context.connectionPhase == .closed ? "" : context.currentHint,
-                    actionTitle: "Reconnect"
-                ) {
-                    context.processBootstrap()
-                }
-                .rxCard()
-            } else {
-                fileListView
+    private var collisionTitle: String {
+        guard let names = pendingCollision?.conflictNames else { return "" }
+        if names.count == 1 {
+            return String(localized: "“\(names[0])” already exists")
+        }
+        return String(localized: "\(names.count) items already exist")
+    }
+
+    private var collisionMessage: String {
+        guard let names = pendingCollision?.conflictNames else { return "" }
+        let preview = names.prefix(3).joined(separator: ", ")
+        return String(localized: "Choose how to handle existing items in the destination folder (\(preview)).")
+    }
+
+    private func wireQueueCompletion() {
+        TransferQueue.shared.onFinish = { [weak localPane, weak remotePane] job in
+            if job.to == nil {
+                localPane?.browser.reload()
+            }
+            if let dest = job.to {
+                if remotePane?.browser.machine?.id == dest.id { remotePane?.browser.reload() }
+                if localPane?.browser.machine?.id == dest.id { localPane?.browser.reload() }
+            }
+            if job.state == .done {
+                let indicator = SPIndicatorView(
+                    title: String(localized: "Transfer Completed"),
+                    message: job.title,
+                    preset: .done
+                )
+                indicator.presentWindow = UIWindow.shutUpKeyWindow
+                indicator.present(haptic: .success, completion: nil)
             }
         }
     }
 
-    var hintView: some View {
-        Group {
-            if !context.currentHint.isEmpty {
-                HelpText(context.currentHint)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+    private func followTerminalDirectory() {
+        guard let report = directories.latest[context.machine.id], report.serial != followedSerial else { return }
+        followedSerial = report.serial
+        if remotePane.browser.machine?.id == context.machine.id {
+            remotePane.browser.open(report.path)
+        }
+    }
+
+    private func startTransfer(
+        sources: [String],
+        from: RDMachine?,
+        to: RDMachine?,
+        destination: String,
+        targetEntries: [FileEntry],
+        onDone: @escaping () -> Void
+    ) {
+        guard !sources.isEmpty else { return }
+        let existing = Set(targetEntries.map(\.name))
+        let conflicts = sources
+            .map { ($0 as NSString).lastPathComponent }
+            .filter { existing.contains($0) }
+        let pending = PendingTransfer(
+            sources: sources,
+            from: from,
+            to: to,
+            destination: destination,
+            conflictNames: conflicts,
+            onDone: onDone
+        )
+        if conflicts.isEmpty {
+            enqueueTransfer(pending, collision: .replace)
+        } else {
+            pendingCollision = pending
+        }
+    }
+
+    private func enqueueTransfer(_ pending: PendingTransfer, collision: TransferJob.Collision) {
+        if pending.from == nil, pending.to == nil {
+            let sources = pending.sources
+            let destination = pending.destination
+            let onDone = pending.onDone
+            Task {
+                do {
+                    try await Task.detached {
+                        try TransferPlacement.copyLocally(sources, into: destination, collision)
+                    }.value
+                    onDone()
+                } catch {
+                    UIBridge.presentError(with: error.localizedDescription)
+                }
             }
+            return
         }
+        let direction: TransferJob.Direction
+        if pending.from == nil {
+            direction = .upload
+        } else if pending.to == nil {
+            direction = .download
+        } else {
+            direction = .relay
+        }
+        let job = TransferJob(
+            direction: direction,
+            sources: pending.sources,
+            from: pending.from,
+            to: pending.to,
+            destination: pending.destination,
+            collision: collision
+        )
+        TransferQueue.shared.enqueue(job)
+        pending.onDone()
+    }
+}
+
+// MARK: - Single Browser Pane
+
+private struct MobileBrowserPane: View {
+    @ObservedObject var model: MobileFilePaneModel
+    @ObservedObject var peer: MobileFilePaneModel
+    let onEdit: (String) -> Void
+    let onTransfer: ([String], RDMachine?, RDMachine?, String, [FileEntry], @escaping () -> Void) -> Void
+
+    var body: some View {
+        MobileBrowserContent(
+            model: model,
+            peer: peer,
+            browser: model.browser,
+            onEdit: onEdit,
+            onTransfer: onTransfer
+        )
+        .id(model.browser.id)
+    }
+}
+
+private struct MobileBrowserContent: View {
+    @ObservedObject var model: MobileFilePaneModel
+    @ObservedObject var peer: MobileFilePaneModel
+    @ObservedObject var browser: FileBrowser
+    @ObservedObject private var store = TamioStore.shared
+    @AppStorage(FilesPreference.showsHiddenKey) private var showsHidden = false
+
+    let onEdit: (String) -> Void
+    let onTransfer: ([String], RDMachine?, RDMachine?, String, [FileEntry], @escaping () -> Void) -> Void
+
+    @State private var openFilePicker = false
+
+    private var visibleEntries: [FileEntry] {
+        model.entries(browser.entries, showsHidden: showsHidden)
     }
 
-    var progressView: some View {
-        let total = context.totalProgress
-        let current = context.currentProgress
-        let fraction: Double? = total.totalUnitCount > 0
-            ? total.fractionCompleted
-            : (current.totalUnitCount > 0 ? current.fractionCompleted : nil)
-        let name = context.currentProcessingFile.isEmpty
-            ? (context.currentHint.isEmpty ? "Working…" : context.currentHint)
-            : URL(fileURLWithPath: context.currentProcessingFile).lastPathComponent
-        return VStack(alignment: .leading, spacing: RX.Space.s2) {
-            CardHead("Transfer")
-            ProgressRowView(
-                title: name,
-                detail: context.currentSpeed > 0 ? RXFormat.rateString(Double(context.currentSpeed)) : "",
-                fraction: fraction,
-                cancel: context.currentProgressCancelable && context.continueCurrentProgress
-                    ? { context.continueCurrentProgress = false }
-                    : nil
-            )
-        }
-        .rxCard()
-        .frame(maxHeight: .infinity, alignment: .top)
-        .padding(.top, RX.Space.s3)
-    }
+    private var remoteBrowser: RemoteBrowser? { browser as? RemoteBrowser }
 
-    var fileListView: some View {
-        Group {
-            if context.currentFileList.isEmpty {
-                EmptyStateView("Empty folder", systemImage: "folder")
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: RX.Space.s2) {
-                        CapsLabel("\(fileList.count) item\(fileList.count == 1 ? "" : "s")")
-                            .padding(.leading, RX.Space.s2)
-                        RXDividedStack {
-                            ForEach(fileList) { file in
-                                RemoteFileElement(file: file, context: context) { path in
-                                    editing = EditedFile(path: path)
-                                }
-                            }
-                        }
-                        .rxCard(padding: RX.Space.s2)
-                    }
-                    .padding(.top, RX.Space.s3)
-                }
-                .searchable(text: $searchKey)
-            }
+    var body: some View {
+        VStack(spacing: 0) {
+            paneHeader
+            Hairline()
+            pathBar
+            Hairline()
+            content
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    var bottomToolbar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack {
-                if !context.connected {
-                    makeFloatingButton("arrow.counterclockwise") {
-                        context.processBootstrap()
-                    }
-                }
-                makeFloatingButton("xmark") {
-                    if context.connected {
-                        context.processShutdown()
-                    } else {
-                        FileTransferManager.shared.end(for: context.id)
-                        dismiss()
-                    }
-                }
-                // stays available while a connection attempt hangs
-                .environment(\.isEnabled, true)
-                Divider().frame(height: 20)
-                makeFloatingButton("doc.viewfinder") {
-                    UIBridge.openFileContainer()
-                }
-                makeFloatingButton("folder.badge.plus") {
-                    UIBridge.askForInputText(
-                        title: "New Folder",
-                        message: "",
-                        placeholder: "Folder Name",
-                        payload: "",
-                        canCancel: true
-                    ) { name in
-                        guard name.isValidAsFilename else {
-                            UIBridge.presentError(with: "Invalid Filename")
-                            return
-                        }
-                        context.createFolder(with: name)
-                    }
-                }
-                .disabled(!context.connected)
-                makeFloatingButton("arrow.up.doc") {
-                    openFilePicker = true
-                }
-                .sheet(isPresented: $openFilePicker, onDismiss: nil) {
-                    FilePickerUIRepresentable(types: [.item], allowMultiple: true) { urls in
-                        debugPrint(urls)
-                        context.upload(urls: urls)
-                    }
-                }
-                .disabled(!context.connected)
-                makeFloatingButton("arrow.clockwise") {
-                    context.loadCurrentFileList()
-                }
-                .disabled(!context.connected)
-                Divider().frame(height: 20)
-                makeFloatingButton("arrow.right") {
-                    UIBridge.askForInputText(
-                        title: "Navigator",
-                        message: "",
-                        placeholder: "Remote Path",
-                        payload: context.currentDir,
-                        canCancel: true
-                    ) { path in
-                        guard !path.isEmpty, path.hasPrefix("/") else {
-                            UIBridge.presentError(with: "Invalid Path")
-                            return
-                        }
-                        context.navigate(path: path)
-                    }
-                }
-                .disabled(!context.connected)
-                pathItems
-                    .disabled(!context.connected)
-            }
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    var pathItems: some View {
-        HStack(spacing: 4) {
-            ForEach(0 ..< context.currentUrl.pathComponents.count, id: \.self) { idx in
-                Button {
-                    rollToPath(with: idx)
-                } label: {
-                    Text(context.currentUrl.pathComponents[idx])
-                        .font(.system(size: 13, weight: idx == context.currentUrl.pathComponents.count - 1 ? .semibold : .regular))
-                        .foregroundStyle(idx == context.currentUrl.pathComponents.count - 1 ? Color.rxInk : Color.rxInkSecondary)
-                        .frame(height: 28)
-                }
-                .buttonStyle(.plain)
-                if idx != context.currentUrl.pathComponents.count - 1 {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(.rxInkTertiary)
+        .sheet(isPresented: $openFilePicker) {
+            FilePickerUIRepresentable(types: [.item], allowMultiple: true) { urls in
+                let paths = urls.map(\.path)
+                onTransfer(paths, nil, browser.machine, browser.path, browser.entries) {
+                    browser.reload()
                 }
             }
         }
     }
 
-    func rollToPath(with index: Int) {
-        var url = context.currentUrl
-        let cnt = index + 1
-        while url.pathComponents.count > cnt, !url.pathComponents.isEmpty {
-            url.deleteLastPathComponent()
-        }
-        debugPrint(url.path)
-        context.currentDir = url.path
-        context.loadCurrentFileList()
-    }
-
-    func makeFloatingButton(_ image: String, block: @escaping () -> Void) -> some View {
-        Button {
-            block()
-        } label: {
-            Image(systemName: image)
-                .font(.system(size: 15))
-                .frame(width: 36, height: 32)
-        }
-        .buttonStyle(.rx(iconOnly: false))
-    }
-
-    struct RemoteFileElement: View {
-        let file: FileTransferContext.RemoteFile
-        @ObservedObject var context: FileTransferContext
-        let edit: (String) -> Void
-
-        private var tooLargeToEdit: Bool {
-            (file.fstat.size?.int64Value ?? 0) > FileTransferContext.editableSizeLimit
-        }
-
-        var body: some View {
+    private var paneHeader: some View {
+        HStack(spacing: RX.Space.s2) {
             Menu {
-                if !file.fstat.isDirectory {
-                    Section {
+                Button {
+                    model.switchTo(LocalBrowser())
+                } label: {
+                    Label("Local (Documents)", rx: "folder")
+                }
+                if !store.machineGroup.machines.isEmpty {
+                    Divider()
+                    ForEach(store.machineGroup.machines) { machine in
                         Button {
-                            edit(context.currentUrl.appendingPathComponent(file.name).path)
+                            model.switchTo(RemoteBrowser(machine: machine))
                         } label: {
-                            Label(tooLargeToEdit ? "Too Large to Edit" : "Edit", systemImage: "square.and.pencil")
+                            Label(machine.name, rx: "server.rack")
                         }
-                        .disabled(tooLargeToEdit)
-                    }
-                }
-                if file.fstat.isDirectory {
-                    Section {
-                        Button {
-                            let path = context.currentUrl.appendingPathComponent(file.name).path
-                            context.navigate(path: path)
-                        } label: {
-                            Label("Open", systemImage: "arrow.right")
-                        }
-                    }
-                }
-                Section {
-                    Button {
-                        UIBridge.sendPasteboard(str: file.name)
-                    } label: {
-                        Label("Copy Name", systemImage: "")
-                    }
-                    Button {
-                        let path = context.currentUrl.appendingPathComponent(file.name).path
-                        UIBridge.sendPasteboard(str: path)
-                    } label: {
-                        Label("Copy Path", systemImage: "")
-                    }
-                }
-                Section {
-                    Button {
-                        UIBridge.askForInputText(
-                            title: "Rename",
-                            message: "",
-                            placeholder: "New File Name",
-                            payload: file.name,
-                            canCancel: true
-                        ) { newValue in
-                            guard newValue.isValidAsFilename else {
-                                UIBridge.presentError(with: "Invalid Filename")
-                                return
-                            }
-                            let base = context.currentUrl
-                            context.rename(
-                                from: base.appendingPathComponent(file.name),
-                                to: base.appendingPathComponent(newValue)
-                            )
-                        }
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                }
-                Section {
-                    Button {
-                        let remoteUrl = context.currentUrl.appendingPathComponent(file.name)
-                        let documentDir = FileManager
-                            .default
-                            .urls(for: .documentDirectory, in: .userDomainMask)[0]
-                        let base = documentDir
-                        context.download(from: remoteUrl, toDir: base)
-                    } label: {
-                        Label("Download", systemImage: "arrow.down")
-                    }
-                }
-                Section {
-                    Button {
-                        let item = context.currentUrl.appendingPathComponent(file.name)
-                        UIBridge.requiresConfirmation(
-                            message: "Are you sure you want to delete \(item.path)?"
-                        ) { y in
-                            if y { context.delete(item: item) }
-                        }
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                            .foregroundColor(.red)
                     }
                 }
             } label: {
-                content
-            }
-        }
-
-        var content: some View {
-            HStack(spacing: RX.Space.s3) {
-                Image(systemName: sfAvatar)
-                    .foregroundStyle(file.fstat.isDirectory ? Color.rxAccent : Color.rxInkSecondary)
-                    .frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(file.name)
+                HStack(spacing: 6) {
+                    Image(rx: browser.machine == nil ? "folder" : "server.rack")
+                        .foregroundStyle(.rxAccent)
+                    Text(browser.title)
+                        .font(.rxSectionTitle)
                         .foregroundStyle(.rxInk)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Text(file.fstat.isDirectory ? file.fstat.permissionDescription : "\(size) · \(file.fstat.permissionDescription)")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(.rxInkSecondary)
-                        .lineLimit(1)
+                    Image(rx: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.rxInkTertiary)
                 }
-                Spacer()
-                Image(systemName: "ellipsis")
-                    .foregroundStyle(.rxInkTertiary)
             }
-            .padding(.horizontal, RX.Space.s2)
-            .frame(minHeight: 48)
-            .contentShape(Rectangle())
-        }
 
-        var sfAvatar: String {
-            if file.fstat.isDirectory {
-                return "folder"
-            }
-            if file.fstat.isLink {
-                return "link"
-            }
-            return "doc"
-        }
+            Spacer(minLength: 4)
 
-        var size: String {
-            RXFormat.bytesString(Double(truncating: file.fstat.size ?? 0))
+            if browser.isLoading || (remoteBrowser?.connecting ?? false) {
+                ProgressView()
+                    .controlSize(.small)
+            }
+
+            Button { openFilePicker = true } label: {
+                Image(systemName: "arrow.up.doc")
+            }
+            .buttonStyle(.rx(.plain, iconOnly: true))
+            .help(String(localized: "Upload from Files"))
+
+            Button { askNewFolder() } label: {
+                Image(systemName: "folder.badge.plus")
+            }
+            .buttonStyle(.rx(.plain, iconOnly: true))
+            .help(String(localized: "New Folder"))
+
+            Button { browser.reload() } label: {
+                Image(rx: "arrow.clockwise")
+            }
+            .buttonStyle(.rx(.plain, iconOnly: true))
+            .help(String(localized: "Refresh"))
+
+            Menu {
+                Toggle("Show Hidden Files", isOn: $showsHidden)
+                Divider()
+                Picker("Sort by", selection: $model.sort) {
+                    ForEach(MobileFilePaneModel.SortColumn.allCases, id: \.self) { column in
+                        Text(column.localizedTitle).tag(column)
+                    }
+                }
+                Button {
+                    model.ascending.toggle()
+                } label: {
+                    Label(model.ascending ? "Ascending" : "Descending", rx: model.ascending ? "arrow.up" : "arrow.down")
+                }
+                Divider()
+                Button { askGoToPath() } label: {
+                    Label("Go to Folder…", rx: "arrow.right")
+                }
+            } label: {
+                Image(rx: "ellipsis")
+            }
+            .buttonStyle(.rx(.plain, iconOnly: true))
+        }
+        .padding(.horizontal, RX.Space.s3)
+        .frame(height: 44)
+    }
+
+    private var pathBar: some View {
+        HStack(spacing: RX.Space.s2) {
+            Button { browser.goBack() } label: {
+                Image(rx: "chevron.left")
+            }
+            .disabled(browser.back.isEmpty)
+            .buttonStyle(.rx(.plain, size: .small, iconOnly: true))
+
+            Button { browser.goUp() } label: {
+                Image(rx: "arrow.up")
+            }
+            .disabled(browser.path == "/")
+            .buttonStyle(.rx(.plain, size: .small, iconOnly: true))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    let components = pathComponents
+                    ForEach(Array(components.enumerated()), id: \.offset) { index, item in
+                        Button {
+                            browser.open(item.path)
+                        } label: {
+                            Text(item.label)
+                                .font(.system(size: 12, weight: index == components.count - 1 ? .semibold : .regular, design: .monospaced))
+                                .foregroundStyle(index == components.count - 1 ? Color.rxInk : Color.rxInkSecondary)
+                        }
+                        .buttonStyle(.plain)
+                        if index != components.count - 1 {
+                            Image(rx: "chevron.right")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.rxInkTertiary)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, RX.Space.s3)
+        .frame(height: 36)
+    }
+
+    private var pathComponents: [(label: String, path: String)] {
+        let url = URL(fileURLWithPath: browser.path)
+        let parts = url.pathComponents
+        var result: [(String, String)] = []
+        var running = ""
+        for (idx, part) in parts.enumerated() {
+            if idx == 0 {
+                running = "/"
+                result.append(("/", "/"))
+            } else {
+                running = (running as NSString).appendingPathComponent(part)
+                result.append((part, running))
+            }
+        }
+        return result.isEmpty ? [("/", "/")] : result
+    }
+
+    @ViewBuilder private var content: some View {
+        if let error = browser.error {
+            EmptyStateView(
+                "Could not open folder",
+                systemImage: "exclamationmark.triangle",
+                message: error,
+                actionTitle: "Retry"
+            ) {
+                browser.reload()
+            }
+            .padding(RX.Space.s4)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if visibleEntries.isEmpty, !browser.isLoading {
+            EmptyStateView(
+                model.filter.isEmpty ? "Empty folder" : "No matches",
+                systemImage: model.filter.isEmpty ? "folder" : "magnifyingglass"
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(spacing: 0) {
+                HStack(spacing: RX.Space.s2) {
+                    Image(rx: "magnifyingglass")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.rxInkTertiary)
+                    TextField("Filter files", text: $model.filter)
+                        .font(.rxBody)
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                    if !model.filter.isEmpty {
+                        Button { model.filter = "" } label: {
+                            Image(rx: "xmark.circle.fill")
+                                .foregroundStyle(.rxInkTertiary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, RX.Space.s3)
+                .padding(.vertical, 6)
+                .background(Color.rxSurfaceSunken.opacity(0.6))
+
+                List {
+                    ForEach(visibleEntries) { entry in
+                        MobileFileRow(
+                            entry: entry,
+                            browser: browser,
+                            peer: peer.browser,
+                            onOpenFolder: { browser.open(entry.path) },
+                            onEdit: { onEdit(entry.path) },
+                            onCopyToPeer: {
+                                onTransfer([entry.path], browser.machine, peer.browser.machine, peer.browser.path, peer.browser.entries) {
+                                    peer.browser.reload()
+                                }
+                            },
+                            onRename: { askRename(entry) },
+                            onDelete: { askDelete(entry) }
+                        )
+                        .listRowBackground(Color.clear)
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .refreshable { browser.reload() }
+            }
+        }
+    }
+
+    private func askNewFolder() {
+        UIBridge.askForInputText(
+            title: String(localized: "New Folder"),
+            message: "",
+            placeholder: String(localized: "Folder Name"),
+            payload: "",
+            canCancel: true
+        ) { name in
+            guard name.isValidAsFilename else {
+                UIBridge.presentError(with: String(localized: "Invalid folder name."))
+                return
+            }
+            Task {
+                if let error = await browser.makeFolder(named: name) {
+                    UIBridge.presentError(with: error.message)
+                }
+            }
+        }
+    }
+
+    private func askGoToPath() {
+        UIBridge.askForInputText(
+            title: String(localized: "Go to Folder"),
+            message: "",
+            placeholder: "/path/to/folder",
+            payload: browser.path,
+            canCancel: true
+        ) { path in
+            let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.hasPrefix("/") else {
+                UIBridge.presentError(with: String(localized: "Path must start with /."))
+                return
+            }
+            browser.open(trimmed)
+        }
+    }
+
+    private func askRename(_ entry: FileEntry) {
+        UIBridge.askForInputText(
+            title: String(localized: "Rename"),
+            message: "",
+            placeholder: entry.name,
+            payload: entry.name,
+            canCancel: true
+        ) { next in
+            guard next.isValidAsFilename else {
+                UIBridge.presentError(with: String(localized: "Invalid filename."))
+                return
+            }
+            Task {
+                if let error = await browser.rename(entry, to: next) {
+                    UIBridge.presentError(with: error.message)
+                }
+            }
+        }
+    }
+
+    private func askDelete(_ entry: FileEntry) {
+        UIBridge.requiresConfirmation(
+            message: String(localized: "Delete \(entry.name)?"),
+            confirmTitle: String(localized: "Delete"),
+            destructive: true
+        ) { confirmed in
+            guard confirmed else { return }
+            Task {
+                if let error = await browser.delete([entry]) {
+                    UIBridge.presentError(with: error.message)
+                }
+            }
         }
     }
 }
+
+private struct MobileFileRow: View {
+    let entry: FileEntry
+    let browser: FileBrowser
+    let peer: FileBrowser
+    let onOpenFolder: () -> Void
+    let onEdit: () -> Void
+    let onCopyToPeer: () -> Void
+    let onRename: () -> Void
+    let onDelete: () -> Void
+
+    private var tooLargeToEdit: Bool {
+        (entry.size ?? 0) > FileTransferContext.editableSizeLimit
+    }
+
+    private var transferLabel: String {
+        if browser.machine == nil, let target = peer.machine {
+            return String(localized: "Upload to \(target.name)")
+        }
+        if browser.machine != nil, peer.machine == nil {
+            return String(localized: "Download to Device")
+        }
+        if let target = peer.machine {
+            return String(localized: "Copy to \(target.name)")
+        }
+        return String(localized: "Copy to Other Pane")
+    }
+
+    var body: some View {
+        HStack(spacing: RX.Space.s3) {
+            Image(rx: iconName)
+                .foregroundStyle(entry.isDirectory ? Color.rxAccent : Color.rxInkSecondary)
+                .frame(width: 22)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name)
+                    .font(.rxBody)
+                    .foregroundStyle(.rxInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(subtitle)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(.rxInkSecondary)
+            }
+
+            Spacer(minLength: 4)
+
+            Menu {
+                if entry.isDirectory {
+                    Button(action: onOpenFolder) {
+                        Label("Open", rx: "arrow.right")
+                    }
+                } else if browser.machine != nil {
+                    Button(action: onEdit) {
+                        Label(tooLargeToEdit ? "Too Large to Edit" : "Edit", rx: "pencil")
+                    }
+                    .disabled(tooLargeToEdit)
+                }
+                Button(action: onCopyToPeer) {
+                    Label(transferLabel, systemImage: browser.machine == nil ? "arrow.up.circle" : "arrow.down.circle")
+                }
+                Divider()
+                Button(action: onRename) {
+                    Label("Rename…", rx: "pencil")
+                }
+                Button {
+                    UIBridge.sendPasteboard(str: entry.path)
+                } label: {
+                    Label("Copy Path", rx: "doc.on.clipboard")
+                }
+                Divider()
+                Button(role: .destructive, action: onDelete) {
+                    Label("Delete…", rx: "trash")
+                }
+            } label: {
+                Image(rx: "ellipsis")
+                    .foregroundStyle(.rxInkSecondary)
+                    .padding(6)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if entry.isDirectory {
+                onOpenFolder()
+            } else if browser.machine != nil, !tooLargeToEdit {
+                onEdit()
+            }
+        }
+    }
+
+    private var iconName: String {
+        if entry.isDirectory { return "folder" }
+        if entry.isLink { return "link" }
+        switch entry.kind {
+        case "image": return "photo"
+        case "archive": return "doc.zipper"
+        case "video": return "film"
+        case "script", "json", "yml", "yaml", "toml", "md", "txt", "log": return "doc.text"
+        default: return "doc"
+        }
+    }
+
+    private var subtitle: String {
+        if entry.isDirectory { return entry.permissions }
+        let sizeText = entry.size.map { RXFormat.bytesString(Double($0)) } ?? "—"
+        return "\(sizeText) · \(entry.permissions)"
+    }
+}
+
+// MARK: - Transfer Queue Bar & Sheet
+
+private struct TransferBarStrip: View {
+    @ObservedObject private var queue = TransferQueue.shared
+    @Binding var showsSheet: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Hairline()
+            Button {
+                showsSheet = true
+            } label: {
+                HStack(spacing: RX.Space.s3) {
+                    if queue.active.isEmpty {
+                        Image(rx: "checkmark.circle.fill")
+                            .foregroundStyle(.rxSuccess)
+                        Text("\(queue.jobs.count) transfer\(queue.jobs.count == 1 ? "" : "s") finished")
+                            .font(.rxBody)
+                            .foregroundStyle(.rxInk)
+                    } else {
+                        ProgressView(value: queue.overallFraction)
+                            .frame(width: 80)
+                            .tint(.rxAccent)
+                        Text(queue.active.first?.title ?? String(localized: "Transferring…"))
+                            .font(.rxBody)
+                            .foregroundStyle(.rxInk)
+                        if queue.active.count > 1 {
+                            Text("+\(queue.active.count - 1)")
+                                .font(.rxCaption)
+                                .foregroundStyle(.rxInkSecondary)
+                        }
+                    }
+                    Spacer()
+                    Image(rx: "chevron.up")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.rxInkSecondary)
+                }
+                .padding(.horizontal, RX.Space.s4)
+                .frame(height: 44)
+                .background(.ultraThinMaterial)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct TransferQueueSheet: View {
+    @ObservedObject private var queue = TransferQueue.shared
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Group {
+            if queue.jobs.isEmpty {
+                EmptyStateView(
+                    "No transfers yet",
+                    systemImage: "arrow.up.arrow.down",
+                    message: "Uploads, downloads, and server-to-server copies appear here."
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(RXBackdrop().ignoresSafeArea())
+            } else {
+                List {
+                    ForEach(queue.jobs) { job in
+                        TransferJobRow(job: job)
+                    }
+                }
+                .rxGroupedList()
+            }
+        }
+        .navigationTitle("Transfers")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Done") { dismiss() }
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Clear Finished") {
+                    queue.clearFinished()
+                }
+                .disabled(queue.jobs.allSatisfy { $0.state == .running || $0.state == .queued })
+            }
+        }
+    }
+}
+
+private struct TransferJobRow: View {
+    @ObservedObject var job: TransferJob
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(job.title)
+                    .font(.rxBody.weight(.medium))
+                    .foregroundStyle(.rxInk)
+                Spacer()
+                statusBadge
+            }
+
+            if job.state == .running {
+                ProgressView(value: job.fraction)
+                    .tint(.rxAccent)
+                HStack {
+                    Text(job.currentFile.isEmpty ? String(localized: "Working…") : job.currentFile)
+                        .font(.rxCaption)
+                        .foregroundStyle(.rxInkSecondary)
+                    Spacer()
+                    if job.bytesPerSecond > 0 {
+                        Text(RXFormat.rateString(Double(job.bytesPerSecond)))
+                            .font(.rxCaption.monospacedDigit())
+                            .foregroundStyle(.rxInkSecondary)
+                    }
+                }
+            } else if let error = job.error {
+                HelpText(error, isError: true)
+            }
+
+            HStack(spacing: RX.Space.s2) {
+                Spacer()
+                if job.state == .running || job.state == .queued {
+                    Button("Cancel", role: .destructive) {
+                        TransferQueue.shared.cancel(job)
+                    }
+                    .buttonStyle(.rx(size: .small))
+                } else if job.state == .failed || job.state == .cancelled {
+                    Button("Retry") {
+                        TransferQueue.shared.retry(job)
+                    }
+                    .buttonStyle(.rx(size: .small))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var statusBadge: some View {
+        switch job.state {
+        case .queued:
+            Text("Queued").font(.rxCaption).foregroundStyle(.rxInkSecondary)
+        case .running:
+            Text("\(Int((job.fraction * 100).rounded()))%").font(.rxCaption.monospacedDigit()).foregroundStyle(.rxAccent)
+        case .done:
+            Label("Done", rx: "checkmark.circle.fill").font(.rxCaption).foregroundStyle(.rxSuccess)
+        case .failed:
+            Label("Failed", rx: "exclamationmark.triangle.fill").font(.rxCaption).foregroundStyle(.rxDanger)
+        case .cancelled:
+            Text("Cancelled").font(.rxCaption).foregroundStyle(.rxInkSecondary)
+        }
+    }
+}
+
+// MARK: - Modal Presentation & Handler Bridge
 
 extension FileTransferContext {
     struct DefaultPresent: View {
@@ -417,8 +951,6 @@ extension FileTransferContext {
 
 /// Bridges TamioModule's shared file-transfer core to UIKit UI.
 final class IOSFileTransferUIHandler: FileTransferUIHandler {
-    // The contract calls these on the main thread; the class itself is
-    // not MainActor because it witnesses a nonisolated protocol.
     func presentError(_ message: String) {
         MainActor.assumeIsolated { UIBridge.presentError(with: message) }
     }
@@ -438,15 +970,17 @@ final class IOSFileTransferUIHandler: FileTransferUIHandler {
             rootView: FileTransferContext.DefaultPresent(context: context)
         )
         host.modalTransitionStyle = .coverVertical
-        host.modalPresentationStyle = .formSheet
-        host.preferredContentSize = preferredPopOverSize
-        UIWindow.shutUpKeyWindow?
-            .topMostViewController?
-            .present(next: host)
+        host.modalPresentationStyle = UIDevice.current.userInterfaceIdiom == .phone ? .fullScreen : .formSheet
+        host.preferredContentSize = CGSize(width: 920, height: 680)
+        PresentationQueue.present(next: host)
     }
 
     func downloadCompleted() {
-        let indicator = SPIndicatorView(title: "Download Completed", message: "Saved to Files", preset: .done)
+        let indicator = SPIndicatorView(
+            title: String(localized: "Download Completed"),
+            message: String(localized: "Saved to Files"),
+            preset: .done
+        )
         indicator.presentWindow = UIWindow.shutUpKeyWindow
         indicator.present(haptic: .success, completion: nil)
     }

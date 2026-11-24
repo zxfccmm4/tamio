@@ -2,11 +2,11 @@
 //  PickMachineView.swift
 //  TamioMobile
 //
-//  Created by Lakr Aream on 2022/3/4.
+//  Native Apple HIG server picker sheet.
 //
 
-import TamioModule
 import SwiftUI
+import TamioModule
 
 struct PickMachineView: View {
     @ObservedObject var store = TamioStore.shared
@@ -23,8 +23,6 @@ struct PickMachineView: View {
 
     private var completion: (([RDMachine.ID]) -> Void)?
 
-    /// MAKE SURE THIS VIEW IS NOT DISMISSABLE BY DRAG
-    /// - Parameter completion: only called when touch checkmark button
     init(completion: @escaping (([RDMachine.ID]) -> Void), canSelectMany: Bool = true) {
         self.completion = completion
         self.canSelectMany = canSelectMany
@@ -33,80 +31,87 @@ struct PickMachineView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    var selectionFooter: String {
-        rawSelection
-            .map { store.machineGroup[$0].name }
-            .joined(separator: " ")
-    }
-
     var body: some View {
-        List {
-            Section {
-                if rawSelection.isEmpty {
-                    Label("Not Selected", systemImage: "questionmark.square.dashed")
-                } else {
-                    Label("\(rawSelection.count) Selected", systemImage: "server.rack")
+        Group {
+            if store.machineGroup.machines.isEmpty {
+                ContentUnavailableView {
+                    Label("No Servers Yet", systemImage: "server.rack")
+                } description: {
+                    Text("Add a server first before selecting targets.")
                 }
-            } header: {
-                RXSectionHeader("Selected")
-            } footer: {
-                if !selectionFooter.isEmpty {
-                    Text(selectionFooter)
-                } else {
-                    Text("<Not Available>")
-                }
-            }
+                .appleGroupedBackground()
+            } else {
+                List {
+                    Section {
+                        ForEach(store.machineGroup.machines) { machine in
+                            let isSelected = rawSelection.contains(machine.id)
+                            Button {
+                                toggleSelection(for: machine.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                        .font(.title3)
+                                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(machine.name)
+                                            .font(.body.weight(.medium))
+                                            .foregroundStyle(.primary)
+                                        Text("\(machine.remoteAddress):\(machine.remotePort)")
+                                            .font(.caption.monospaced())
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        Text("Servers")
+                    } footer: {
+                        if rawSelection.isEmpty {
+                            Text("Select one or more servers.")
+                        } else {
+                            Text(String(localized: "\(rawSelection.count) selected"))
+                        }
+                    }
 
-            Section {
-                if store.machineGroup.machines.isEmpty {
-                    Label("No servers yet", systemImage: "questionmark.square.dashed")
-                } else {
-                    ForEach(store.machineGroup.machines) { machine in
-                        Button {
-                            toggleSelection(for: machine.id)
-                        } label: {
-                            Label(machine.shortDescription(), systemImage: sysImage(for: machine))
+                    if !rawSelection.isEmpty {
+                        Section {
+                            Button(role: .destructive) {
+                                rawSelection = []
+                            } label: {
+                                Label("Clear Selection", systemImage: "xmark.circle")
+                            }
                         }
                     }
                 }
-            } header: {
-                RXSectionHeader("Servers")
-            }
-
-            Section {
-                Button {
-                    rawSelection = []
-                } label: {
-                    Label("Clear Selection", systemImage: "xmark")
-                }
-                .disabled(rawSelection.isEmpty)
+                .listStyle(.insetGrouped)
             }
         }
-        .rxGroupedList()
         .navigationTitle("Choose Servers")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem {
-                Button {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") {
+                    dismiss()
+                    completion?([])
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Done") {
                     dismiss()
                     completion?(rawSelection)
-                } label: {
-                    Text("Save").bold()
                 }
+                .bold()
             }
         }
-        .onChange(of: rawSelection) { newValue in
+        .onChange(of: rawSelection) { _, newValue in
             selection = newValue
         }
     }
 
-    func sysImage(for machine: RDMachine) -> String {
-        if rawSelection.contains(machine.id) {
-            return "circle.fill"
-        }
-        return "circle.dashed"
-    }
-
-    func toggleSelection(for mid: RDMachine.ID) {
+    private func toggleSelection(for mid: RDMachine.ID) {
         if canSelectMany {
             if let index = rawSelection.firstIndex(of: mid) {
                 rawSelection.remove(at: index)
@@ -116,15 +121,5 @@ struct PickMachineView: View {
         } else {
             rawSelection = [mid]
         }
-    }
-}
-
-struct PickMachineView_Previews: PreviewProvider {
-    static var previews: some View {
-        createPreview { AnyView(
-            PickMachineView { result in
-                debugPrint(result)
-            }
-        ) }
     }
 }

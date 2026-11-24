@@ -2,73 +2,149 @@
 //  ServersView.swift
 //  TamioMobile
 //
-//  All servers in one list, as on the Mac: each group a badge after the
-//  name, with search, redaction, Open Terminals and New Server. The server
-//  menu and the actions behind it are here too.
+//  Native Apple HIG `.insetGrouped` servers list:
+//  - Grouped cleanly by server group, with large title & native search
+//  - Leading swipe actions: Terminal & Files; trailing swipe actions: Edit & Delete
+//  - Live inline CPU/Mem status badge per row via ServerLiveReader
+//  - Native ContentUnavailableView empty states
 //
 
 import MachineStatusView
 import SwiftUI
+import TamioDesign
 import TamioModule
 
 struct ServersView: View {
     @EnvironmentObject var store: TamioStore
     @Environment(\.serverActions) private var actions
     @State private var searchText = ""
-    @State private var selection: RDMachine.ID?
 
-    var filtered: [RDMachine] {
+    private var filtered: [RDMachine] {
         let machines = store.machineGroup.machines
         guard !searchText.isEmpty else { return machines }
         return machines.filter { $0.isQualifiedForSearch(text: searchText) }
     }
 
-    /// By name; a server's group is a badge after it, not a section.
-    var sorted: [RDMachine] {
-        filtered.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    private var grouped: [(group: String, machines: [RDMachine])] {
+        let names = Set(filtered.map(\.group)).sorted { lhs, rhs in
+            if lhs.isEmpty { return false }
+            if rhs.isEmpty { return true }
+            return lhs.localizedStandardCompare(rhs) == .orderedAscending
+        }
+        return names.map { name in
+            let items = filtered
+                .filter { $0.group == name }
+                .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+            return (name, items)
+        }
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: RX.Space.s3) {
-                if store.machineRedacted != .none {
-                    RedactionBanner()
-                }
-                if store.machineGroup.machines.isEmpty {
-                    EmptyStateView(
-                        "No servers yet",
-                        systemImage: "server.rack",
-                        actionTitle: "New Server"
-                    ) {
+        Group {
+            if store.machineGroup.machines.isEmpty {
+                ContentUnavailableView {
+                    Label("No Servers Yet", systemImage: "server.rack")
+                } description: {
+                    Text("Save an SSH host to connect with one tap or browse remote files.")
+                } actions: {
+                    Button {
                         actions.newServer()
+                    } label: {
+                        Label("New Server", systemImage: "plus")
                     }
-                    .rxCard()
-                } else if filtered.isEmpty {
-                    EmptyStateView("No matches", systemImage: "magnifyingglass")
-                        .rxCard()
-                } else {
-                    ServersTable(machines: sorted, selection: $selection) { machine in
-                        ServerMenuItems(machine: machine)
+                    .appleProminentButton()
+                    .controlSize(.large)
+                }
+                .appleGroupedBackground()
+            } else if filtered.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+                    .appleGroupedBackground()
+            } else {
+                List {
+                    if store.machineRedacted != .none {
+                        Section {
+                            HStack(spacing: 10) {
+                                Image(systemName: "eye.slash.fill")
+                                    .foregroundStyle(.orange)
+                                Text("Sensitive server details are hidden")
+                                    .font(.subheadline)
+                                Spacer()
+                                Button("Show") {
+                                    store.machineRedacted = .none
+                                }
+                                .font(.subheadline.weight(.semibold))
+                            }
+                        }
+                    }
+
+                    ForEach(grouped, id: \.group) { section in
+                        Section(section.group.isEmpty ? String(localized: "Ungrouped") : section.group) {
+                            ForEach(section.machines) { machine in
+                                ServerListRow(machine: machine)
+                                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                        Button {
+                                            actions.openTerminal(machine.id)
+                                        } label: {
+                                            Label("Terminal", systemImage: "terminal")
+                                        }
+                                        .tint(.indigo)
+
+                                        Button {
+                                            actions.openFiles(machine.id)
+                                        } label: {
+                                            Label("Files", systemImage: "folder")
+                                        }
+                                        .tint(.blue)
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            ServerActions.delete([machine.id])
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+
+                                        Button {
+                                            actions.edit(machine.id)
+                                        } label: {
+                                            Label("Edit", systemImage: "pencil")
+                                        }
+                                        .tint(.orange)
+                                    }
+                                    .contextMenu {
+                                        ServerMenuItems(machine: machine.id)
+                                    }
+                            }
+                        }
                     }
                 }
+                .listStyle(.insetGrouped)
             }
-            .padding(.horizontal, RX.Space.s4)
-            .padding(.top, RX.Space.s1)
-            .padding(.bottom, RX.Space.s6)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(RXBackdrop().ignoresSafeArea())
         .navigationTitle("Servers")
-        .searchable(text: $searchText, prompt: "Search servers")
+        .navigationBarTitleDisplayMode(.large)
+        .searchable(text: $searchText, prompt: Text("Search servers"))
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                RedactionMenu()
-                Button { ServerActions.openTerminals() } label: {
-                    Label("Open Terminals…", systemImage: "rectangle.stack.badge.plus")
+                Menu {
+                    Picker("Hide Details", selection: $store.machineRedacted) {
+                        Text("Show All").tag(RDMachine.RedactedLevel.none)
+                        Text("Hide Addresses").tag(RDMachine.RedactedLevel.sensitive)
+                        Text("Hide Names & Addresses").tag(RDMachine.RedactedLevel.all)
+                    }
+                    Divider()
+                    Button {
+                        ServerActions.openTerminals()
+                    } label: {
+                        Label("Open Multiple Terminals…", systemImage: "rectangle.stack.badge.plus")
+                    }
+                    .disabled(store.machineGroup.machines.isEmpty)
+                } label: {
+                    Label("Options", systemImage: "ellipsis.circle")
                 }
-                .help(String(localized: "Pick several servers and open a terminal on each"))
-                .disabled(store.machineGroup.machines.isEmpty)
-                Button { actions.newServer() } label: {
+
+                Button {
+                    actions.newServer()
+                } label: {
                     Label("New Server", systemImage: "plus")
                 }
             }
@@ -76,11 +152,75 @@ struct ServersView: View {
     }
 }
 
+private struct ServerListRow: View {
+    let machine: RDMachine
+    @EnvironmentObject private var store: TamioStore
+    @Environment(\.serverActions) private var actions
+
+    private var endpointText: String {
+        let identity = machine.associatedIdentity.flatMap(UUID.init(uuidString:)).map { store.identityGroup[$0] }
+        let user = machine.loginUsername(with: identity)
+        let prefix = user.isEmpty ? "" : "\(user)@"
+        let portSuffix = machine.remotePort == "22" ? "" : ":\(machine.remotePort)"
+        return "\(prefix)\(machine.remoteAddress)\(portSuffix)"
+    }
+
+    var body: some View {
+        Button {
+            actions.openTerminal(machine.id)
+        } label: {
+            HStack(spacing: 12) {
+                if let flag = machine.countryFlag {
+                    Text(flag)
+                        .font(.title3)
+                        .frame(width: 26)
+                } else {
+                    Image(systemName: "server.rack")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 26)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    RedactableText(machine.name, redacted: store.machineRedacted == .all)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    RedactableText(endpointText, redacted: store.machineRedacted != .none)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 8)
+
+                ServerLiveReader(machine: machine.id) { state in
+                    if let cpu = state.cpu, let mem = state.memory {
+                        HStack(spacing: 10) {
+                            Text("\(Int(cpu.rounded()))%")
+                                .font(.caption.weight(.medium).monospacedDigit())
+                                .foregroundStyle(cpu >= 85 ? .red : .green)
+                            Text("\(Int(mem.rounded()))%")
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 /// Terminal, Files, Monitor, New Terminal; Edit, Duplicate, Copy Address,
-/// Copy SSH Command, Forget Host Key; Delete: the Mac's server menu.
+/// Copy SSH Command, Forget Host Key; Delete.
 struct ServerMenuItems: View {
     let machine: RDMachine.ID
-    /// False where the tools already sit beside the menu (a card's ⋯ button).
     var includesTools = true
     @Environment(\.serverActions) private var actions
 
@@ -88,13 +228,13 @@ struct ServerMenuItems: View {
         Group {
             if includesTools {
                 Button { actions.openTerminal(machine) } label: {
-                    Label("Open Terminal", systemImage: ServerTool.terminal.systemImage)
+                    Label("Open Terminal", systemImage: "terminal")
                 }
                 Button { actions.openFiles(machine) } label: {
-                    Label("Open Files", systemImage: ServerTool.files.systemImage)
+                    Label("Open Files", systemImage: "folder")
                 }
                 Button { actions.openMonitor(machine) } label: {
-                    Label("Open Monitor", systemImage: ServerTool.monitor.systemImage)
+                    Label("Open Monitor", systemImage: "waveform.path.ecg")
                 }
             }
             Button { TerminalManager.shared.begin(for: machine, force: true) } label: {
@@ -126,20 +266,19 @@ struct ServerMenuItems: View {
 
 @MainActor
 enum ServerActions {
-    /// The editor over the page, for a new server or an existing one.
     static func edit(_ machine: RDMachine.ID?) {
-        TamioUtil.presentModalSheet(rootView: NavigationStack {
-            EditMachineView(requestMachine: machine)
+        TamioUtil.presentModalSheet { dismissModal in
+            NavigationStack {
+                EditMachineView(requestMachine: machine, onClose: dismissModal)
+            }
+            .environmentObject(TamioStore.shared)
         }
-        .environmentObject(TamioStore.shared))
     }
 
     static func openMonitor(_ machine: RDMachine.ID) {
         do {
             let existing = MonitorCenter.shared.session(for: machine)
             let session = try MonitorCenter.shared.begin(for: machine)
-            // An existing monitor is brought forward even when sessions do
-            // not open automatically; a new one waits for the setting.
             guard existing != nil || TamioStore.shared.openInterfaceAutomatically else { return }
             let host = UIHostingController(rootView: DefaultModalPresenter {
                 MonitorView(session: session)
@@ -149,7 +288,7 @@ enum ServerActions {
             host.preferredContentSize = preferredPopOverSize
             PresentationQueue.present(next: host)
         } catch {
-            UIBridge.presentError(with: "Cannot open monitor")
+            UIBridge.presentError(with: String(localized: "Cannot open monitor"))
         }
     }
 
@@ -165,8 +304,7 @@ enum ServerActions {
             guard confirmed else { return }
             var copy = original
             copy.id = UUID()
-            copy.name = original.name + " copy"
-            // A private identity belongs to one server: the copy gets its own.
+            copy.name = original.name + " " + String(localized: "copy")
             if let raw = original.associatedIdentity, let id = UUID(uuidString: raw),
                store.identityGroup[id].isPrivate
             {
@@ -207,7 +345,6 @@ enum ServerActions {
         }
     }
 
-    /// For a server whose keys were replaced: its next host key is saved.
     static func forgetHostKey(_ machine: RDMachine.ID) {
         let read = TamioStore.shared.machineGroup[machine]
         guard read.isNotPlaceholder() else { return }
@@ -231,12 +368,9 @@ enum ServerActions {
         UIBridge.sendPasteboard(str: TamioStore.shared.machineGroup[machine].getCommand())
     }
 
-    /// Pick servers, then open a terminal for each.
     static func openTerminals() {
         Task {
             let machines = await TamioUtil.selectMachine()
-            // Terminals present themselves through PresentationQueue once
-            // connected, so the picker sheet still animating out is fine.
             await MainActor.run {
                 for machine in machines {
                     TerminalManager.shared.begin(for: machine, force: true)
@@ -247,8 +381,6 @@ enum ServerActions {
 }
 
 extension ServerActionHandlers {
-    /// What the shared server views do on iOS: sessions that present
-    /// themselves, sheets, alerts, the pasteboard.
     @MainActor static var ios: ServerActionHandlers {
         ServerActionHandlers(
             openTerminal: { TerminalManager.shared.begin(for: $0) },
