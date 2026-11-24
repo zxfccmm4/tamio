@@ -81,12 +81,9 @@ struct ContentView: View {
     // MARK: - iOS 18 / 26 / 27 Adaptive Native Shell
 
     /// Places the AI Assistant as a detached standalone Liquid Glass button on
-    /// the far right of the floating tab bar (iOS 27 `.prominent`, iOS 26 `.search`).
+    /// the far right of the floating tab bar on iOS 26+.
     @available(iOS 18.0, *)
     private var assistantTabRole: TabRole? {
-        if #available(iOS 27.0, *) {
-            return .prominent
-        }
         if #available(iOS 26.0, *) {
             return .search
         }
