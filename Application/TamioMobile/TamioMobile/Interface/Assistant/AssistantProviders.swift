@@ -512,6 +512,45 @@ final class AIProviderStore {
         persist()
     }
 
+    func importFromBackup(
+        providers imported: [AIProviderConfig],
+        apiKeys: [String: String],
+        activeSelection importedSelection: AIActiveSelection?,
+        replaceExisting: Bool
+    ) {
+        if replaceExisting {
+            for existing in providers {
+                try? keychain.remove(existing.id)
+            }
+            providers = imported
+        } else {
+            for item in imported {
+                if let idx = providers.firstIndex(where: { $0.id == item.id }) {
+                    providers[idx] = item
+                } else {
+                    providers.append(item)
+                }
+            }
+        }
+        for (providerID, rawKey) in apiKeys {
+            let trimmed = rawKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                try? keychain.set(trimmed, key: providerID)
+            }
+        }
+        if let importedSelection {
+            switch importedSelection {
+            case .appleIntelligence:
+                if replaceExisting { activeSelection = .appleIntelligence }
+            case .custom(let id):
+                if providers.contains(where: { $0.id == id && $0.isEnabled }) {
+                    activeSelection = .custom(providerId: id)
+                }
+            }
+        }
+        persist()
+    }
+
     // MARK: - Model Discovery & Connection Test
 
     func fetchModels(for config: AIProviderConfig, apiKeyOverride: String? = nil) async throws -> [String] {

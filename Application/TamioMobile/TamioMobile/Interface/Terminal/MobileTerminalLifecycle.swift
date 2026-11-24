@@ -112,6 +112,7 @@ enum BackgroundGraceController {
     private static var hasLiveSessions: Bool {
         TerminalManager.shared.terminals.contains(where: { !$0.closed })
             || GhostRemoteSessionManager.shared.sessions.contains(where: { $0.state == .connected })
+            || !ServerAssistant.shared.executingConversationIDs.isEmpty
     }
 
     private static func beginIfNeeded() {

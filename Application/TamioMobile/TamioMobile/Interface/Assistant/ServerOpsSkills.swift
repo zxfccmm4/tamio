@@ -272,6 +272,31 @@ final class ServerOpsSkillStore {
         persist()
     }
 
+    func importFromBackup(
+        customSkills: [ServerOpsSkill],
+        disabledBuiltInIDs: Set<String>,
+        replaceExisting: Bool
+    ) {
+        if replaceExisting {
+            skills.removeAll { !$0.isBuiltIn }
+        }
+        for item in customSkills where !item.isBuiltIn {
+            if let idx = skills.firstIndex(where: { $0.id == item.id && !$0.isBuiltIn }) {
+                skills[idx] = item
+            } else {
+                skills.insert(item, at: 0)
+            }
+        }
+        for idx in skills.indices where skills[idx].isBuiltIn {
+            if replaceExisting {
+                skills[idx].isEnabled = !disabledBuiltInIDs.contains(skills[idx].id)
+            } else if disabledBuiltInIDs.contains(skills[idx].id) {
+                skills[idx].isEnabled = false
+            }
+        }
+        persist()
+    }
+
     @discardableResult
     func importFromMarkdown(_ raw: String, sourceURL: String? = nil) -> ServerOpsSkill {
         let parsed = ServerSkillMDParser.parse(raw)

@@ -101,10 +101,54 @@ nonisolated struct LLMResponseTurn: Sendable {
 // MARK: - Streaming Client
 
 nonisolated struct RemoteLLMClient: Sendable {
+    /// Dedicated streaming session that tolerates slow thinking models and brief
+    /// Wi-Fi/cellular transitions instead of aborting on URLSession.shared's defaults.
+    static let streamingSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 300
+        config.timeoutIntervalForResource = 900
+        config.waitsForConnectivity = true
+        config.allowsExpensiveNetworkAccess = true
+        config.allowsConstrainedNetworkAccess = true
+        config.httpShouldUsePipelining = false
+        return URLSession(configuration: config)
+    }()
+
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = RemoteLLMClient.streamingSession) {
         self.session = session
+    }
+
+    static func isRetryableError(_ error: Error) -> Bool {
+        if error is CancellationError { return false }
+        if let llmError = error as? RemoteLLMError {
+            switch llmError {
+            case .httpError(let code, _):
+                return code == 408 || code == 429 || (500 ... 599).contains(code)
+            case .invalidResponse:
+                return true
+            default:
+                return false
+            }
+        }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            switch nsError.code {
+            case NSURLErrorTimedOut,
+                 NSURLErrorNetworkConnectionLost,
+                 NSURLErrorNotConnectedToInternet,
+                 NSURLErrorCannotConnectToHost,
+                 NSURLErrorCannotFindHost,
+                 NSURLErrorDNSLookupFailed,
+                 NSURLErrorResourceUnavailable,
+                 NSURLErrorSecureConnectionFailed:
+                return true
+            default:
+                return false
+            }
+        }
+        return false
     }
 
     func streamCompletion(
@@ -256,7 +300,7 @@ nonisolated struct RemoteLLMClient: Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 180
+        request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         let effectiveToken = (apiKey?.isEmpty == false) ? apiKey : config.kind.defaultAuthToken
@@ -422,7 +466,7 @@ nonisolated struct RemoteLLMClient: Sendable {
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.timeoutInterval = 180
+        request.timeoutInterval = 300
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")

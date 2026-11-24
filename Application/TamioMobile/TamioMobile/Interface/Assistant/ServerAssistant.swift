@@ -339,6 +339,19 @@ final class ConversationSession {
         startInference()
     }
 
+    /// Resumes after a network or stream error without discarding completed
+    /// tool calls from earlier rounds in the same turn.
+    func retryAfterError() {
+        guard !isStreaming else { return }
+        while let last = messages.last, last.role == .error {
+            messages.removeLast()
+        }
+        guard !messages.isEmpty else { return }
+        onDeviceSessionBox = nil
+        persistMessages()
+        startInference()
+    }
+
     func editAndResend(messageID: UUID, newText: String) {
         let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !isStreaming,
@@ -511,18 +524,12 @@ final class ConversationSession {
                 )
                 didPruneContext = prepared.didPrune
 
-                let turn = try await remoteClient.streamCompletion(
+                let turn = try await streamCompletionWithRetry(
                     config: config,
                     apiKey: apiKey,
                     systemPrompt: prepared.systemPrompt,
                     messages: prepared.turns,
-                    tools: tools,
-                    onReasoningDelta: { @MainActor [weak self] delta in
-                        self?.streamReasoning += delta
-                    },
-                    onTextDelta: { @MainActor [weak self] delta in
-                        self?.streamText += delta
-                    }
+                    tools: tools
                 )
 
                 let replyText = turn.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -585,9 +592,74 @@ final class ConversationSession {
         } catch is CancellationError {
             // Handled by stopGenerating()
         } catch {
+            preservePartialStreamIfNeeded(modelLabel: config.model)
             appendMessage(AssistantChatMessage(role: .error, text: error.localizedDescription))
             finishStreamingState()
         }
+    }
+
+    /// Retries transient connection drops and 429/5xx responses automatically
+    /// when no output has been delivered yet, preventing abrupt session failures
+    /// on brief network handovers or rate limits.
+    private func streamCompletionWithRetry(
+        config: AIProviderConfig,
+        apiKey: String?,
+        systemPrompt: String,
+        messages: [LLMConversationTurn],
+        tools: [LLMToolSchema]
+    ) async throws -> LLMResponseTurn {
+        let maxRetries = 2
+        var attempt = 0
+        while true {
+            try Task.checkCancellation()
+            do {
+                let turn = try await remoteClient.streamCompletion(
+                    config: config,
+                    apiKey: apiKey,
+                    systemPrompt: systemPrompt,
+                    messages: messages,
+                    tools: tools,
+                    onReasoningDelta: { @MainActor [weak self] delta in
+                        self?.activeToolStatus = nil
+                        self?.streamReasoning += delta
+                    },
+                    onTextDelta: { @MainActor [weak self] delta in
+                        self?.activeToolStatus = nil
+                        self?.streamText += delta
+                    }
+                )
+                activeToolStatus = nil
+                return turn
+            } catch {
+                let receivedAnyOutput = !streamText.isEmpty || !streamReasoning.isEmpty
+                guard attempt < maxRetries,
+                      !receivedAnyOutput,
+                      RemoteLLMClient.isRetryableError(error)
+                else {
+                    throw error
+                }
+                attempt += 1
+                activeToolStatus = String(localized: "Connection interrupted, retrying (\(attempt)/\(maxRetries))…")
+                let delaySeconds: Double = attempt == 1 ? 1.5 : 3.5
+                try await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+            }
+        }
+    }
+
+    private func preservePartialStreamIfNeeded(modelLabel: String?) {
+        let partialText = streamText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let partialReasoning = streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !partialText.isEmpty || !partialReasoning.isEmpty else { return }
+        appendMessage(
+            AssistantChatMessage(
+                role: .assistant,
+                text: partialText.isEmpty ? String(localized: "(Interrupted)") : partialText,
+                reasoning: partialReasoning,
+                modelLabel: modelLabel
+            )
+        )
+        streamText = ""
+        streamReasoning = ""
     }
 
     private func executeTool(_ call: LLMToolCall) async -> AssistantToolExecution {
@@ -725,6 +797,7 @@ final class ConversationSession {
             } catch is CancellationError {
                 // Handled by stopGenerating()
             } catch {
+                preservePartialStreamIfNeeded(modelLabel: String(localized: "Apple Intelligence"))
                 appendMessage(AssistantChatMessage(role: .error, text: error.localizedDescription))
             }
 
@@ -1276,6 +1349,7 @@ final class ServerAssistant {
         } else {
             executingConversationIDs.remove(id)
         }
+        BackgroundGraceController.noteSessionsChanged()
     }
 
     func applyAutoTitle(for id: UUID, title: String, emoji: String?) {

@@ -54,6 +54,7 @@
 		842E732BF7B57279E90B1990 /* ServerChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE461F27A19746A1692E6F4 /* ServerChartsView.swift */; };
 		8995E1A76012B8FF2E58F3FF /* SnippetExecuteContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = F741E31C791A2296DB4FA2BB /* SnippetExecuteContext.swift */; };
 		93CE883F33F50443E8608047 /* PresentError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98B1401E52674F538FBBD43 /* PresentError.swift */; };
+		9836DA3307C55AD485DA5483 /* TamioBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D8F525D233794EA3712F51 /* TamioBackupManager.swift */; };
 		98F5CAD201971FBBE929F623 /* ServerDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD7823A9F4D8659C2FF12A18 /* ServerDetailView.swift */; };
 		9A9CD0229F5EE87AAE9E831A /* LicenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D62132759EDA9D53C8FD2D8A /* LicenseView.swift */; };
 		9C13B1F34763638CE8E7047D /* TamioMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF71CE0BCB1922F53189C9B8 /* TamioMobileApp.swift */; };
@@ -78,6 +79,7 @@
 		C76A2C040E7D902E6FB1FCF5 /* TerminalFindBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDCF36782302AB01A6B0A72 /* TerminalFindBar.swift */; };
 		D410400E096FF0711EE9FFBB /* GhostRemoteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DBB1563B7F82F775BD41A94 /* GhostRemoteModels.swift */; };
 		DA08E3EF36794BC5B829376D /* TamioEditor in Frameworks */ = {isa = PBXBuildFile; productRef = D0386B9EADA560E42377058B /* TamioEditor */; };
+		DBCC1BCFB1FD07CB437AA9E8 /* BackupTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00036F09BA97EE1B0B11AEE /* BackupTransferView.swift */; };
 		E085E73BEB74C177AF533C94 /* AssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796B44E3EFE681F0589A5DCA /* AssistantView.swift */; };
 		E7C3CBFE62E9D5323B3AF86C /* EditMachineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071D0337FEAAF8FF2BB36CA8 /* EditMachineView.swift */; };
 		E9E92A13B1C7C884C43B574C /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DE6806A829E6F28EF6C393D /* View.swift */; };
@@ -175,11 +177,13 @@
 		AD1718F9FF7F677CDF904E10 /* ConversationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationHistoryView.swift; sourceTree = "<group>"; };
 		B203397BE2C3534F271516D2 /* AIProviderIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderIconView.swift; sourceTree = "<group>"; };
 		B52FC8B696EF708B6BD10B9E /* ServersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServersView.swift; sourceTree = "<group>"; };
+		B6D8F525D233794EA3712F51 /* TamioBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioBackupManager.swift; sourceTree = "<group>"; };
 		B98B1401E52674F538FBBD43 /* PresentError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentError.swift; sourceTree = "<group>"; };
 		BAE461F27A19746A1692E6F4 /* ServerChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerChartsView.swift; sourceTree = "<group>"; };
 		BBB5128FFF04D41BA4127D90 /* TamioMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TamioMobile.entitlements; sourceTree = "<group>"; };
 		BCC8DE0662E1FE7BE858F105 /* ServerAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerAssistant.swift; sourceTree = "<group>"; };
 		BE788769E801382E3EE0BA96 /* RemoteLLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLLMClient.swift; sourceTree = "<group>"; };
+		C00036F09BA97EE1B0B11AEE /* BackupTransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupTransferView.swift; sourceTree = "<group>"; };
 		C33BBA3AA7B81EEB3459864B /* PortForwardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortForwardView.swift; sourceTree = "<group>"; };
 		CD7823A9F4D8659C2FF12A18 /* ServerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDetailView.swift; sourceTree = "<group>"; };
 		D62132759EDA9D53C8FD2D8A /* LicenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseView.swift; sourceTree = "<group>"; };
@@ -405,6 +409,7 @@
 			isa = PBXGroup;
 			children = (
 				22820C7DA41DD51F5BA8EF00 /* AboutView.swift */,
+				C00036F09BA97EE1B0B11AEE /* BackupTransferView.swift */,
 				A5F08768B5026EA427A42663 /* LogView.swift */,
 				D8B73AE3DACDE5783676F514 /* SettingView.swift */,
 			);
@@ -493,6 +498,7 @@
 				5730A2E7A605BD59C14B9BCA /* LogRedirect.swift */,
 				2520C07CB5D78A5BDEB9373C /* SessionActivityController.swift */,
 				111AB15CD85F7C4049F4DD6B /* SyncedSettings.swift */,
+				B6D8F525D233794EA3712F51 /* TamioBackupManager.swift */,
 				EF71CE0BCB1922F53189C9B8 /* TamioMobileApp.swift */,
 				F544C549E1C02C28894928B4 /* TamioShortcuts.swift */,
 			);
@@ -657,6 +663,7 @@
 				2DDAAE84514919CE09530E74 /* AssistantConversationStore.swift in Sources */,
 				AC693AEAE939A6099C8601C7 /* AssistantProviders.swift in Sources */,
 				E085E73BEB74C177AF533C94 /* AssistantView.swift in Sources */,
+				DBCC1BCFB1FD07CB437AA9E8 /* BackupTransferView.swift in Sources */,
 				708ADFDE878FF809811ED19F /* ContentView.swift in Sources */,
 				B44A2F68C27AA3EE84468421 /* ConversationHistoryView.swift in Sources */,
 				A38D5E1D15B48C1DA67A7F4D /* DoubleConfirm.swift in Sources */,
@@ -695,6 +702,7 @@
 				F3C38571FFF212D29904E756 /* SnippetExecuteView.swift in Sources */,
 				2F6327B957E22B5124DA9A17 /* SnippetView.swift in Sources */,
 				5894577045DBDA04D7F4CA1A /* SyncedSettings.swift in Sources */,
+				9836DA3307C55AD485DA5483 /* TamioBackupManager.swift in Sources */,
 				9C13B1F34763638CE8E7047D /* TamioMobileApp.swift in Sources */,
 				0B9CB44989100B557CFDF751 /* TamioSessionAttributes.swift in Sources */,
 				FF39656ECD0D385A2F72704F /* TamioShortcuts.swift in Sources */,

@@ -1089,14 +1089,27 @@ private struct ChatMessageRow: View {
                 .padding(.vertical, 2)
 
         case .error:
-            HStack(alignment: .top, spacing: 9) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.red)
-                    .padding(.top, 1)
-                Text(message.text)
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: 9) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .padding(.top, 1)
+                    Text(message.text)
+                        .font(.subheadline)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if canMutate {
+                    Button {
+                        ServerAssistant.shared.activeSession.retryAfterError()
+                    } label: {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                    .controlSize(.small)
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 11)

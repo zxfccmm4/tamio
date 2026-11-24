@@ -96,6 +96,12 @@ struct SettingView: View {
                     LabeledContent("iCloud Sync", value: syncStatusLabel)
                 }
 
+                NavigationLink {
+                    BackupTransferView()
+                } label: {
+                    Label("Export & Import Backup", systemImage: "arrow.up.arrow.down.circle")
+                }
+
                 Toggle("Show Hidden Files in SFTP", isOn: $showsHidden)
 
                 Button("Open App Files") {
