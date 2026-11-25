@@ -158,6 +158,37 @@ enum TamioBackupManager {
         return "Tamio-Backup-\(formatter.string(from: Date())).tamiobackup.json"
     }
 
+    /// Reads a user-picked or AirDropped backup file safely across security scopes
+    /// and iCloud Drive file coordination.
+    static func readBackupData(from url: URL) throws -> Data {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+
+        var coordinatorError: NSError?
+        var readResult: Result<Data, Error>?
+
+        let coordinator = NSFileCoordinator()
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinatorError) { coordinatedURL in
+            do {
+                readResult = .success(try Data(contentsOf: coordinatedURL))
+            } catch {
+                readResult = .failure(error)
+            }
+        }
+
+        if let coordinatorError {
+            throw coordinatorError
+        }
+        switch readResult {
+        case .success(let data):
+            return data
+        case .failure(let error):
+            throw error
+        case nil:
+            return try Data(contentsOf: url)
+        }
+    }
+
     static func makeExportData(
         options: TamioBackupOptions,
         passphrase: String?

@@ -330,16 +330,27 @@ enum ServerActions {
             destructive: true
         ) { confirmed in
             guard confirmed else { return }
+            var candidatePrivateIdentities: [RDIdentity.ID] = []
             for machine in machines {
                 if let session = MonitorCenter.shared.session(for: machine) {
                     MonitorCenter.shared.end(session.id)
                 }
-                if let raw = store.machineGroup[machine].associatedIdentity, let id = UUID(uuidString: raw),
+                let record = store.machineGroup[machine]
+                if record.isNotPlaceholder(),
+                   let raw = record.associatedIdentity,
+                   let id = UUID(uuidString: raw),
                    store.identityGroup[id].isPrivate
                 {
-                    store.identityGroup.delete(id)
+                    candidatePrivateIdentities.append(id)
                 }
                 store.machineGroup.delete(machine)
+            }
+            for id in candidatePrivateIdentities {
+                let raw = id.uuidString
+                let stillReferenced = store.machineGroup.machines.contains { $0.associatedIdentity == raw }
+                if !stillReferenced {
+                    store.identityGroup.delete(id)
+                }
             }
             store.cleanRecentIfNeeded()
         }

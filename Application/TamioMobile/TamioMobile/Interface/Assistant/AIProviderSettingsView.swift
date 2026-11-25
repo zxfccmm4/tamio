@@ -28,8 +28,10 @@ struct AIProviderSettingsView: View {
 
     private var appleStatus: AppleIntelligenceStatus { .current }
     private var appleReady: Bool { appleStatus == .available }
+    private var pccStatus: ApplePrivateCloudComputeStatus { .current }
+    private var pccReady: Bool { store.privateCloudComputeEnabled && pccStatus == .available }
     private var effectiveSelection: AIActiveSelection {
-        store.effectiveSelection(appleIntelligenceAvailable: appleReady)
+        store.effectiveSelection(appleIntelligenceAvailable: appleReady, pccAvailable: pccReady)
     }
 
     private var activeCustomProvider: AIProviderConfig? {
@@ -163,22 +165,23 @@ struct AIProviderSettingsView: View {
         }
     }
 
-    // MARK: Built-In Apple Intelligence
+    // MARK: Built-In Apple Intelligence (On-Device & Private Cloud Compute)
 
     private var appleIntelligenceSection: some View {
-        Section("On-Device") {
+        Section {
             Button {
                 if appleReady { store.selectActive(.appleIntelligence) }
             } label: {
                 HStack(spacing: 12) {
                     AIProviderBadgeView(source: .appleIntelligence, size: .regular, isDimmed: !appleReady)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Apple Intelligence")
+                        Text("Apple Intelligence (On-Device)")
                             .font(.body.weight(.medium))
                             .foregroundStyle(appleReady ? .primary : .secondary)
                         Text(appleStatus.localizedDescription)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     if effectiveSelection == .appleIntelligence, appleReady {
@@ -190,6 +193,51 @@ struct AIProviderSettingsView: View {
             }
             .buttonStyle(.plain)
             .disabled(!appleReady)
+
+            Button {
+                if pccReady { store.selectActive(.applePrivateCloudCompute) }
+            } label: {
+                HStack(spacing: 12) {
+                    AppleFeatureBadge(systemImage: "cloud.fill", tint: .indigo, size: 32)
+                        .opacity(pccReady ? 1 : 0.45)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Apple Intelligence (PCC)")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(pccReady ? .primary : .secondary)
+                            Text("Cloud")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.indigo)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1.5)
+                                .background(Color.indigo.opacity(0.12), in: Capsule())
+                        }
+                        Text(pccStatus.localizedDescription)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                    if effectiveSelection == .applePrivateCloudCompute, pccReady {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.accentColor)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!pccReady)
+
+            Toggle(isOn: $store.privateCloudComputeEnabled) {
+                HStack(spacing: 12) {
+                    AppleFeatureBadge(systemImage: "lock.icloud.fill", tint: .blue, size: 28)
+                    Text("Enable Private Cloud Compute")
+                }
+            }
+        } header: {
+            Text("Apple Intelligence")
+        } footer: {
+            Text("Private Cloud Compute runs larger Apple Intelligence models on Apple Silicon servers with verifiable privacy (requires iOS 27+ and entitlement).")
         }
     }
 

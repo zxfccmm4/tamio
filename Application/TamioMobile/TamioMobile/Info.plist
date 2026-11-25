@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Tamio Backup</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.json</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -15,8 +28,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -26,10 +37,6 @@
 	<array>
 		<string>_ighostvt._tcp</string>
 	</array>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>Tamio connects to SSH servers and discovers nearby Ghost Remote devices on your local network.</string>
-	<key>NSSupportsLiveActivities</key>
-	<true/>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 </dict>

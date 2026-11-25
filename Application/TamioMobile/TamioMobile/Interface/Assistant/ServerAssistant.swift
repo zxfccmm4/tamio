@@ -279,6 +279,26 @@ private final class OnDeviceServerSessionHolder {
         )
     }
 }
+
+#if compiler(>=6.4)
+@available(iOS 27.0, *)
+@MainActor
+private final class PrivateCloudComputeSessionHolder {
+    var session: LanguageModelSession
+
+    init(instructions: String) {
+        self.session = LanguageModelSession(
+            model: PrivateCloudComputeLanguageModel(),
+            tools: [
+                ListHostsOnDeviceTool(),
+                GetMetricsOnDeviceTool(),
+                RunCommandOnDeviceTool(),
+            ],
+            instructions: instructions
+        )
+    }
+}
+#endif
 #endif
 
 // MARK: - Single Conversation Runtime Session
@@ -480,6 +500,8 @@ final class ConversationSession {
                 switch selection {
                 case .appleIntelligence:
                     await self.runAppleIntelligenceTurn()
+                case .applePrivateCloudCompute:
+                    await self.runPrivateCloudComputeTurn()
                 case .custom(let providerId):
                     guard let config = manager.resolvedProviderConfig(for: cid, providerId: providerId) else {
                         self.appendMessage(
@@ -808,6 +830,79 @@ final class ConversationSession {
         appendMessage(AssistantChatMessage(role: .error, text: AppleIntelligenceStatus.current.localizedDescription))
     }
 
+    // MARK: - Apple Intelligence Private Cloud Compute (iOS 27+)
+
+    private func runPrivateCloudComputeTurn() async {
+        guard let manager else { return }
+        #if canImport(FoundationModels) && compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            let status = ApplePrivateCloudComputeStatus.current
+            guard status == .available else {
+                appendMessage(AssistantChatMessage(role: .error, text: status.localizedDescription))
+                return
+            }
+            guard let prompt = messages.last(where: { $0.role == .user })?.text else { return }
+
+            isStreaming = true
+            streamText = ""
+            streamReasoning = ""
+            manager.markExecuting(conversationID, running: true)
+
+            do {
+                let holder: PrivateCloudComputeSessionHolder
+                if let existing = onDeviceSessionBox as? PrivateCloudComputeSessionHolder {
+                    holder = existing
+                } else {
+                    var instructions = manager.buildInstructions(for: conversationID, compactForOnDevice: false)
+                    let prior = Array(messages.dropLast())
+                    let digest = ConversationContextBuilder.buildOnDeviceHistoryDigest(from: prior)
+                    if !digest.isEmpty {
+                        instructions += "\n\n" + digest
+                    }
+                    holder = PrivateCloudComputeSessionHolder(instructions: instructions)
+                    onDeviceSessionBox = holder
+                }
+
+                for try await snapshot in holder.session.streamResponse(to: prompt) {
+                    try Task.checkCancellation()
+                    streamText = snapshot.content
+                }
+                let finalText = streamText.trimmingCharacters(in: .whitespacesAndNewlines)
+                appendMessage(
+                    AssistantChatMessage(
+                        role: .assistant,
+                        text: finalText.isEmpty ? String(localized: "(No response)") : finalText,
+                        modelLabel: String(localized: "Apple Intelligence (PCC)")
+                    )
+                )
+            } catch is CancellationError {
+                // Handled by stopGenerating()
+            } catch let pccError as PrivateCloudComputeLanguageModel.Error {
+                preservePartialStreamIfNeeded(modelLabel: String(localized: "Apple Intelligence (PCC)"))
+                let friendly: String
+                switch pccError {
+                case .networkFailure:
+                    friendly = String(localized: "Unable to reach Apple Private Cloud Compute. Check your network connection and retry.")
+                case .quotaLimitReached:
+                    friendly = String(localized: "Apple Private Cloud Compute usage limit reached. Try again later or switch to On-Device / another provider.")
+                case .serviceUnavailable:
+                    friendly = String(localized: "Apple Private Cloud Compute is temporarily unavailable. Try again in a moment.")
+                @unknown default:
+                    friendly = pccError.localizedDescription
+                }
+                appendMessage(AssistantChatMessage(role: .error, text: friendly))
+            } catch {
+                preservePartialStreamIfNeeded(modelLabel: String(localized: "Apple Intelligence (PCC)"))
+                appendMessage(AssistantChatMessage(role: .error, text: error.localizedDescription))
+            }
+
+            finishStreamingState()
+            return
+        }
+        #endif
+        appendMessage(AssistantChatMessage(role: .error, text: ApplePrivateCloudComputeStatus.current.localizedDescription))
+    }
+
     // MARK: - Post-Actions (Auto-Rename + Optional Cross-Session Summary)
 
     private func applyImmediateFallbackTitleIfNeeded(from userPrompt: String) {
@@ -957,6 +1052,10 @@ final class ServerAssistant {
     let skillStore: ServerOpsSkillStore
     let bridge: MobileAgentBridge
 
+    /// True while the user is actively typing in AssistantView's keyboard-docked
+    /// composer, so ContentView hides the TabView bottom accessory cleanly.
+    var isComposerActive = false
+
     private let diskStore: AssistantConversationDiskStore
     private let remoteClient: RemoteLLMClient
     private var sessions: [UUID: ConversationSession] = [:]
@@ -1069,19 +1168,22 @@ final class ServerAssistant {
 
     func effectiveSelection(for conversationID: UUID? = nil) -> AIActiveSelection {
         let appleReady = AppleIntelligenceStatus.current == .available
+        let pccReady = providerStore.privateCloudComputeEnabled && ApplePrivateCloudComputeStatus.current == .available
         if let cid = conversationID ?? Optional(activeConversationID),
            let override = conversation(id: cid)?.providerSelection
         {
             switch override {
             case .appleIntelligence where appleReady:
                 return .appleIntelligence
+            case .applePrivateCloudCompute where pccReady:
+                return .applePrivateCloudCompute
             case .custom(let id) where providerStore.providers.contains(where: { $0.id == id && $0.isEnabled }):
                 return .custom(providerId: id)
             default:
                 break
             }
         }
-        return providerStore.effectiveSelection(appleIntelligenceAvailable: appleReady)
+        return providerStore.effectiveSelection(appleIntelligenceAvailable: appleReady, pccAvailable: pccReady)
     }
 
     func resolvedProviderConfig(for conversationID: UUID, providerId: String) -> AIProviderConfig? {
@@ -1096,6 +1198,8 @@ final class ServerAssistant {
         switch effectiveSelection(for: activeConversationID) {
         case .appleIntelligence:
             return AppleIntelligenceStatus.current == .available
+        case .applePrivateCloudCompute:
+            return providerStore.privateCloudComputeEnabled && ApplePrivateCloudComputeStatus.current == .available
         case .custom(let providerId):
             guard let config = resolvedProviderConfig(for: activeConversationID, providerId: providerId) else { return false }
             return providerStore.hasCredential(for: config) && !config.model.isEmpty
@@ -1107,6 +1211,8 @@ final class ServerAssistant {
         switch effectiveSelection(for: activeConversationID) {
         case .appleIntelligence:
             return String(localized: "Apple Intelligence")
+        case .applePrivateCloudCompute:
+            return String(localized: "Apple Intelligence (PCC)")
         case .custom(let id):
             return providerStore.provider(id: id)?.name ?? providerStore.activeDisplayName(appleIntelligenceAvailable: appleReady)
         }
@@ -1117,6 +1223,8 @@ final class ServerAssistant {
         switch effectiveSelection(for: cid) {
         case .appleIntelligence:
             return String(localized: "On-Device")
+        case .applePrivateCloudCompute:
+            return String(localized: "Private Cloud Compute")
         case .custom(let id):
             return resolvedProviderConfig(for: cid, providerId: id)?.model ?? ""
         }

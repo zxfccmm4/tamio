@@ -14,7 +14,13 @@ the user. To release, rename that heading to the version and date
 ## [Unreleased]
 
 ### Added
-- **iOS and iPadOS app brought up to Mac v0.2.21 with non-jailbreak iGhostVT terminal UX.** `TamioMobile` now includes the unified server and SSH key editors (Ed25519 generation, sealed private keys, per-server private passwords, Tailscale `None` auth), concurrent `FileBrowser`/`TransferQueue` SFTP with dual panes on iPad and overwrite prompts, iCloud KVS/Keychain sync entitlements, local network and privacy manifests, Face ID app lock, Live Activities (`TamioMobileWidgets`), customizable keyboard bar, terminal Find, swipeable floating tab bar with live-thumbnail Tab Switcher, tab/keyboard locks, snippet drawer, transcript export, network-recovery auto-reconnect, and App Store-safe Ghost Remote LAN discovery and `.vtrpsc` relay support.
+- **Full iOS feature parity on native macOS (`Application/Tamio`).** macOS now includes the FlowDown-inspired AI Fleet Assistant (multi-session sidebar, target server scope, pinned skills, per-conversation model switcher, per-message regenerate/edit/fork/delete, connection testing, model discovery, and `SKILL.md` file/URL import), a 4-tab server Monitor (`Overview`, animated 6-chart `Charts`, sortable `Processes` with `kill`, and Docker `Containers`), selective 4-category AES-256-GCM `.tamiobackup.json` Export/Import compatible with iOS, an `iGhostVT`-style terminal Find bar (`⌘F`), and native macOS Apple Shortcuts (`AppIntents`).
+- **Redesigned compact Home server cards on macOS and iOS.** Server cards now use a high-density 3-column capsule bar layout (`CPU`, `Memory`/`Swap`, `Disk`), a single-line telemetry footer (live network `↑/↓`, process count, load averages), and a matching-height animated connecting skeleton with zero layout shift.
+- **iOS and iPadOS app brought up to Mac v0.2.21 with non-jailbreak iGhostVT terminal UX.** `TamioMobile` includes the unified server and SSH key editors (with live SSH endpoint preview), concurrent `FileBrowser`/`TransferQueue` SFTP, Face ID app lock, Live Activities (`TamioMobileWidgets`), customizable keyboard bar, terminal Find, swipeable floating tab bar, FlowDown composer with keyboard-docked accessory handoff on iOS 26.1+, `CoreHaptics` chart reveal sweep, entitlement-safe Apple Intelligence PCC support, Ghost Remote LAN discovery & `.vtrpsc` relay support, and complete 5-language localization (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`).
+
+### Fixed
+- **Prevented crash when deleting a duplicated server.** Replaced the shared concurrent monitor queue with a per-session serial queue and atomic shutdown lock in `MonitorSession`.
+- **Fixed cross-device `.tamiobackup.json` import on iOS.** Switched to native `UIDocumentPickerViewController(..., asCopy: true)` and `NSFileCoordinator`-backed reading so backups shared from other devices import reliably.
 
 ## [0.2.21] - 2026-11-07
 

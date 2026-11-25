@@ -174,6 +174,7 @@ struct DetailChartsTab: View {
     @ObservedObject var session: MonitorSession
     @ObservedObject private var model: MobileTelemetryChartsStore
     @State private var appeared = false
+    @State private var hasPlayedRevealHaptic = false
     @State private var containerWidth: CGFloat = 0
 
     init(session: MonitorSession, machineID: RDMachine.ID) {
@@ -214,14 +215,15 @@ struct DetailChartsTab: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
         .appleGroupedBackground()
         .onAppear {
-            HapticsPreference.impact()
             model.sync(from: session)
             if !appeared {
                 appeared = true
             }
+            triggerRevealHapticIfReady()
         }
         .onChange(of: session.lastUpdate) { _, _ in
             model.sync(from: session)
+            triggerRevealHapticIfReady()
         }
         .onChange(of: model.isPaused) { _, paused in
             if !paused {
@@ -235,6 +237,12 @@ struct DetailChartsTab: View {
                 try? await Task.sleep(nanoseconds: delay)
             }
         }
+    }
+
+    private func triggerRevealHapticIfReady() {
+        guard !hasPlayedRevealHaptic, session.status.hasData || !model.samples.isEmpty else { return }
+        hasPlayedRevealHaptic = true
+        HapticsPreference.playChartReveal()
     }
 
     private func gridColumns(for width: CGFloat) -> [GridItem] {
@@ -603,6 +611,11 @@ private struct AnimatedTelemetryCard: View {
                 }
             }
         }
+        .onChange(of: snappedTimestamp) { oldValue, newValue in
+            if let newValue, newValue != oldValue {
+                HapticsPreference.impact()
+            }
+        }
     }
 
     // MARK: Header
@@ -660,7 +673,10 @@ private struct AnimatedTelemetryCard: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         telemetryChart
-                            .frame(height: 148)
+                            .frame(height: 156)
+                            .padding(.top, 10)
+                            .padding(.trailing, 8)
+                            .padding(.bottom, 2)
                             .mask(
                                 Rectangle()
                                     .scaleEffect(x: drawProgress, y: 1, anchor: .leading)

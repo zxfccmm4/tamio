@@ -35,8 +35,11 @@ struct SettingsView: View {
                 ConfigHostSettingsSection(id: "general.files", keywords: "files sftp hidden dot files show") {
                     FilesSettings()
                 },
-                ConfigHostSettingsSection(id: "general.sync", keywords: "icloud sync cloud encrypted passphrase servers identities credentials devices") {
-                    CloudSyncSettings()
+                ConfigHostSettingsSection(id: "general.sync", keywords: "icloud sync cloud encrypted passphrase servers identities credentials devices backup export import transfer") {
+                    VStack(spacing: RX.Space.s4) {
+                        CloudSyncSettings()
+                        MacBackupTransferSettings()
+                    }
                 },
                 ConfigHostSettingsSection(id: "connection.ssh", keywords: "ssh timeout connect wait host key known hosts fingerprint") {
                     SSHSettings().environmentObject(store)
@@ -296,14 +299,14 @@ private struct AboutSettings: View {
                 }
                 .buttonStyle(.rx)
             }
-            RXFormRow("Source code", description: "missuo/tamio on GitHub") {
-                Link(destination: URL(string: "https://github.com/missuo/tamio")!) {
+            RXFormRow("Source code", description: "zxfccmm4/tamio on GitHub (forked from missuo/tamio)") {
+                Link(destination: URL(string: "https://github.com/zxfccmm4/tamio")!) {
                     Label { Text("GitHub") } icon: { Image("github") }
                 }
                 .buttonStyle(.rx)
             }
             RXFormRow("Report a problem", description: "Bugs and ideas go to the project's issue tracker.") {
-                Link(destination: URL(string: "https://github.com/missuo/tamio/issues")!) {
+                Link(destination: URL(string: "https://github.com/zxfccmm4/tamio/issues")!) {
                     Label("Issues", rx: "arrow.up.right.square")
                 }
                 .buttonStyle(.rx)

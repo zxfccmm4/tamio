@@ -113,76 +113,93 @@ struct EditMachineView: View {
         }
     }
 
+    private var liveEndpointPreview: String {
+        let host = trimmedAddress.isEmpty ? "host" : trimmedAddress
+        let portTrimmed = draft.port.trimmingCharacters(in: .whitespaces)
+        let portSuffix = (portTrimmed.isEmpty || portTrimmed == "22") ? "" : ":\(portTrimmed)"
+        return "\(trimmedUsername)@\(host)\(portSuffix)"
+    }
+
+    private var credentialBadgeLabel: String {
+        switch draft.credential {
+        case .password: return String(localized: "Password")
+        case .key: return String(localized: "SSH Key")
+        case .none: return String(localized: "None")
+        }
+    }
+
     var body: some View {
         List {
-            // MARK: Address & General
+            // MARK: Live Connection Preview Card
             Section {
-                TextField("IP or hostname", text: $draft.address)
-                    .font(.rxCode)
-                    .disableAutocorrection(true)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-                    .onChange(of: draft.address) { _, newValue in
-                        let normalized = newValue.replacingOccurrences(of: "。", with: ".")
-                        if draft.address != normalized { draft.address = normalized }
-                        if addressError != nil { addressError = nil }
+                HStack(spacing: 12) {
+                    AppleFeatureBadge(systemImage: "server.rack", tint: .blue, size: 42)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(draft.label.trimmingCharacters(in: .whitespaces).isEmpty
+                            ? (trimmedAddress.isEmpty ? String(localized: "New Server") : trimmedAddress)
+                            : draft.label)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Text(liveEndpointPreview)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                if let addressError {
-                    HelpText(addressError, isError: true)
+                    Spacer(minLength: 6)
+                    Text(credentialBadgeLabel)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.accentColor.opacity(0.12), in: Capsule())
                 }
-            } header: {
-                RXSectionHeader("Address")
+                .padding(.vertical, 2)
             }
 
+            // MARK: Connection (Host, Port, Username)
             Section {
-                TextField(trimmedAddress.isEmpty ? "Label (e.g. prod-web-01)" : trimmedAddress, text: $draft.label)
-                HStack(spacing: RX.Space.s2) {
-                    TextField("Group (optional)", text: $draft.group)
+                HStack(spacing: 12) {
+                    fieldLabel("Host", icon: "network", tint: .blue)
+                    TextField("IP or hostname", text: $draft.address)
+                        .multilineTextAlignment(.trailing)
+                        .font(.callout.monospaced())
+                        .disableAutocorrection(true)
                         .textInputAutocapitalization(.never)
-                    if !existingGroups.isEmpty {
-                        Menu {
-                            ForEach(existingGroups, id: \.self) { item in
-                                Button(item) { draft.group = item }
-                            }
-                        } label: {
-                            Image(rx: "chevron.down")
-                                .foregroundStyle(.rxInkSecondary)
+                        .keyboardType(.URL)
+                        .onChange(of: draft.address) { _, newValue in
+                            let normalized = newValue.replacingOccurrences(of: "。", with: ".")
+                            if draft.address != normalized { draft.address = normalized }
+                            if addressError != nil { addressError = nil }
                         }
-                    }
                 }
-                TextField("Tags (e.g. prod, tokyo)", text: $draft.tags)
-                    .disableAutocorrection(true)
-                    .textInputAutocapitalization(.never)
-            } header: {
-                RXSectionHeader("General")
-            }
 
-            // MARK: SSH
-            Section {
-                HStack {
-                    Text("Username")
-                        .foregroundStyle(.rxInkSecondary)
-                    Spacer()
+                HStack(spacing: 12) {
+                    fieldLabel("Port", icon: "number", tint: .indigo)
+                    TextField("22", text: $draft.port)
+                        .multilineTextAlignment(.trailing)
+                        .font(.callout.monospaced())
+                        .keyboardType(.numberPad)
+                }
+
+                HStack(spacing: 12) {
+                    fieldLabel("Username", icon: "person.fill", tint: .teal)
                     TextField(RDMachine.defaultUsername, text: $draft.username)
                         .multilineTextAlignment(.trailing)
-                        .font(.rxCode)
+                        .font(.callout.monospaced())
                         .disableAutocorrection(true)
                         .textInputAutocapitalization(.never)
                 }
-                HStack {
-                    Text("Port")
-                        .foregroundStyle(.rxInkSecondary)
-                    Spacer()
-                    TextField("22", text: $draft.port)
-                        .multilineTextAlignment(.trailing)
-                        .font(.rxCode)
-                        .keyboardType(.numberPad)
-                }
-                if !portIsValid {
-                    HelpText("Port must be between 1 and 65535.", isError: true)
-                }
             } header: {
-                RXSectionHeader("SSH")
+                Text("SSH")
+            } footer: {
+                if let addressError {
+                    Text(addressError)
+                        .foregroundStyle(.red)
+                } else if !portIsValid {
+                    Text("Port must be between 1 and 65535.")
+                        .foregroundStyle(.red)
+                }
             }
 
             // MARK: Credentials
@@ -193,16 +210,18 @@ struct EditMachineView: View {
                     Text("None").tag(MobileServerDraft.Credential.none)
                 }
                 .pickerStyle(.segmented)
+                .listRowInsets(EdgeInsets(top: 10, leading: 14, bottom: 10, trailing: 14))
                 .onChange(of: draft.credential) { _, _ in
                     credentialsError = nil
                 }
 
                 switch draft.credential {
                 case .none:
-                    HelpText("Signs in as \(trimmedUsername) with no password or key, for a server that trusts the connection itself, such as Tailscale SSH.")
+                    EmptyView()
 
                 case .password:
-                    HStack(spacing: RX.Space.s2) {
+                    HStack(spacing: 12) {
+                        AppleFeatureBadge(systemImage: "key.fill", tint: .orange, size: 28)
                         Group {
                             if showsPassword {
                                 TextField("Password", text: $draft.password)
@@ -210,9 +229,10 @@ struct EditMachineView: View {
                                 SecureField("Password", text: $draft.password)
                             }
                         }
-                        .font(.rxCode)
+                        .font(.callout.monospaced())
                         .disableAutocorrection(true)
                         .textInputAutocapitalization(.never)
+
                         Button {
                             if showsPassword {
                                 showsPassword = false
@@ -224,52 +244,112 @@ struct EditMachineView: View {
                                 showsPassword = true
                             }
                         } label: {
-                            Image(rx: showsPassword ? "eye.slash" : "eye")
-                                .foregroundStyle(.rxInkSecondary)
+                            Image(systemName: showsPassword ? "eye.slash" : "eye")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
                         }
                         .buttonStyle(.plain)
                     }
-                    HelpText("Kept privately with this server only.")
 
                 case .key:
-                    Picker("SSH Key", selection: $draft.key) {
+                    Picker(selection: $draft.key) {
                         Text(keyOptions.isEmpty ? "No keys yet" : "Choose a key").tag(RDIdentity.ID?.none)
                         ForEach(keyOptions) { option in
                             Text(option.title).tag(RDIdentity.ID?.some(option.id))
                         }
+                    } label: {
+                        fieldLabel("SSH Key", icon: "key.horizontal.fill", tint: .orange)
                     }
+
                     Button {
                         addsKey = true
                     } label: {
-                        Label("New Key…", rx: "plus")
+                        HStack(spacing: 12) {
+                            AppleFeatureBadge(systemImage: "plus", tint: .blue, size: 28)
+                            Text("New Key…")
+                                .foregroundStyle(Color.accentColor)
+                        }
                     }
+
                     if let keyID = draft.key, let key = keyOptions.first(where: { $0.id == keyID }) {
-                        if key.usesAgent {
-                            HelpText("This key is held by a macOS SSH agent and cannot be used directly on iOS. Choose a stored key to connect from this device.", isError: true)
-                        } else if !key.publicKey.isEmpty {
+                        if !key.usesAgent, !key.publicKey.isEmpty {
                             Button {
                                 UIBridge.sendPasteboard(str: key.publicKey)
                             } label: {
-                                Label("Copy Public Key", rx: "doc.on.clipboard")
+                                HStack(spacing: 12) {
+                                    AppleFeatureBadge(systemImage: "doc.on.clipboard", tint: .indigo, size: 28)
+                                    Text("Copy Public Key")
+                                }
                             }
                         }
                     }
                 }
-
-                if let credentialsError {
-                    HelpText(credentialsError, isError: true)
-                }
             } header: {
-                RXSectionHeader("Credentials")
+                Text("Credentials")
+            } footer: {
+                if let credentialsError {
+                    Text(credentialsError)
+                        .foregroundStyle(.red)
+                } else if draft.credential == .none {
+                    Text("Signs in as \(trimmedUsername) with no password or key, for a server that trusts the connection itself, such as Tailscale SSH.")
+                } else if draft.credential == .password {
+                    Text("Kept privately with this server only.")
+                } else if let keyID = draft.key,
+                          let key = keyOptions.first(where: { $0.id == keyID }),
+                          key.usesAgent
+                {
+                    Text("This key is held by a macOS SSH agent and cannot be used directly on iOS. Choose a stored key to connect from this device.")
+                        .foregroundStyle(.red)
+                }
+            }
+
+            // MARK: Organization (Label, Group, Tags)
+            Section("General") {
+                HStack(spacing: 12) {
+                    fieldLabel("Label", icon: "tag.fill", tint: .purple)
+                    TextField(trimmedAddress.isEmpty ? "e.g. prod-web-01" : trimmedAddress, text: $draft.label)
+                        .multilineTextAlignment(.trailing)
+                }
+
+                HStack(spacing: 12) {
+                    fieldLabel("Group", icon: "folder.fill", tint: .cyan)
+                    TextField("Optional", text: $draft.group)
+                        .multilineTextAlignment(.trailing)
+                        .textInputAutocapitalization(.never)
+                    if !existingGroups.isEmpty {
+                        Menu {
+                            ForEach(existingGroups, id: \.self) { item in
+                                Button(item) { draft.group = item }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    fieldLabel("Tags", icon: "number.circle.fill", tint: .pink)
+                    TextField("prod, tokyo", text: $draft.tags)
+                        .multilineTextAlignment(.trailing)
+                        .disableAutocorrection(true)
+                        .textInputAutocapitalization(.never)
+                }
             }
 
             // MARK: Advanced
             Section {
-                DisclosureGroup("Advanced", isExpanded: $showsAdvanced) {
-                    TextField("SFTP start folder (default: home)", text: $draft.startFolder)
-                        .font(.rxCode)
-                        .disableAutocorrection(true)
-                        .textInputAutocapitalization(.never)
+                DisclosureGroup(isExpanded: $showsAdvanced) {
+                    HStack(spacing: 12) {
+                        Text("SFTP Folder")
+                            .foregroundStyle(.secondary)
+                        TextField("Default: home", text: $draft.startFolder)
+                            .multilineTextAlignment(.trailing)
+                            .font(.callout.monospaced())
+                            .disableAutocorrection(true)
+                            .textInputAutocapitalization(.never)
+                    }
 
                     Picker("Startup snippet", selection: $draft.startupSnippet) {
                         Text("None").tag(RDSnippet.ID?.none)
@@ -281,53 +361,69 @@ struct EditMachineView: View {
                     Toggle(isOn: $draft.shellIntegration) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Shell integration")
-                            HelpText("Files follows the terminal's current folder.")
+                            Text("Files follows the terminal's current folder.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .tint(.rxAccent)
 
                     TextField("Comment (optional)", text: $draft.comment)
 
                     if !draft.proxyCommand.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            CapsLabel("Proxy Command (macOS only)")
+                            Text("Proxy Command (macOS only)")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
                             Text(draft.proxyCommand)
-                                .font(.rxCode)
-                                .foregroundStyle(.rxInkSecondary)
-                            HelpText("iOS apps cannot spawn external proxy commands. Preserved for Mac sync.")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                            Text("iOS apps cannot spawn external proxy commands. Preserved for Mac sync.")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
                         }
+                        .padding(.vertical, 2)
                     }
 
                     if !isNew, !banner.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
-                            CapsLabel("Last Banner")
+                            Text("Last Banner")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
                             Text(banner)
-                                .font(.rxCode)
-                                .foregroundStyle(.rxInkSecondary)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
                         }
+                        .padding(.vertical, 2)
                     }
+                } label: {
+                    fieldLabel("Advanced", icon: "slider.horizontal.3", tint: .secondary)
                 }
             }
 
-            // MARK: Connect & Delete
+            // MARK: Primary Action & Delete
             Section {
                 Button {
                     connect()
                 } label: {
-                    HStack {
+                    HStack(spacing: 8) {
                         if connecting {
                             ProgressView()
-                                .padding(.trailing, 4)
+                                .controlSize(.small)
                             Text("Connecting…")
                         } else {
-                            Label("Save & Connect", rx: "terminal")
+                            Label("Save & Connect", systemImage: "terminal")
                         }
                     }
+                    .font(.body.weight(.semibold))
                     .frame(maxWidth: .infinity)
-                    .fontWeight(.semibold)
+                    .padding(.vertical, 4)
                 }
+                .appleProminentButton()
+                .controlSize(.large)
                 .disabled(!canSave || connecting)
             }
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 4, trailing: 0))
 
             if let id = inEditWith {
                 Section {
@@ -335,13 +431,16 @@ struct EditMachineView: View {
                         ServerActions.delete([id])
                         closeSheet()
                     } label: {
-                        Label("Delete Server", rx: "trash")
-                            .foregroundStyle(.rxDanger)
+                        HStack(spacing: 12) {
+                            AppleFeatureBadge(systemImage: "trash.fill", tint: .red, size: 28)
+                            Text("Delete Server")
+                        }
                     }
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .appleGroupedBackground()
         .navigationTitle(isNew ? String(localized: "New Server") : String(localized: "Edit Server"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -366,6 +465,15 @@ struct EditMachineView: View {
             }
         }
         .onAppear { loadIfNeeded() }
+    }
+
+    private func fieldLabel(_ title: LocalizedStringKey, icon: String, tint: Color) -> some View {
+        HStack(spacing: 10) {
+            AppleFeatureBadge(systemImage: icon, tint: tint, size: 28)
+            Text(title)
+                .foregroundStyle(.primary)
+                .fixedSize()
+        }
     }
 
     // MARK: - Loading & Saving

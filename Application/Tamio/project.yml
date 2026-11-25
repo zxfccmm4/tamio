@@ -7,6 +7,9 @@ options:
     - Base
     - en
     - zh-Hans
+    - zh-Hant
+    - ja
+    - ko
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -17,6 +20,7 @@ packages:
   MachineStatus: { path: ../../Foundation/MachineStatus }
   MachineStatusView: { path: ../../Foundation/MachineStatusView }
   SymbolPicker: { path: ../../Foundation/SymbolPicker }
+  Keychain: { path: ../../Foundation/Keychain }
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -83,6 +87,7 @@ targets:
       - package: MachineStatus
       - package: MachineStatusView
       - package: SymbolPicker
+      - package: Keychain
       - framework: ../../External/Sparkle/Sparkle.framework
         embed: true
         codeSign: true

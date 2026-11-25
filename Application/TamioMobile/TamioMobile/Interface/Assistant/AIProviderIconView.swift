@@ -141,7 +141,7 @@ enum AIProviderIconSource: Equatable {
     @MainActor
     static func from(selection: AIActiveSelection, store: AIProviderStore) -> AIProviderIconSource {
         switch selection {
-        case .appleIntelligence:
+        case .appleIntelligence, .applePrivateCloudCompute:
             return .appleIntelligence
         case .custom(let id):
             if let provider = store.providers.first(where: { $0.id == id }) {

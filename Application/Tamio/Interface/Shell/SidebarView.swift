@@ -61,6 +61,7 @@ struct SidebarView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 place(.home, "Home", icon: .home)
+                place(.assistant, "Assistant", icon: .assistant)
 
                 SidebarHeader("Manage")
                 place(.servers, "Servers", icon: .servers, badge: store.machineGroup.count)
@@ -227,6 +228,7 @@ extension View {
 /// icons (Lucide's, in TamioDesign), like every other icon in the app.
 enum SidebarIcon: String {
     case home = "house"
+    case assistant = "sparkles"
     case servers = "server.rack"
     case identities = "key"
     case snippets = "chevron.left.forwardslash.chevron.right"

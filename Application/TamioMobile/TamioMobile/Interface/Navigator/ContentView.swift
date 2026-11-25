@@ -178,6 +178,7 @@ struct ContentView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .appleTabBarMinimize()
+        .assistantBottomAccessory(isEnabled: selection == .assistant && sizeClass == .compact)
     }
 
     // MARK: - iOS 17 Fallbacks

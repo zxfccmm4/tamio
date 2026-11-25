@@ -18,6 +18,7 @@ struct TerminalPage: View {
     @EnvironmentObject var store: TamioStore
 
     @State private var interfaceToken = UUID()
+    @StateObject private var findState = TerminalFindState()
     @Environment(\.isActivePage) private var isActive
     /// The snippets panel beside the terminal, shown or hidden for every terminal.
     @AppStorage(TerminalSnippetPanel.shownKey) private var snippetsShown = false
@@ -29,8 +30,15 @@ struct TerminalPage: View {
                     if context.closed {
                         disconnectedBanner
                     }
-                    surface
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    ZStack(alignment: .topTrailing) {
+                        surface
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        if findState.isPresented {
+                            MacTerminalFindBar(state: findState, terminal: context.termInterface)
+                                .padding(12)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
+                    }
                 }
                 // No backdrop of our own: Ghostty paints its background with
                 // `background-opacity`, so a translucent terminal shows the window
@@ -80,6 +88,19 @@ struct TerminalPage: View {
                 .keyboardShortcut("+", modifiers: .command)
             }
             .help(String(localized: "Text Size"))
+            Button {
+                withAnimation(.snappy(duration: 0.18)) {
+                    if findState.isPresented {
+                        findState.dismiss(on: context.termInterface)
+                    } else {
+                        findState.present(on: context.termInterface)
+                    }
+                }
+            } label: {
+                Label("Find", systemImage: "magnifyingglass")
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            .help(String(localized: "Find in terminal (⌘F)"))
             Toggle(isOn: $snippetsShown) {
                 // The Mac's own symbol, the mirror of the sidebar button's.
                 Label("Snippets", systemImage: "sidebar.trailing")

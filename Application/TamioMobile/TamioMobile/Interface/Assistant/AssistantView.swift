@@ -39,8 +39,20 @@ struct AssistantView: View {
     @State private var editMessageDraft = ""
 
     private var appleReady: Bool { AppleIntelligenceStatus.current == .available }
+    private var pccReady: Bool { providerStore.privateCloudComputeEnabled && ApplePrivateCloudComputeStatus.current == .available }
     private var activeConversation: AssistantConversation { assistant.activeConversation }
     private var activeSession: ConversationSession { assistant.activeSession }
+
+    /// On iPhone running iOS 26.1+, the collapsed composer lives inside
+    /// ContentView's `.tabViewBottomAccessory(isEnabled:)` so it hides cleanly
+    /// on every other tab and morphs inline when the tab bar minimizes.
+    /// Tapping it activates the keyboard-docked composer above the keyboard.
+    private var usesTabBarAccessoryComposer: Bool {
+        if #available(iOS 26.1, *) {
+            return sizeClass == .compact
+        }
+        return false
+    }
 
     private var effectiveSelection: AIActiveSelection {
         assistant.effectiveSelection(for: activeConversation.id)
@@ -179,6 +191,22 @@ struct AssistantView: View {
         .onDisappear {
             bridge.inlineApprovalActive = false
             assistant.draftText = inputText
+            assistant.isComposerActive = false
+            inputFocused = false
+        }
+        .onChange(of: assistant.isComposerActive) { _, active in
+            if active, !inputFocused {
+                inputText = assistant.draftText
+                Task { @MainActor in
+                    await Task.yield()
+                    inputFocused = true
+                }
+            }
+        }
+        .onChange(of: inputFocused) { _, focused in
+            if !focused, assistant.isComposerActive {
+                assistant.isComposerActive = false
+            }
         }
         .onChange(of: assistant.activeConversationID) { _, _ in
             inputText = assistant.draftText
@@ -305,6 +333,17 @@ struct AssistantView: View {
                 }
             }
 
+            if pccReady {
+                Button {
+                    assistant.setActiveConversationProvider(.applePrivateCloudCompute)
+                } label: {
+                    Label(
+                        "Apple Intelligence (PCC)",
+                        systemImage: effectiveSelection == .applePrivateCloudCompute ? "checkmark" : "cloud"
+                    )
+                }
+            }
+
             if !providerStore.enabledProviders.isEmpty {
                 Section("AI Providers") {
                     ForEach(providerStore.enabledProviders) { provider in
@@ -397,6 +436,11 @@ struct AssistantView: View {
                 targetScopeBar
             }
 
+            if usesTabBarAccessoryComposer, !skillStore.enabledSkills.isEmpty {
+                pinnedSkillsStrip
+                    .padding(.bottom, 6)
+            }
+
             if !hasContent {
                 emptyChatState
             } else {
@@ -467,54 +511,78 @@ struct AssistantView: View {
                                 }
                                 .id("approval-anchor")
                             }
+
+                            // Generous bottom anchor so streaming text and approval cards
+                            // never sit tucked behind the composer or floating TabView.
+                            Color.clear
+                                .frame(height: 28)
+                                .id("bottom-anchor")
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 10)
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 24)
                         .frame(maxWidth: sizeClass == .regular ? 780 : .infinity)
                         .frame(maxWidth: .infinity)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .onChange(of: session.messages.count) { _, _ in
-                        scrollToLatest(proxy, session: session)
+                        scrollToLatest(proxy, animated: true)
                     }
                     .onChange(of: activeApprovals.count) { _, _ in
-                        scrollToLatest(proxy, session: session)
+                        scrollToLatest(proxy, animated: true)
+                    }
+                    .onChange(of: session.isStreaming) { _, streaming in
+                        if streaming {
+                            scrollToLatest(proxy, animated: true)
+                        }
                     }
                     .onChange(of: session.streamText.count) { _, _ in
                         if session.isStreaming {
-                            proxy.scrollTo("streaming-anchor", anchor: .bottom)
+                            scrollToLatest(proxy, animated: false)
+                        }
+                    }
+                    .onChange(of: session.streamReasoning.count) { _, _ in
+                        if session.isStreaming {
+                            scrollToLatest(proxy, animated: false)
+                        }
+                    }
+                    .onChange(of: session.activeToolStatus) { _, _ in
+                        if session.isStreaming {
+                            scrollToLatest(proxy, animated: true)
                         }
                     }
                     .onChange(of: assistant.activeConversationID) { _, _ in
-                        scrollToLatest(proxy, session: assistant.activeSession)
+                        scrollToLatest(proxy, animated: false)
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            VStack(spacing: 6) {
-                if !skillStore.enabledSkills.isEmpty && !inputFocused {
-                    pinnedSkillsStrip
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
+            if !usesTabBarAccessoryComposer || assistant.isComposerActive {
+                VStack(spacing: 6) {
+                    if !usesTabBarAccessoryComposer, !skillStore.enabledSkills.isEmpty, !inputFocused {
+                        pinnedSkillsStrip
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
+                    liquidGlassComposerBar(session)
                 }
-                liquidGlassComposerBar(session)
+                .animation(.snappy(duration: 0.2), value: inputFocused)
+                .frame(maxWidth: sizeClass == .regular ? 780 : .infinity)
+                .frame(maxWidth: .infinity)
             }
-            .animation(.snappy(duration: 0.2), value: inputFocused)
-            .frame(maxWidth: sizeClass == .regular ? 780 : .infinity)
-            .frame(maxWidth: .infinity)
         }
     }
 
-    private func scrollToLatest(_ proxy: ScrollViewProxy, session: ConversationSession) {
-        withAnimation(.easeOut(duration: 0.2)) {
-            if !bridge.pendingApprovals(for: session.conversationID).isEmpty {
-                proxy.scrollTo("approval-anchor", anchor: .bottom)
-            } else if session.isStreaming {
-                proxy.scrollTo("streaming-anchor", anchor: .bottom)
-            } else if let last = session.messages.last {
-                proxy.scrollTo(last.id, anchor: .bottom)
+    private func scrollToLatest(_ proxy: ScrollViewProxy, animated: Bool) {
+        Task { @MainActor in
+            await Task.yield()
+            if animated {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    proxy.scrollTo("bottom-anchor", anchor: .bottom)
+                }
+            } else {
+                proxy.scrollTo("bottom-anchor", anchor: .bottom)
             }
         }
     }
@@ -812,16 +880,16 @@ struct AssistantView: View {
         .scrollDismissesKeyboard(.interactively)
     }
 
-    // MARK: - Streaming Bubble
+    // MARK: - Streaming Bubble (FlowDown-Style Shimmering Thinking & Auto-Collapse)
 
     private func streamingBubble(_ session: ConversationSession) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        let isThinkingPhase = session.streamText.isEmpty
+
+        return VStack(alignment: .leading, spacing: 8) {
             if let toolStatus = session.activeToolStatus {
                 HStack(spacing: 7) {
                     ProgressView().controlSize(.mini)
-                    Text(toolStatus)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                    ShimmeringThinkingLabel(text: toolStatus, isThinking: true)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
@@ -829,17 +897,26 @@ struct AssistantView: View {
             }
 
             if !session.streamReasoning.isEmpty {
-                ReasoningDisclosureBox(text: session.streamReasoning, defaultExpanded: session.streamText.isEmpty)
+                ReasoningDisclosureBox(
+                    text: session.streamReasoning,
+                    defaultExpanded: isThinkingPhase,
+                    isThinking: isThinkingPhase
+                )
             }
 
             if session.streamText.isEmpty {
                 if session.activeToolStatus == nil && session.streamReasoning.isEmpty {
                     HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Thinking…")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        Image(systemName: "sparkles")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.accentColor)
+                            .symbolEffect(.pulse, options: .repeating)
+                        ShimmeringThinkingLabel(
+                            text: String(localized: "Thinking…"),
+                            isThinking: true
+                        )
                     }
+                    .padding(.vertical, 2)
                 }
             } else {
                 AssistantMarkdownView(text: session.streamText)
@@ -856,6 +933,7 @@ struct AssistantView: View {
                 .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.04), lineWidth: 0.5)
         )
         .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.snappy(duration: 0.22), value: isThinkingPhase)
     }
 
     // MARK: - Pinned Skills Strip
@@ -897,83 +975,264 @@ struct AssistantView: View {
         }
     }
 
-    // MARK: - iOS 26 Liquid Glass Composer Bar
+    // MARK: - FlowDown-Style Unified Liquid Glass Composer
 
     private func liquidGlassComposerBar(_ session: ConversationSession) -> some View {
-        let canSend = !session.isStreaming && !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let controlHeight: CGFloat = 44
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let canSend = !session.isStreaming && !trimmed.isEmpty
+        let scopedCount = assistant.resolvedScopedMachines(for: activeConversation.id).count
+        let pinnedCount = assistant.pinnedSkillIDs.count
 
-        return AppleGlassContainer(spacing: 10) {
-            HStack(alignment: .bottom, spacing: 10) {
+        return VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
                 TextField(
                     "Ask to check metrics, run batch commands, or manage servers…",
                     text: $inputText,
                     axis: .vertical
                 )
                 .textFieldStyle(.plain)
-                .lineLimit(1 ... 5)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(minHeight: controlHeight)
-                .appleInteractiveGlass(
-                    in: RoundedRectangle(cornerRadius: controlHeight / 2, style: .continuous),
-                    fallback: Color(uiColor: .secondarySystemGroupedBackground)
-                )
+                .font(.body)
+                .lineLimit(1 ... 6)
                 .focused($inputFocused)
                 .onSubmit { sendCurrentInput() }
+                .padding(.horizontal, 14)
+                .padding(.top, 12)
 
-                if session.isStreaming {
-                    Button {
-                        session.stopGenerating()
-                    } label: {
-                        Image(systemName: "stop.fill")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.white)
-                            .frame(width: controlHeight, height: controlHeight)
-                            .appleInteractiveGlass(
-                                in: Circle(),
-                                tint: .red,
-                                fallback: Color.red
+                HStack(spacing: 8) {
+                    // Quick Target Scope pill
+                    if !store.machineGroup.machines.isEmpty {
+                        Button {
+                            showScopePicker = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "server.rack")
+                                    .font(.caption2.weight(.semibold))
+                                Text("\(scopedCount)")
+                                    .font(.caption2.weight(.semibold).monospacedDigit())
+                            }
+                            .foregroundStyle(assistant.targetScope.isFiltered ? Color.accentColor : .secondary)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(
+                                assistant.targetScope.isFiltered
+                                    ? Color.accentColor.opacity(0.14)
+                                    : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                                in: Capsule()
                             )
-                            .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Target Servers")
+                    }
+
+                    // Quick Ops Skills pill
+                    Button {
+                        showSkillsSheet = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: pinnedCount > 0 ? "wand.and.stars.inverse" : "wand.and.stars")
+                                .font(.caption2.weight(.semibold))
+                            if pinnedCount > 0 {
+                                Text("\(pinnedCount)")
+                                    .font(.caption2.weight(.semibold).monospacedDigit())
+                            }
+                        }
+                        .foregroundStyle(pinnedCount > 0 ? Color.accentColor : .secondary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 6)
+                        .background(
+                            pinnedCount > 0
+                                ? Color.accentColor.opacity(0.14)
+                                : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                            in: Capsule()
+                        )
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Stop Generating")
-                } else {
-                    Button {
-                        sendCurrentInput()
-                    } label: {
-                        Image(systemName: "arrow.up")
-                            .font(.body.weight(.semibold))
-                            .foregroundStyle(canSend ? Color.white : Color.secondary.opacity(0.65))
-                            .frame(width: controlHeight, height: controlHeight)
-                            .appleInteractiveGlass(
-                                in: Circle(),
-                                tint: canSend ? .accentColor : nil,
-                                fallback: canSend
-                                    ? Color.accentColor
-                                    : Color(uiColor: .secondarySystemGroupedBackground)
-                            )
-                            .contentShape(Circle())
+                    .accessibilityLabel("Ops Skills")
+
+                    if inputFocused {
+                        Button {
+                            inputFocused = false
+                            assistant.isComposerActive = false
+                        } label: {
+                            Image(systemName: "keyboard.chevron.compact.down")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                                    in: Capsule()
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        .accessibilityLabel("Hide Keyboard")
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!canSend)
-                    .animation(.snappy(duration: 0.2), value: canSend)
-                    .accessibilityLabel("Send")
+
+                    Spacer(minLength: 4)
+
+                    // Clear draft button when input is long
+                    if trimmed.count >= 40, !session.isStreaming {
+                        Button {
+                            withAnimation(.snappy(duration: 0.18)) {
+                                inputText = ""
+                                assistant.draftText = ""
+                            }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
+                        .accessibilityLabel("Clear Draft")
+                    }
+
+                    // FlowDown Morphing Send / Stop Button
+                    FlowDownSendStopButton(
+                        isStreaming: session.isStreaming,
+                        canSend: canSend,
+                        onSend: { sendCurrentInput() },
+                        onStop: {
+                            HapticsPreference.impact()
+                            session.stopGenerating()
+                        }
+                    )
                 }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 10)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 4)
-            .padding(.bottom, 10)
+            .appleInteractiveGlass(
+                in: RoundedRectangle(cornerRadius: 24, style: .continuous),
+                fallback: Color(uiColor: .secondarySystemGroupedBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(
+                        inputFocused
+                            ? Color.accentColor.opacity(colorScheme == .dark ? 0.40 : 0.28)
+                            : Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07),
+                        lineWidth: inputFocused ? 1.0 : 0.5
+                    )
+            )
+            .shadow(
+                color: colorScheme == .dark ? .clear : Color.black.opacity(0.05),
+                radius: 10,
+                x: 0,
+                y: 3
+            )
+            .animation(.snappy(duration: 0.2), value: inputFocused)
         }
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 10)
     }
 
     private func sendCurrentInput() {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !activeSession.isStreaming else { return }
+        HapticsPreference.impact()
         inputText = ""
         assistant.draftText = ""
+        inputFocused = false
+        assistant.isComposerActive = false
         activeSession.send(trimmed)
+    }
+}
+
+// MARK: - iOS 26.1+ TabView Bottom Accessory Composer (Hides on Other Tabs & Keyboard)
+
+extension View {
+    @ViewBuilder
+    func assistantBottomAccessory(isEnabled: Bool) -> some View {
+        if #available(iOS 26.1, *) {
+            modifier(AssistantTabBarAccessoryModifier(isEnabled: isEnabled))
+        } else {
+            self
+        }
+    }
+}
+
+@available(iOS 26.1, *)
+private struct AssistantTabBarAccessoryModifier: ViewModifier {
+    let isEnabled: Bool
+    @State private var assistant = ServerAssistant.shared
+
+    func body(content: Content) -> some View {
+        content
+            .tabViewBottomAccessory(
+                isEnabled: isEnabled && assistant.isReadyToChat && !assistant.isComposerActive
+            ) {
+                AssistantTabBarAccessoryComposer()
+            }
+    }
+}
+
+@available(iOS 26.1, *)
+private struct AssistantTabBarAccessoryComposer: View {
+    @Environment(\.tabViewBottomAccessoryPlacement) private var placement
+    @State private var assistant = ServerAssistant.shared
+
+    private var session: ConversationSession { assistant.activeSession }
+    private var isInline: Bool { placement == .inline }
+    private var trimmedDraft: String { assistant.draftText.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canSend: Bool { !session.isStreaming && !trimmedDraft.isEmpty }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Button {
+                assistant.isComposerActive = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(trimmedDraft.isEmpty
+                        ? (isInline ? String(localized: "Ask Tamio AI…") : String(localized: "Ask to check metrics, run commands, or manage servers…"))
+                        : trimmedDraft)
+                        .font(.subheadline)
+                        .foregroundStyle(trimmedDraft.isEmpty ? .secondary : .primary)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if session.isStreaming {
+                Button {
+                    session.stopGenerating()
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 28, height: 28)
+                        .background(Color.red, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Stop Generating")
+            } else {
+                Button {
+                    if canSend {
+                        let text = trimmedDraft
+                        assistant.draftText = ""
+                        session.send(text)
+                    } else {
+                        assistant.isComposerActive = true
+                    }
+                } label: {
+                    Image(systemName: canSend ? "arrow.up" : "keyboard")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(canSend ? Color.white : Color.secondary)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            canSend ? Color.accentColor : Color.primary.opacity(0.08),
+                            in: Circle()
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(canSend ? "Send" : "Type a message")
+            }
+        }
+        .padding(.horizontal, isInline ? 12 : 14)
+        .padding(.vertical, isInline ? 6 : 8)
     }
 }
 
@@ -1119,47 +1378,191 @@ private struct ChatMessageRow: View {
     }
 }
 
-// MARK: - Collapsible Reasoning Disclosure
+// MARK: - FlowDown Morphing Send / Stop Action Button
+
+private struct FlowDownSendStopButton: View {
+    let isStreaming: Bool
+    let canSend: Bool
+    let onSend: () -> Void
+    let onStop: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pulseRing = false
+
+    var body: some View {
+        Button {
+            if isStreaming {
+                onStop()
+            } else if canSend {
+                onSend()
+            }
+        } label: {
+            ZStack {
+                if isStreaming && !reduceMotion {
+                    Circle()
+                        .stroke(Color.red.opacity(pulseRing ? 0.0 : 0.42), lineWidth: 2)
+                        .frame(width: 34, height: 34)
+                        .scaleEffect(pulseRing ? 1.38 : 1.0)
+                }
+
+                Circle()
+                    .fill(buttonFill)
+                    .frame(width: 34, height: 34)
+
+                Group {
+                    if isStreaming {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color.white)
+                            .frame(width: 11, height: 11)
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    } else {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(canSend ? Color.white : Color.secondary.opacity(0.6))
+                            .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    }
+                }
+            }
+            .frame(width: 34, height: 34)
+            .scaleEffect((isStreaming || canSend) ? 1.0 : 0.94)
+            .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isStreaming && !canSend)
+        .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isStreaming)
+        .animation(.spring(response: 0.24, dampingFraction: 0.75), value: canSend)
+        .onChange(of: isStreaming, initial: true) { _, streaming in
+            if streaming, !reduceMotion {
+                pulseRing = false
+                withAnimation(.easeOut(duration: 1.15).repeatForever(autoreverses: false)) {
+                    pulseRing = true
+                }
+            } else {
+                pulseRing = false
+            }
+        }
+        .accessibilityLabel(isStreaming ? "Stop Generating" : "Send")
+    }
+
+    private var buttonFill: Color {
+        if isStreaming { return .red }
+        if canSend { return .accentColor }
+        return Color.primary.opacity(0.08)
+    }
+}
+
+// MARK: - FlowDown Shimmering Thinking Status Label
+
+private struct ShimmeringThinkingLabel: View {
+    let text: String
+    let isThinking: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shimmerOffset: CGFloat = -1.0
+
+    var body: some View {
+        let base = Text(text)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(isThinking ? Color.primary.opacity(0.72) : Color.secondary)
+
+        if isThinking && !reduceMotion {
+            base
+                .overlay {
+                    GeometryReader { geo in
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .white.opacity(0.85), location: 0.5),
+                                .init(color: .clear, location: 1.0),
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                        .frame(width: max(36, geo.size.width * 0.55))
+                        .offset(x: shimmerOffset * (geo.size.width + 48))
+                    }
+                    .mask(base)
+                }
+                .onAppear {
+                    shimmerOffset = -0.6
+                    withAnimation(.linear(duration: 1.45).repeatForever(autoreverses: false)) {
+                        shimmerOffset = 1.2
+                    }
+                }
+        } else {
+            base
+        }
+    }
+}
+
+// MARK: - FlowDown-Style Collapsible Reasoning Disclosure
 
 private struct ReasoningDisclosureBox: View {
     let text: String
+    let isThinking: Bool
     @State private var expanded: Bool
+    @State private var userToggled = false
 
-    init(text: String, defaultExpanded: Bool) {
+    init(text: String, defaultExpanded: Bool, isThinking: Bool = false) {
         self.text = text
+        self.isThinking = isThinking
         _expanded = State(initialValue: defaultExpanded)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Button {
-                withAnimation(.snappy(duration: 0.2)) { expanded.toggle() }
+                userToggled = true
+                HapticsPreference.impact()
+                withAnimation(.snappy(duration: 0.24)) { expanded.toggle() }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "brain")
+                    Image(systemName: isThinking ? "sparkles" : "brain")
                         .font(.caption2.weight(.semibold))
-                    Text("Thinking Process")
-                        .font(.caption.weight(.medium))
-                    Spacer()
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(isThinking ? Color.accentColor : Color.secondary)
+                    ShimmeringThinkingLabel(
+                        text: isThinking ? String(localized: "Thinking…") : String(localized: "Thinking Process"),
+                        isThinking: isThinking
+                    )
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(expanded ? 90 : 0))
                 }
-                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
             if expanded {
-                Text(text)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+                HStack(alignment: .top, spacing: 8) {
+                    Capsule()
+                        .fill(isThinking ? Color.accentColor.opacity(0.45) : Color.primary.opacity(0.14))
+                        .frame(width: 2)
+                        .padding(.vertical, 2)
+
+                    Text(text)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineSpacing(2.5)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 2)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .onChange(of: isThinking) { _, thinking in
+            // Auto-collapse once the final answer starts streaming unless the user manually toggled it.
+            if !thinking && !userToggled {
+                withAnimation(.snappy(duration: 0.25)) {
+                    expanded = false
+                }
+            }
+        }
     }
 }
 

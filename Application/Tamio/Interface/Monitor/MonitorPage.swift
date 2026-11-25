@@ -7,16 +7,31 @@
 //
 
 import MachineStatusView
+import TamioDesign
 import TamioModule
 import SwiftUI
 
 struct MonitorPage: View {
     @ObservedObject var session: MonitorSession
     @EnvironmentObject var store: TamioStore
+    @State private var mode: Mode = .overview
+
+    private enum Mode: String, CaseIterable {
+        case overview
+        case charts
+        case processes
+        case containers
+    }
 
     var body: some View {
         PageScaffold {
         } trailing: {
+            RXSegmented(selection: $mode, options: [
+                .init(.overview, "Overview"),
+                .init(.charts, "Charts"),
+                .init(.processes, "Processes"),
+                .init(.containers, "Containers"),
+            ], caps: false)
             ToolbarAction("Show in Menu Bar", systemImage: "menubar.rectangle") {
                 AppRouter.shared.showInMenuBar(machine: session.machine.id)
             }
@@ -30,14 +45,26 @@ struct MonitorPage: View {
             }
         } content: {
             if session.phase == .connected, session.status.hasData {
-                MonitorDashboard(session: session)
-                    .transition(.opacity.combined(with: .offset(y: 8)))
+                Group {
+                    switch mode {
+                    case .overview:
+                        MonitorDashboard(session: session)
+                    case .charts:
+                        MacChartsDashboard(session: session)
+                    case .processes:
+                        MacProcessesTab(session: session)
+                    case .containers:
+                        MacContainersTab(session: session)
+                    }
+                }
+                .transition(.opacity.combined(with: .offset(y: 8)))
             } else {
                 MonitorPlaceholder(session: session)
                     .transition(.opacity)
             }
         }
         .animation(.easeOut(duration: 0.3), value: session.phase == .connected && session.status.hasData)
+        .animation(.easeOut(duration: 0.2), value: mode)
         .serverToolSwitcher(machine: session.machine.id, current: .monitor)
     }
 }

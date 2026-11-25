@@ -6,6 +6,7 @@
 //  `AppleFeatureBadge` icons matching MoreView, AboutView, and BackupTransferView.
 //
 
+import CoreHaptics
 import MachineStatusView
 import SwiftUI
 import TamioDesign
@@ -526,5 +527,100 @@ enum HapticsPreference {
         let generator = UIImpactFeedbackGenerator(style: level.feedbackStyle)
         generator.prepare()
         generator.impactOccurred(intensity: level.intensityValue)
+    }
+
+    @MainActor private static var revealEngine: CHHapticEngine?
+    @MainActor private static var revealFallbackTask: Task<Void, Never>?
+
+    /// Plays a smooth, rhythmic tactile sweep synchronized with the chart
+    /// cards' staggered entrance and left-to-right line-draw animation (0.08s–0.78s).
+    @MainActor
+    static func playChartReveal() {
+        guard isEnabled, !UIAccessibility.isReduceMotionEnabled else { return }
+        let level = intensity
+        let scale = Float(level.intensityValue)
+
+        revealFallbackTask?.cancel()
+
+        if CHHapticEngine.capabilitiesForHardware().supportsHaptics {
+            do {
+                if revealEngine == nil {
+                    let engine = try CHHapticEngine()
+                    engine.isAutoShutdownEnabled = true
+                    engine.resetHandler = {
+                        Task { @MainActor in revealEngine = nil }
+                    }
+                    revealEngine = engine
+                }
+                guard let engine = revealEngine else { return }
+                try engine.start()
+
+                var events: [CHHapticEvent] = []
+                // Subtle continuous sweep texture underneath the curve draw-in
+                events.append(
+                    CHHapticEvent(
+                        eventType: .hapticContinuous,
+                        parameters: [
+                            CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.24 * scale),
+                            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.35),
+                        ],
+                        relativeTime: 0.08,
+                        duration: 0.64
+                    )
+                )
+
+                // Ascending micro-ticks synced to the staggered cards & line sweep
+                let steps = 8
+                for i in 0 ..< steps {
+                    let progress = Float(i) / Float(steps - 1)
+                    let time = 0.08 + Double(progress) * 0.62
+                    let tickIntensity = (0.28 + 0.34 * progress) * scale
+                    let tickSharpness = 0.35 + 0.35 * progress
+                    events.append(
+                        CHHapticEvent(
+                            eventType: .hapticTransient,
+                            parameters: [
+                                CHHapticEventParameter(parameterID: .hapticIntensity, value: min(1, tickIntensity)),
+                                CHHapticEventParameter(parameterID: .hapticSharpness, value: min(1, tickSharpness)),
+                            ],
+                            relativeTime: time
+                        )
+                    )
+                }
+
+                // Crisp settling tap as curves finish drawing
+                events.append(
+                    CHHapticEvent(
+                        eventType: .hapticTransient,
+                        parameters: [
+                            CHHapticEventParameter(parameterID: .hapticIntensity, value: min(1, 0.72 * scale)),
+                            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.65),
+                        ],
+                        relativeTime: 0.76
+                    )
+                )
+
+                let pattern = try CHHapticPattern(events: events, parameters: [])
+                let player = try engine.makePlayer(with: pattern)
+                try player.start(atTime: CHHapticTimeImmediate)
+                return
+            } catch {
+                // Fall back to timed UIImpactFeedbackGenerator ticks below.
+            }
+        }
+
+        // Fallback for devices/simulators without CoreHaptics hardware.
+        revealFallbackTask = Task { @MainActor in
+            let generator = UIImpactFeedbackGenerator(style: level.feedbackStyle)
+            generator.prepare()
+            try? await Task.sleep(for: .milliseconds(80))
+            let pulses = 6
+            for i in 0 ..< pulses {
+                if Task.isCancelled { return }
+                let progress = CGFloat(i) / CGFloat(pulses - 1)
+                generator.impactOccurred(intensity: level.intensityValue * (0.35 + 0.55 * progress))
+                try? await Task.sleep(for: .milliseconds(110))
+            }
+        }
     }
 }

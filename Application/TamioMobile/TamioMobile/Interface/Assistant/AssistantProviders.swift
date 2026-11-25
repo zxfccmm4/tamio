@@ -66,6 +66,99 @@ enum AppleIntelligenceStatus: Equatable, Sendable {
     }
 }
 
+// MARK: - Apple Intelligence Private Cloud Compute Availability (iOS 27+)
+
+private enum PrivateCloudComputeEntitlement {
+    static let key = "com.apple.developer.private-cloud-compute"
+
+    /// Checks the app's signed `embedded.mobileprovision` before touching
+    /// `PrivateCloudComputeLanguageModel`, because FoundationModels raises a
+    /// fatal error on iOS 27 if the managed entitlement is missing.
+    static let isGranted: Bool = {
+        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+              let raw = try? Data(contentsOf: url),
+              let text = String(data: raw, encoding: .isoLatin1),
+              let start = text.range(of: "<?xml"),
+              let end = text.range(of: "</plist>")
+        else {
+            return false
+        }
+        let xmlString = String(text[start.lowerBound ..< end.upperBound])
+        guard let plistData = xmlString.data(using: .utf8),
+              let plist = try? PropertyListSerialization.propertyList(from: plistData, format: nil) as? [String: Any],
+              let entitlements = plist["Entitlements"] as? [String: Any]
+        else {
+            return false
+        }
+        return (entitlements[key] as? Bool) == true
+    }()
+}
+
+enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
+    case available
+    case missingEntitlement
+    case requiresNewerOS
+    case deviceNotEligible
+    case appleIntelligenceNotEnabled
+    case systemNotReady
+    case unavailable
+
+    static var current: ApplePrivateCloudComputeStatus {
+        #if canImport(FoundationModels) && compiler(>=6.4)
+        if #available(iOS 27.0, *) {
+            guard PrivateCloudComputeEntitlement.isGranted else {
+                return .missingEntitlement
+            }
+            switch PrivateCloudComputeLanguageModel().availability {
+            case .available:
+                return .available
+            case .unavailable(let reason):
+                switch reason {
+                case .deviceNotEligible:
+                    return .deviceNotEligible
+                case .systemNotReady:
+                    if SystemLanguageModel.default.availability == .unavailable(.appleIntelligenceNotEnabled) {
+                        return .appleIntelligenceNotEnabled
+                    }
+                    return .systemNotReady
+                @unknown default:
+                    return .unavailable
+                }
+            }
+        }
+        #endif
+        return .requiresNewerOS
+    }
+
+    var isEligibleHardwareAndOS: Bool {
+        switch self {
+        case .requiresNewerOS, .deviceNotEligible, .missingEntitlement:
+            return false
+        default:
+            return true
+        }
+    }
+
+    var localizedDescription: String {
+        switch self {
+        case .available:
+            return String(localized: "Runs on Apple's Private Cloud Compute with end-to-end privacy and no API key required.")
+        case .missingEntitlement:
+            return String(localized: "This build is signed without Apple's managed Private Cloud Compute entitlement.")
+        case .requiresNewerOS:
+            return String(localized: "Requires iOS 27 or later with Private Cloud Compute entitlement.")
+        case .deviceNotEligible:
+            return String(localized: "This device does not support Apple Intelligence Private Cloud Compute.")
+        case .appleIntelligenceNotEnabled:
+            return String(localized: "Turn on Apple Intelligence in System Settings to use Private Cloud Compute.")
+        case .systemNotReady:
+            return String(localized: "Private Cloud Compute is not ready yet. Check your network, iCloud sign-in, or app entitlement.")
+        case .unavailable:
+            return String(localized: "Apple Intelligence Private Cloud Compute is currently unavailable.")
+        }
+    }
+}
+
 // MARK: - Wire Format
 
 nonisolated enum AIWireFormat: String, Codable, Hashable, Sendable {
@@ -312,6 +405,7 @@ nonisolated struct AIProviderConfig: Identifiable, Codable, Hashable, Sendable {
 
 nonisolated enum AIActiveSelection: Codable, Equatable, Hashable, Sendable {
     case appleIntelligence
+    case applePrivateCloudCompute
     case custom(providerId: String)
 }
 
@@ -374,10 +468,16 @@ final class AIProviderStore {
 
     private static let providersStorageKey = "sb.moe.tamio.ai.providers.v1"
     private static let activeSelectionStorageKey = "sb.moe.tamio.ai.activeSelection.v1"
+    private static let pccEnabledStorageKey = "sb.moe.tamio.ai.pccEnabled.v1"
     private static let keychainService = "sb.moe.tamio.ai.apikeys"
 
     private(set) var providers: [AIProviderConfig] = []
     private(set) var activeSelection: AIActiveSelection = .appleIntelligence
+    var privateCloudComputeEnabled: Bool = true {
+        didSet {
+            defaults.set(privateCloudComputeEnabled, forKey: Self.pccEnabledStorageKey)
+        }
+    }
 
     private let defaults: UserDefaults
     private let keychain: Keychain
@@ -390,6 +490,9 @@ final class AIProviderStore {
         self.defaults = defaults
         self.keychain = Keychain(service: Self.keychainService)
         self.session = session
+        if let storedPCC = defaults.object(forKey: Self.pccEnabledStorageKey) as? Bool {
+            self.privateCloudComputeEnabled = storedPCC
+        }
         loadFromDisk()
     }
 
@@ -403,17 +506,28 @@ final class AIProviderStore {
         providers.first { $0.id == id }
     }
 
-    func effectiveSelection(appleIntelligenceAvailable: Bool) -> AIActiveSelection {
+    func effectiveSelection(
+        appleIntelligenceAvailable: Bool,
+        pccAvailable: Bool = ApplePrivateCloudComputeStatus.current == .available
+    ) -> AIActiveSelection {
+        let pccUsable = privateCloudComputeEnabled && pccAvailable
         switch activeSelection {
         case .custom(let id):
             if providers.contains(where: { $0.id == id && $0.isEnabled }) {
                 return .custom(providerId: id)
             }
+            if pccUsable { return .applePrivateCloudCompute }
             if appleIntelligenceAvailable { return .appleIntelligence }
             if let fallback = enabledProviders.first { return .custom(providerId: fallback.id) }
             return .appleIntelligence
+        case .applePrivateCloudCompute:
+            if pccUsable { return .applePrivateCloudCompute }
+            if appleIntelligenceAvailable { return .appleIntelligence }
+            if let fallback = enabledProviders.first { return .custom(providerId: fallback.id) }
+            return .applePrivateCloudCompute
         case .appleIntelligence:
             if appleIntelligenceAvailable { return .appleIntelligence }
+            if pccUsable { return .applePrivateCloudCompute }
             if let fallback = enabledProviders.first { return .custom(providerId: fallback.id) }
             return .appleIntelligence
         }
@@ -423,6 +537,8 @@ final class AIProviderStore {
         switch effectiveSelection(appleIntelligenceAvailable: appleIntelligenceAvailable) {
         case .appleIntelligence:
             return String(localized: "Apple Intelligence")
+        case .applePrivateCloudCompute:
+            return String(localized: "Apple Intelligence (PCC)")
         case .custom(let id):
             return provider(id: id)?.name ?? String(localized: "Custom AI")
         }
@@ -432,6 +548,8 @@ final class AIProviderStore {
         switch effectiveSelection(appleIntelligenceAvailable: appleIntelligenceAvailable) {
         case .appleIntelligence:
             return String(localized: "On-Device")
+        case .applePrivateCloudCompute:
+            return String(localized: "Private Cloud Compute")
         case .custom(let id):
             return provider(id: id)?.model ?? ""
         }
@@ -542,6 +660,8 @@ final class AIProviderStore {
             switch importedSelection {
             case .appleIntelligence:
                 if replaceExisting { activeSelection = .appleIntelligence }
+            case .applePrivateCloudCompute:
+                if replaceExisting { activeSelection = .applePrivateCloudCompute }
             case .custom(let id):
                 if providers.contains(where: { $0.id == id && $0.isEnabled }) {
                     activeSelection = .custom(providerId: id)

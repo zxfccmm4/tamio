@@ -139,7 +139,11 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
     private var shell: NSRemoteShell
     private var updateTask: Task<Void, Never>?
 
-    private static let queue = DispatchQueue(label: "sb.moe.tamio.monitor", attributes: .concurrent)
+    /// Per-session serial queue: different servers still connect and poll in
+    /// parallel, while operations on the same NSRemoteShell (connect, poll,
+    /// command execution, and shutdown/destroyPermanently) never race.
+    private let workQueue: DispatchQueue
+    private let shutdownState = OSAllocatedUnfairLock(initialState: false)
 
     /// What the session reads each round. A monitor page reads everything;
     /// the quiet sessions behind the cards read the summary, and the whole
@@ -165,6 +169,7 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
         self.identity = identity
         self.recordsConnection = recordsConnection
         detailHolders = .init(initialState: detailed ? 1 : 0)
+        workQueue = DispatchQueue(label: "sb.moe.tamio.monitor.\(id.uuidString)")
         shell = NSRemoteShell.configured(for: machine, timeout: TamioStore.shared.timeoutNumber)
         updateTask = Task.detached { [weak self] in
             await self?.updateLoop()
@@ -183,6 +188,7 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
             identity = nil
             recordsConnection = false
             detailHolders = .init(initialState: 1)
+            workQueue = DispatchQueue(label: "sb.moe.tamio.monitor.preview.\(id.uuidString)")
             shell = NSRemoteShell()
             let core = ServerStatus.ProcessPercentInfo(system: 6.2, user: 18.4, iowait: 1.1, nice: 0.3, sum: 26)
             var cores: [String: ServerStatus.ProcessPercentInfo] = [:]
@@ -304,22 +310,29 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
         var read = false
     }
 
-    /// The SSH API blocks; run it on the monitor queue so the loop's task
-    /// suspends at the await instead of blocking a cooperative-pool thread
-    /// for the whole round.
+    /// The SSH API blocks; run it on this session's serial queue so the loop's
+    /// task suspends at the await without racing with shutdown().
     private func blocking(_ work: @escaping () -> Void) async {
+        guard !isShutDown else { return }
+        let workQueue = workQueue
         await withCheckedContinuation { continuation in
-            MonitorSession.queue.async {
-                work()
+            workQueue.async { [weak self] in
+                if let self, !self.isShutDown {
+                    work()
+                }
                 continuation.resume()
             }
         }
     }
 
+    private var isShutDown: Bool {
+        shutdownState.withLock { $0 }
+    }
+
     /// Runs a command over the session's connection (a process list, the
     /// containers), nil while it is not connected.
     public func run(_ command: String, timeout: Double = 15) async -> String? {
-        guard phase == .connected else { return nil }
+        guard phase == .connected, !isShutDown else { return nil }
         let shell = shell
         nonisolated(unsafe) var output: String?
         await blocking {
@@ -338,9 +351,15 @@ public final class MonitorSession: ObservableObject, Identifiable, Equatable {
     }
 
     public func shutdown() {
+        let shouldShutdown = shutdownState.withLock { already -> Bool in
+            if already { return false }
+            already = true
+            return true
+        }
+        guard shouldShutdown else { return }
         updateTask?.cancel()
         let shell = shell
-        MonitorSession.queue.async {
+        workQueue.async {
             shell.requestDisconnectAndWait()
             shell.destroyPermanently()
         }

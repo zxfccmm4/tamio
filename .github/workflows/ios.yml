@@ -1,10 +1,10 @@
-name: iOS Build & IPA Release
+name: iOS & macOS Build / Release
 
 on:
   push:
     branches: [main]
     paths:
-      - "Application/TamioMobile/**"
+      - "Application/**"
       - "Foundation/**"
       - "External/**"
       - ".github/workflows/ios.yml"
@@ -12,14 +12,14 @@ on:
       - "v*"
   pull_request:
     paths:
-      - "Application/TamioMobile/**"
+      - "Application/**"
       - "Foundation/**"
       - "External/**"
       - ".github/workflows/ios.yml"
   workflow_dispatch:
     inputs:
       publish_release:
-        description: "Package IPA and publish to GitHub Releases"
+        description: "Package IPA + DMG and publish to GitHub Releases"
         type: boolean
         default: true
       upload_testflight:
@@ -93,16 +93,30 @@ jobs:
           echo "ipa_name=${IPA_NAME}" >> "$GITHUB_OUTPUT"
           ls -lh "${IPA_NAME}"
 
-      - name: Publish IPA to GitHub Release
+      - name: Build Release macOS App & Package DMG
+        id: package-mac
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.package.outputs.tag }}"
+          CODE_SIGN_IDENTITY="-" DERIVED_DATA_PATH="DerivedData/macOSRelease" \
+            bash Workflow/Scripts/release.sh mac
+          DMG_SRC="$(ls -1 DerivedData/macOSRelease/Release/Tamio-*.dmg | head -1)"
+          DMG_NAME="Tamio-${TAG}-macOS.dmg"
+          cp "$DMG_SRC" "$DMG_NAME"
+          echo "dmg_name=${DMG_NAME}" >> "$GITHUB_OUTPUT"
+          ls -lh "${DMG_NAME}"
+
+      - name: Publish IPA & DMG to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           TAG="${{ steps.package.outputs.tag }}"
           IPA="${{ steps.package.outputs.ipa_name }}"
-          gh release create "$TAG" "$IPA" \
-            --title "TamioMobile ${TAG}" \
-            --notes "Unsigned sideloadable IPA for iOS 17+ / iPadOS 17+ (AltStore, SideStore, Sideloadly, TrollStore). Built from [zxfccmm4/tamio](https://github.com/zxfccmm4/tamio) (forked from [missuo/tamio](https://github.com/missuo/tamio))." \
+          DMG="${{ steps.package-mac.outputs.dmg_name }}"
+          gh release create "$TAG" "$IPA" "$DMG" \
+            --title "Tamio ${TAG}" \
+            --notes "Unsigned sideloadable iOS/iPadOS IPA (\`${IPA}\`) and ad-hoc signed macOS DMG (\`${DMG}\`). Built from [zxfccmm4/tamio](https://github.com/zxfccmm4/tamio) (forked from [missuo/tamio](https://github.com/missuo/tamio))." \
             --latest
 
   testflight:

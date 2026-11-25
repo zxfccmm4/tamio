@@ -52,9 +52,9 @@ struct HomeView: View {
 
     private var gridColumns: [GridItem] {
         if sizeClass == .compact {
-            return [GridItem(.flexible(), spacing: 14)]
+            return [GridItem(.flexible(), spacing: 10)]
         }
-        return [GridItem(.adaptive(minimum: 336, maximum: 460), spacing: 14, alignment: .top)]
+        return [GridItem(.adaptive(minimum: 310, maximum: 440), spacing: 12, alignment: .top)]
     }
 
     var body: some View {
@@ -76,16 +76,6 @@ struct HomeView: View {
         .navigationTitle("Home")
         .navigationBarTitleDisplayMode(.large)
         .searchable(text: $search, prompt: Text("Search servers"))
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    actions.newServer()
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("New Server")
-            }
-        }
         .navigationDestination(item: Binding(
             get: { sideBySide ? nil : selectedMachine.map(SelectedMachine.init) },
             set: { selectedMachine = $0?.id }
@@ -95,6 +85,11 @@ struct HomeView: View {
         }
         .onChange(of: groups) { _, next in
             if let groupFilter, !next.contains(groupFilter) { self.groupFilter = nil }
+        }
+        .onChange(of: store.machineGroup.machines.map(\.id)) { _, ids in
+            if let selectedMachine, !ids.contains(selectedMachine) {
+                self.selectedMachine = nil
+            }
         }
         #if DEBUG
         .onAppear {
@@ -137,7 +132,7 @@ struct HomeView: View {
                                 .padding(.horizontal, 20)
                         }
 
-                        LazyVGrid(columns: gridColumns, spacing: 14) {
+                        LazyVGrid(columns: gridColumns, spacing: 10) {
                             ForEach(machines) { machine in
                                 ServerStatusCard(
                                     machine: machine,
@@ -146,10 +141,10 @@ struct HomeView: View {
                                     isSelected: sideBySide && selectedMachine == machine.id,
                                     onOpenDetail: { selectedMachine = machine.id }
                                 )
-                                .appleZoomSource(id: machine.id, in: zoomNamespace, cornerRadius: 20)
+                                .appleZoomSource(id: machine.id, in: zoomNamespace, cornerRadius: 16)
                             }
                         }
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, 14)
                     }
                     .padding(.top, 4)
                     .padding(.bottom, 28)
@@ -242,27 +237,27 @@ private struct ServerStatusCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var cardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header: status dot, flag, title, subtitle + quick terminal trigger
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(alignment: .firstTextBaseline, spacing: 7) {
+            // Compact header: status dot, flag, title, subtitle + quick terminal trigger
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         CardStatusDot(session: session)
-                            .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] + 3.5 }
+                            .alignmentGuide(.firstTextBaseline) { d in d[VerticalAlignment.center] + 3 }
 
                         if let flag = machine.countryFlag {
                             Text(flag)
-                                .font(.subheadline)
+                                .font(.footnote)
                                 .fixedSize()
                                 .accessibilityHidden(true)
                         }
 
                         RedactableText(machine.name, redacted: store.machineRedacted == .all)
-                            .font(.headline.weight(.semibold))
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -270,27 +265,27 @@ private struct ServerStatusCard: View {
                     CardSubtitle(machine: machine, session: session)
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 6)
 
                 Button {
                     actions.openTerminal(machine.id)
                 } label: {
                     Image(systemName: "terminal")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
-                        .frame(width: 36, height: 36)
+                        .frame(width: 30, height: 30)
                         .background(
                             Color.accentColor.opacity(colorScheme == .dark ? 0.18 : 0.10),
-                            in: RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            in: RoundedRectangle(cornerRadius: 9, style: .continuous)
                         )
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Open Terminal")
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 16)
-            .padding(.bottom, 14)
+            .padding(.horizontal, 14)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
 
             // Body + Footer
             if let session {
@@ -457,7 +452,7 @@ private struct CardLiveBody: View {
         .animation(.easeInOut(duration: 0.25), value: isConnected)
     }
 
-    // MARK: Connected
+    // MARK: Connected (Compact 3-Column Bar Metrics + Rich Footer)
 
     @ViewBuilder
     private func connectedBody(_ status: ServerStatus) -> some View {
@@ -473,103 +468,129 @@ private struct CardLiveBody: View {
             : String(localized: "\(status.cores) cores")
 
         let memDetail = status.memory.memTotal > 0
-            ? "\(ShortBytes.string(status.memoryUsedKB * 1000)) / \(ShortBytes.string(status.memory.memTotal * 1000))"
+            ? "\(ShortBytes.string(status.memoryUsedKB * 1000))/\(ShortBytes.string(status.memory.memTotal * 1000))"
             : "—"
         let swapUsedBytes = max(0, status.memory.swapTotal - status.memory.swapFree) * 1000
-        let swapDetail = "\(ShortBytes.string(swapUsedBytes)) / \(ShortBytes.string(status.memory.swapTotal * 1000))"
-        let diskDetail = rootDisk.map { "\($0.used) / \($0.size)" } ?? "—"
+        let swapDetail = "\(ShortBytes.string(swapUsedBytes))/\(ShortBytes.string(status.memory.swapTotal * 1000))"
+        let diskDetail = rootDisk.map { "\($0.used)/\($0.size)" } ?? "—"
 
         VStack(spacing: 0) {
-            // Three symmetrical circular gauges
-            HStack(alignment: .top, spacing: 8) {
-                gaugeSlot(
+            // Compact 3-column telemetry bars
+            HStack(alignment: .top, spacing: 10) {
+                metricColumn(
                     title: String(localized: "CPU"),
+                    percentText: "\(Int(cpu.rounded()))%",
+                    fraction: cpu / 100,
+                    secondaryFraction: 0,
                     detail: coresCaption
-                ) {
-                    CleanRingGauge(
-                        fraction: cpu / 100,
-                        lineWidth: 5.5,
-                        size: 58,
-                        centerText: "\(Int(cpu.rounded()))%"
-                    )
-                }
+                )
 
-                gaugeSlot(
+                metricColumn(
                     title: showsSwap && status.memory.swapTotal > 0
                         ? String(localized: "Swap")
                         : String(localized: "Memory"),
+                    percentText: showsSwap && status.memory.swapTotal > 0
+                        ? "\(Int((swapUsed * 100).rounded()))%"
+                        : "\(Int(status.memoryUsedPercent.rounded()))%",
+                    fraction: showsSwap && status.memory.swapTotal > 0 ? swapUsed : memUsed,
+                    secondaryFraction: showsSwap && status.memory.swapTotal > 0 ? 0 : memCache,
                     detail: showsSwap && status.memory.swapTotal > 0 ? swapDetail : memDetail
-                ) {
-                    if showsSwap, status.memory.swapTotal > 0 {
-                        CleanRingGauge(
-                            fraction: swapUsed,
-                            lineWidth: 5.5,
-                            size: 58,
-                            centerText: "\(Int((swapUsed * 100).rounded()))%"
-                        )
-                    } else {
-                        CleanRingGauge(
-                            fraction: memUsed,
-                            secondaryFraction: memCache,
-                            lineWidth: 5.5,
-                            size: 58,
-                            centerText: "\(Int(status.memoryUsedPercent.rounded()))%"
-                        )
-                    }
-                }
+                )
                 .contentShape(Rectangle())
                 .onTapGesture {
                     guard status.memory.swapTotal > 0 else { return }
                     withAnimation(.snappy(duration: 0.22)) { showsSwap.toggle() }
                 }
 
-                gaugeSlot(
+                metricColumn(
                     title: String(localized: "Disk"),
-                    detail: diskDetail
-                ) {
-                    CleanRingGauge(
-                        fraction: Double(rootDisk?.percent ?? 0) / 100,
-                        lineWidth: 5.5,
-                        size: 58,
-                        centerText: rootDisk.map { "\(Int($0.percent))%" } ?? "—",
-                        empty: rootDisk == nil
-                    )
-                }
+                    percentText: rootDisk.map { "\(Int($0.percent))%" } ?? "—",
+                    fraction: Double(rootDisk?.percent ?? 0) / 100,
+                    secondaryFraction: 0,
+                    detail: diskDetail,
+                    empty: rootDisk == nil
+                )
             }
             .padding(.horizontal, 14)
-            .padding(.bottom, 14)
+            .padding(.bottom, 10)
 
             Divider()
                 .opacity(colorScheme == .dark ? 0.5 : 0.45)
-                .padding(.horizontal, 18)
+                .padding(.horizontal, 14)
 
-            // Compact live footer strip: Network throughput + Load average
+            // Rich single-line footer: Network + Processes + Load average
             footerStrip(status)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 11)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
         }
     }
 
-    private func gaugeSlot(
+    private func metricColumn(
         title: String,
+        percentText: String,
+        fraction: Double,
+        secondaryFraction: Double,
         detail: String,
-        @ViewBuilder gauge: () -> some View
+        empty: Bool = false
     ) -> some View {
-        VStack(spacing: 7) {
-            gauge()
-            VStack(spacing: 1) {
+        let clampedPrimary = min(max(fraction, 0), 1)
+        let clampedSecondary = min(max(secondaryFraction, 0), max(0, 1 - clampedPrimary))
+        let tint = metricColor(for: clampedPrimary, empty: empty)
+
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(title)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.primary)
-                Text(detail)
-                    .font(.caption2.monospacedDigit())
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 2)
+                Text(percentText)
+                    .font(.caption.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(empty ? .tertiary : .primary)
                     .contentTransition(.numericText())
-                    .minimumScaleFactor(0.8)
                     .lineLimit(1)
             }
+
+            GeometryReader { geo in
+                let width = geo.size.width
+                let primaryWidth = width * clampedPrimary
+                let totalWidth = width * min(1, clampedPrimary + clampedSecondary)
+
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08))
+
+                    if clampedSecondary > 0.01 {
+                        Capsule()
+                            .fill(tint.opacity(colorScheme == .dark ? 0.34 : 0.26))
+                            .frame(width: max(4, totalWidth))
+                    }
+
+                    if !empty, clampedPrimary > 0.005 {
+                        Capsule()
+                            .fill(tint)
+                            .frame(width: max(4, primaryWidth))
+                    }
+                }
+                .animation(.easeOut(duration: 0.35), value: clampedPrimary)
+            }
+            .frame(height: 5)
+
+            Text(detail)
+                .font(.system(size: 10).monospacedDigit())
+                .foregroundStyle(.tertiary)
+                .contentTransition(.numericText())
+                .minimumScaleFactor(0.8)
+                .lineLimit(1)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func metricColor(for fraction: Double, empty: Bool) -> Color {
+        if empty { return .secondary }
+        if fraction >= 0.85 { return .red }
+        if fraction >= 0.65 { return .orange }
+        return .accentColor
     }
 
     @ViewBuilder
@@ -585,10 +606,11 @@ private struct CardLiveBody: View {
         let load15 = Double(status.system.load15)
         let loadRatio = load1 / Double(max(1, status.cores))
         let loadColor: Color = loadRatio >= 1.0 ? .red : (loadRatio >= 0.75 ? .orange : .secondary)
+        let procs = status.system.totalProcs
 
-        HStack(alignment: .center, spacing: 10) {
+        HStack(alignment: .center, spacing: 8) {
             // Network live rate / cumulative totals (tap to toggle)
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 if showsNetTotals {
                     netPill(symbol: "arrow.up", text: ShortBytes.string(netUpTotal), active: netUpTotal > 0)
                     netPill(symbol: "arrow.down", text: ShortBytes.string(netDownTotal), active: netDownTotal > 0)
@@ -602,10 +624,28 @@ private struct CardLiveBody: View {
                 withAnimation(.snappy(duration: 0.2)) { showsNetTotals.toggle() }
             }
 
-            Spacer(minLength: 6)
+            Spacer(minLength: 4)
 
-            // Load average, gracefully stepping down to fit any width without ellipsis
+            // Load average + optional process count, stepping down cleanly without ellipsis
             FirstThatFits {
+                if procs > 0 {
+                    HStack(spacing: 8) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "cpu")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.tertiary)
+                            Text("\(procs)")
+                                .font(.caption2.weight(.medium).monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
+                        .fixedSize()
+                        loadText(
+                            prefix: String(localized: "Load"),
+                            values: String(format: "%.2f · %.2f · %.2f", load1, load5, load15),
+                            color: loadColor
+                        )
+                    }
+                }
                 loadText(
                     prefix: String(localized: "Load"),
                     values: String(format: "%.2f · %.2f · %.2f", load1, load5, load15),
@@ -617,7 +657,7 @@ private struct CardLiveBody: View {
                     color: loadColor
                 )
                 Text(String(format: "%.2f", load1))
-                    .font(.caption.weight(.medium).monospacedDigit())
+                    .font(.caption2.weight(.medium).monospacedDigit())
                     .foregroundStyle(loadColor)
                     .fixedSize()
             }
@@ -630,7 +670,7 @@ private struct CardLiveBody: View {
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(active ? Color.green : Color(uiColor: .tertiaryLabel))
             Text(text)
-                .font(.caption.weight(.medium).monospacedDigit())
+                .font(.caption2.weight(.medium).monospacedDigit())
                 .foregroundStyle(active ? Color.primary : Color.secondary)
                 .contentTransition(.numericText())
                 .fixedSize()
@@ -638,12 +678,12 @@ private struct CardLiveBody: View {
     }
 
     private func loadText(prefix: String, values: String, color: Color) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             Text(prefix)
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.tertiary)
             Text(values)
-                .font(.caption.weight(.medium).monospacedDigit())
+                .font(.caption2.weight(.medium).monospacedDigit())
                 .foregroundStyle(color)
                 .contentTransition(.numericText())
         }
@@ -690,15 +730,15 @@ private struct CardLiveBody: View {
     }
 }
 
-// MARK: - Animated Connecting Skeleton (Matches Connected Card Geometry)
+// MARK: - Animated Connecting Skeleton (Matches Compact Connected Card Geometry)
 
 private struct CardConnectingSkeleton: View {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var rotation: Double = 0
+    @State private var sweepPhase = false
     @State private var shimmerPhase = false
 
     private var trackColor: Color {
-        Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07)
+        Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08)
     }
 
     private var pillBaseColor: Color {
@@ -707,103 +747,106 @@ private struct CardConnectingSkeleton: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Three symmetrical animated ring placeholders matching connectedBody
-            HStack(alignment: .top, spacing: 8) {
-                skeletonSlot(title: String(localized: "CPU"), detailWidth: 44, angleOffset: 0)
-                skeletonSlot(title: String(localized: "Memory"), detailWidth: 64, angleOffset: 120)
-                skeletonSlot(title: String(localized: "Disk"), detailWidth: 56, angleOffset: 240)
+            // Compact 3-column animated bar placeholders matching connectedBody
+            HStack(alignment: .top, spacing: 10) {
+                skeletonColumn(title: String(localized: "CPU"), detailWidth: 40)
+                skeletonColumn(title: String(localized: "Memory"), detailWidth: 56)
+                skeletonColumn(title: String(localized: "Disk"), detailWidth: 48)
             }
             .padding(.horizontal, 14)
-            .padding(.bottom, 14)
+            .padding(.bottom, 10)
 
             Divider()
                 .opacity(colorScheme == .dark ? 0.5 : 0.45)
-                .padding(.horizontal, 18)
+                .padding(.horizontal, 14)
 
             // Footer strip matching connectedBody height & alignment
-            HStack(alignment: .center, spacing: 10) {
-                HStack(spacing: 10) {
-                    networkSkeletonPill(symbol: "arrow.up", width: 42)
-                    networkSkeletonPill(symbol: "arrow.down", width: 42)
+            HStack(alignment: .center, spacing: 8) {
+                HStack(spacing: 8) {
+                    networkSkeletonPill(symbol: "arrow.up", width: 38)
+                    networkSkeletonPill(symbol: "arrow.down", width: 38)
                 }
 
-                Spacer(minLength: 6)
+                Spacer(minLength: 4)
 
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     ProgressView()
                         .controlSize(.mini)
                     Text("Connecting…")
-                        .font(.caption.weight(.medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                         .fixedSize()
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 11)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
         }
         .onAppear {
-            withAnimation(.linear(duration: 1.35).repeatForever(autoreverses: false)) {
-                rotation = 360
+            withAnimation(.easeInOut(duration: 1.25).repeatForever(autoreverses: true)) {
+                sweepPhase = true
             }
-            withAnimation(.easeInOut(duration: 1.05).repeatForever(autoreverses: true)) {
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
                 shimmerPhase = true
             }
         }
     }
 
-    private func skeletonSlot(title: String, detailWidth: CGFloat, angleOffset: Double) -> some View {
-        VStack(spacing: 7) {
-            ZStack {
-                Circle()
-                    .stroke(trackColor, lineWidth: 5.5)
-
-                Circle()
-                    .trim(from: 0.0, to: 0.30)
-                    .stroke(
-                        AngularGradient(
-                            gradient: Gradient(colors: [
-                                Color.accentColor.opacity(0.0),
-                                Color.accentColor.opacity(0.55),
-                            ]),
-                            center: .center,
-                            startAngle: .degrees(0),
-                            endAngle: .degrees(108)
-                        ),
-                        style: StrokeStyle(lineWidth: 5.5, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(rotation + angleOffset - 90))
-
+    private func skeletonColumn(title: String, detailWidth: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(title)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 2)
                 Capsule()
                     .fill(pillBaseColor)
                     .frame(width: 24, height: 11)
-                    .opacity(shimmerPhase ? 0.95 : 0.42)
+                    .opacity(shimmerPhase ? 0.95 : 0.40)
             }
-            .frame(width: 58, height: 58)
 
-            VStack(spacing: 1) {
-                Text(title)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-
-                Capsule()
-                    .fill(pillBaseColor)
-                    .frame(width: detailWidth, height: 10)
-                    .padding(.vertical, 2)
-                    .opacity(shimmerPhase ? 0.95 : 0.42)
+            GeometryReader { geo in
+                let width = geo.size.width
+                let barWidth = max(18, width * 0.42)
+                ZStack(alignment: .leading) {
+                    Capsule().fill(trackColor)
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.accentColor.opacity(0.05),
+                                    Color.accentColor.opacity(0.50),
+                                    Color.accentColor.opacity(0.05),
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: barWidth)
+                        .offset(x: sweepPhase ? width - barWidth : 0)
+                }
+                .clipShape(Capsule())
             }
+            .frame(height: 5)
+
+            Capsule()
+                .fill(pillBaseColor)
+                .frame(width: detailWidth, height: 9)
+                .padding(.vertical, 1)
+                .opacity(shimmerPhase ? 0.95 : 0.40)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func networkSkeletonPill(symbol: String, width: CGFloat) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             Image(systemName: symbol)
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(Color(uiColor: .tertiaryLabel))
             Capsule()
                 .fill(pillBaseColor)
-                .frame(width: width, height: 10)
-                .opacity(shimmerPhase ? 0.95 : 0.42)
+                .frame(width: width, height: 9)
+                .opacity(shimmerPhase ? 0.95 : 0.40)
         }
     }
 }

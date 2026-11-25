@@ -7,6 +7,7 @@
 
 import CodeEditorUI
 import MachineStatusView
+import SPIndicator
 import SwiftUI
 import TamioModule
 import TamioTerminal
@@ -18,6 +19,7 @@ struct TamioMobileApp: App {
     private let store = TamioStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var showingAgreement = false
+    @State private var incomingBackup: PendingBackupImport?
 
     init() {
         #if DEBUG
@@ -112,6 +114,16 @@ struct TamioMobileApp: App {
                 AgreementView()
                     .interactiveDismissDisabled(true)
             }
+            .background(
+                Color.clear
+                    .sheet(item: $incomingBackup) { item in
+                        BackupImportModalView(initialResult: item.result) {
+                            let indicator = SPIndicatorView(title: String(localized: "Configuration Imported"), preset: .done)
+                            indicator.presentWindow = UIWindow.shutUpKeyWindow
+                            indicator.present(haptic: .success, completion: nil)
+                        }
+                    }
+            )
             .onChange(of: scenePhase) { _, phase in
                 LiveStatusCenter.shared.setWindowVisible(phase == .active)
                 AppLockManager.shared.handleScenePhase(phase)
@@ -151,6 +163,20 @@ struct TamioMobileApp: App {
                 _ = try GhostRemoteStore.shared.importRelay(data: data)
             } catch {
                 UIBridge.presentError(with: error.localizedDescription)
+            }
+            return
+        }
+        if url.isFileURL {
+            let ext = url.pathExtension.lowercased()
+            let name = url.lastPathComponent.lowercased()
+            if ext == "json" || ext == "tamiobackup" || name.hasSuffix(".tamiobackup.json") {
+                do {
+                    let data = try TamioBackupManager.readBackupData(from: url)
+                    let inspected = try TamioBackupManager.inspect(data: data)
+                    incomingBackup = PendingBackupImport(result: inspected)
+                } catch {
+                    UIBridge.presentError(with: error.localizedDescription)
+                }
             }
         }
     }
