@@ -18,11 +18,9 @@
 #                                                 updates (SUPublicEDKey is
 #                                                 its public half)
 
-name: Release
+name: Release (Upstream Developer ID)
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
