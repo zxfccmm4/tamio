@@ -127,17 +127,23 @@ release_mac() {
     /usr/bin/codesign -d --entitlements - --xml "$built" 2>/dev/null > "$entitlements"
     /usr/libexec/PlistBuddy -c 'Delete :com.apple.security.get-task-allow' "$entitlements" 2>/dev/null || true
     local timestamp=(--timestamp)
-    [[ "$identity" == "-" ]] && timestamp=(--timestamp=none)
+    local sign_opts=(--options runtime)
+    if [[ "$identity" == "-" ]]; then
+        timestamp=(--timestamp=none)
+        # Hardened Runtime library validation rejects ad-hoc signed embedded
+        # frameworks (e.g. Sparkle.framework) with "different Team IDs".
+        sign_opts=()
+    fi
     # Sparkle, in the app's Frameworks, carries helpers of its own
     # (Autoupdate, Updater.app, XPC services); -depth signs them before the
     # framework that holds them, keeping the entitlements they come with.
     find "$app/Contents" -depth \( -name '*.framework' -o -name '*.dylib' -o -name '*.appex' -o -name '*.xpc' \
         -o -name '*.app' -o -path '*/Sparkle.framework/Versions/*/Autoupdate' -o -path '*/PlugIns/*.bundle' \) -print0 \
         | while IFS= read -r -d '' nested; do
-            /usr/bin/codesign --force --sign "$identity" --options runtime "${timestamp[@]}" \
+            /usr/bin/codesign --force --sign "$identity" "${sign_opts[@]}" "${timestamp[@]}" \
                 --preserve-metadata=entitlements "$nested"
         done
-    /usr/bin/codesign --force --sign "$identity" --options runtime "${timestamp[@]}" \
+    /usr/bin/codesign --force --sign "$identity" "${sign_opts[@]}" "${timestamp[@]}" \
         --entitlements "$entitlements" "$app"
     /usr/bin/codesign --verify --deep --strict --all-architectures "$app"
 
