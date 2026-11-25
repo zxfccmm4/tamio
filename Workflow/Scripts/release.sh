@@ -140,10 +140,10 @@ release_mac() {
     find "$app/Contents" -depth \( -name '*.framework' -o -name '*.dylib' -o -name '*.appex' -o -name '*.xpc' \
         -o -name '*.app' -o -path '*/Sparkle.framework/Versions/*/Autoupdate' -o -path '*/PlugIns/*.bundle' \) -print0 \
         | while IFS= read -r -d '' nested; do
-            /usr/bin/codesign --force --sign "$identity" "${sign_opts[@]}" "${timestamp[@]}" \
+            /usr/bin/codesign --force --sign "$identity" ${sign_opts[@]+"${sign_opts[@]}"} "${timestamp[@]}" \
                 --preserve-metadata=entitlements "$nested"
         done
-    /usr/bin/codesign --force --sign "$identity" "${sign_opts[@]}" "${timestamp[@]}" \
+    /usr/bin/codesign --force --sign "$identity" ${sign_opts[@]+"${sign_opts[@]}"} "${timestamp[@]}" \
         --entitlements "$entitlements" "$app"
     /usr/bin/codesign --verify --deep --strict --all-architectures "$app"
 
