@@ -13,14 +13,20 @@ the user. To release, rename that heading to the version and date
 
 ## [Unreleased]
 
+## [0.2.22] - 2026-11-27
+
 ### Added
-- **Full iOS feature parity on native macOS (`Application/Tamio`).** macOS now includes the FlowDown-inspired AI Fleet Assistant (multi-session sidebar, target server scope, pinned skills, per-conversation model switcher, per-message regenerate/edit/fork/delete, connection testing, model discovery, and `SKILL.md` file/URL import), a 4-tab server Monitor (`Overview`, animated 6-chart `Charts`, sortable `Processes` with `kill`, and Docker `Containers`), selective 4-category AES-256-GCM `.tamiobackup.json` Export/Import compatible with iOS, an `iGhostVT`-style terminal Find bar (`⌘F`), and native macOS Apple Shortcuts (`AppIntents`).
-- **Redesigned compact Home server cards on macOS and iOS.** Server cards now use a high-density 3-column capsule bar layout (`CPU`, `Memory`/`Swap`, `Disk`), a single-line telemetry footer (live network `↑/↓`, process count, load averages), and a matching-height animated connecting skeleton with zero layout shift.
-- **iOS and iPadOS app brought up to Mac v0.2.21 with non-jailbreak iGhostVT terminal UX.** `TamioMobile` includes the unified server and SSH key editors (with live SSH endpoint preview), concurrent `FileBrowser`/`TransferQueue` SFTP, Face ID app lock, Live Activities (`TamioMobileWidgets`), customizable keyboard bar, terminal Find, swipeable floating tab bar, FlowDown composer with keyboard-docked accessory handoff on iOS 26.1+, `CoreHaptics` chart reveal sweep, entitlement-safe Apple Intelligence PCC support, Ghost Remote LAN discovery & `.vtrpsc` relay support, and complete 5-language localization (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`).
+- **VPS renewal reminders with selectable currency & visible server notes.** Servers can now store a renewal date, billing cycle, currency unit (`USD`, `CNY`, `EUR`, `HKD`, `JPY`, `GBP`, `TWD`, `KRW`, or custom), price, and reminder window; countdown badges and notes appear directly on Home cards and inside Server Detail / Inspector (with one-tap **Renewed**), with independent toggles in Settings.
+- **In-terminal SSH AI Copilot with screen context & command injection.** Both iOS and macOS SSH terminal toolbars now include a redesigned action layout and an **AI Copilot** drawer/side-panel scoped to the current host, with optional terminal screen capture and one-tap **Insert** / **Run in SSH** buttons for generated commands.
+- **Redesigned Lock Screen Live Activity & Dynamic Island.** Active iOS SSH / Ghost Remote sessions now display a gradient terminal badge, country flag, `user@host` endpoint, live timer, and real-time CPU / Memory progress bars.
+- **Full iOS feature parity on native macOS (`Application/Tamio`).** macOS now includes the FlowDown-inspired AI Fleet Assistant (with 40-round continuous tool loop, wrap-up summary, and one-tap **Continue**), a 4-tab server Monitor (`Overview`, animated 6-chart `Charts`, sortable `Processes`, and Docker `Containers`), selective 4-category AES-256-GCM `.tamiobackup.json` Export/Import, a terminal Find bar (`⌘F`), and native macOS Apple Shortcuts (`AppIntents`).
+- **Redesigned compact Home server cards on macOS and iOS.** High-density 3-column capsule bar layout (`CPU`, `Memory`/`Swap`, `Disk`), single-line telemetry footer, and matching-height animated connecting skeleton.
+- **Complete 5-language localization** across iOS and macOS (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`).
 
 ### Fixed
-- **Prevented crash when deleting a duplicated server.** Replaced the shared concurrent monitor queue with a per-session serial queue and atomic shutdown lock in `MonitorSession`.
-- **Fixed cross-device `.tamiobackup.json` import on iOS.** Switched to native `UIDocumentPickerViewController(..., asCopy: true)` and `NSFileCoordinator`-backed reading so backups shared from other devices import reliably.
+- **Persisted terminal font size across new SSH sessions.** Adjusting text size now reliably carries over to every newly opened SSH terminal on both iOS and macOS.
+- **Fixed ad-hoc macOS DMG launch crash (`Sparkle.framework` Team ID mismatch).** Ad-hoc builds omit Hardened Runtime library validation so `Sparkle.framework` loads cleanly.
+- **Prevented crash when deleting a duplicated server** and fixed cross-device `.tamiobackup.json` import on iOS.
 
 ## [0.2.21] - 2026-11-07
 

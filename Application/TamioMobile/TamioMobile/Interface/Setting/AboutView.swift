@@ -180,7 +180,7 @@ private struct AboutHeaderView: View {
     @State private var copiedVersion = false
 
     private var shortVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.2.21"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.2.22"
     }
 
     private var buildNumber: String {

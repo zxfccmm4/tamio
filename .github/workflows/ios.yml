@@ -114,9 +114,34 @@ jobs:
           TAG="${{ steps.package.outputs.tag }}"
           IPA="${{ steps.package.outputs.ipa_name }}"
           DMG="${{ steps.package-mac.outputs.dmg_name }}"
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+
+          if bash Workflow/Scripts/release-notes.sh "$TAG" > "$NOTES_FILE" 2>/dev/null && [[ -s "$NOTES_FILE" ]]; then
+            echo "Using CHANGELOG.md notes for $TAG"
+          else
+            PREV_TAG="$(git tag --sort=-creatordate | grep -v "^${TAG}$" | head -1 || true)"
+            {
+              echo "### Changes"
+              if [[ -n "$PREV_TAG" ]]; then
+                git log --pretty=format:'- %s' "${PREV_TAG}..HEAD"
+              else
+                git log -n 10 --pretty=format:'- %s'
+              fi
+              echo ""
+            } > "$NOTES_FILE"
+          fi
+
+          {
+            echo ""
+            echo "---"
+            echo "### Downloads"
+            echo "- **iOS / iPadOS**: \`${IPA}\` (unsigned sideloadable IPA for AltStore, SideStore, Sideloadly, Feather, or TrollStore)"
+            echo "- **macOS**: \`${DMG}\` (ad-hoc signed DMG; right-click → Open on first launch if Gatekeeper prompts)"
+          } >> "$NOTES_FILE"
+
           gh release create "$TAG" "$IPA" "$DMG" \
             --title "Tamio ${TAG}" \
-            --notes "Unsigned sideloadable iOS/iPadOS IPA (\`${IPA}\`) and ad-hoc signed macOS DMG (\`${DMG}\`). Built from [zxfccmm4/tamio](https://github.com/zxfccmm4/tamio) (forked from [missuo/tamio](https://github.com/missuo/tamio))." \
+            --notes-file "$NOTES_FILE" \
             --latest
 
   testflight:

@@ -202,7 +202,7 @@ enum TamioBackupManager {
 
         var payload = TamioBackupPayload(
             exportedAt: Date(),
-            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.2.21"
+            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.2.22"
         )
 
         if options.includeServersAndCredentials {
