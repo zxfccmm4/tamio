@@ -38,6 +38,8 @@ public class TamioStore: ObservableObject, @unchecked Sendable {
         disableConformation = UDDisableConformation
         monitorInterval = UDMonitorInterval
         terminalFontSize = UDTerminalFontSize
+        showServerNotes = UDShowServerNotes
+        showRenewalReminder = UDShowRenewalReminder
         if timeout <= 0 { timeout = 5 }
 
         if let read = readEncryptedDefault(
@@ -268,6 +270,24 @@ public class TamioStore: ObservableObject, @unchecked Sendable {
         didSet {
             UDTerminalFontSize = terminalFontSize
             workerState.withLock { $0.terminalFontSize = terminalFontSize }
+        }
+    }
+
+    @UserDefaultsWrapper(key: "sb.moe.tamio.ui.showServerNotes", defaultValue: true)
+    private var UDShowServerNotes: Bool
+
+    @Published public var showServerNotes: Bool = true {
+        didSet {
+            UDShowServerNotes = showServerNotes
+        }
+    }
+
+    @UserDefaultsWrapper(key: "sb.moe.tamio.ui.showRenewalReminder", defaultValue: true)
+    private var UDShowRenewalReminder: Bool
+
+    @Published public var showRenewalReminder: Bool = true {
+        didSet {
+            UDShowRenewalReminder = showRenewalReminder
         }
     }
 

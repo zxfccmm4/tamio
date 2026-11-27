@@ -254,6 +254,16 @@ private struct MonitorSettings: View {
                 description: "Every server with a password or key shows its load, CPU, memory, disk and traffic, over a connection of its own.",
                 isOn: $live.isEnabled
             )
+            SwitchRow(
+                "Show server notes",
+                description: "Display each server's notes on Home cards and inside the Server Inspector.",
+                isOn: $store.showServerNotes
+            )
+            SwitchRow(
+                "Show VPS renewal reminders",
+                description: "Display renewal countdown badges and billing details on Home cards and in the Server Inspector.",
+                isOn: $store.showRenewalReminder
+            )
             RXFormRow("Refresh", description: "How often servers and open monitors are read.") {
                 Picker("Refresh", selection: Binding(get: { max(3, store.monitorInterval) }, set: { store.monitorInterval = $0 })) {
                     ForEach(intervals, id: \.self) { seconds in

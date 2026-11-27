@@ -260,9 +260,41 @@ private struct ServerStatusCard: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.primary)
                             .fixedSize(horizontal: false, vertical: true)
+
+                        if store.showRenewalReminder,
+                           let badge = machine.renewalBadgeText(),
+                           let urgency = machine.renewalUrgency()
+                        {
+                            let tint: Color = switch urgency {
+                            case .expired: .red
+                            case .urgent: .orange
+                            case .soon: .yellow
+                            case .normal: .secondary
+                            }
+                            Text(badge)
+                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                .foregroundStyle(urgency == .soon ? .orange : tint)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(tint.opacity(0.14), in: Capsule())
+                                .fixedSize()
+                        }
                     }
 
                     CardSubtitle(machine: machine, session: session)
+
+                    if store.showServerNotes, !machine.trimmedComment.isEmpty {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 10))
+                                .foregroundStyle(.tertiary)
+                            Text(machine.trimmedComment)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.top, 2)
+                    }
                 }
 
                 Spacer(minLength: 6)

@@ -63,7 +63,7 @@ public struct ServerInspector: View {
             } else if let session = live.session(for: machine) {
                 switch tab {
                 case .overview:
-                    ScrollView { InspectorOverview(session: session).padding(.horizontal, RX.Space.s4).padding(.bottom, RX.Space.s4) }
+                    ScrollView { InspectorOverview(session: session, machine: machine).padding(.horizontal, RX.Space.s4).padding(.bottom, RX.Space.s4) }
                         // Disk I/O, TCP and addresses are read only while shown.
                         .id(session.id)
                         .onAppear { session.holdDetail() }
@@ -122,9 +122,12 @@ private struct ServerActivity: View {
 
 private struct InspectorOverview: View {
     @ObservedObject var session: MonitorSession
+    let machine: RDMachine.ID
+    @EnvironmentObject private var store: TamioStore
 
     var body: some View {
         let status = session.status
+        let read = store.machineGroup[machine]
         VStack(alignment: .leading, spacing: RX.Space.s3) {
             if !status.system.releaseName.isEmpty {
                 HStack(spacing: 5) {
@@ -140,6 +143,7 @@ private struct InspectorOverview: View {
                     }
                 }
             }
+            notesAndRenewalBox(read)
             cpu(status)
             memory(status)
             network(status)
@@ -148,6 +152,71 @@ private struct InspectorOverview: View {
             }
             if !session.status.hasData {
                 HStack { ProgressView().controlSize(.small); Text("Connecting…").font(.rxBody).foregroundStyle(.rxInkSecondary) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    func notesAndRenewalBox(_ read: RDMachine) -> some View {
+        let showNotes = store.showServerNotes && !read.trimmedComment.isEmpty
+        let showRenewal = store.showRenewalReminder && read.renewalEnabled && read.renewalDate != nil
+        if showNotes || showRenewal {
+            box {
+                if showRenewal, let date = read.renewalDate, let badge = read.renewalBadgeText(), let urgency = read.renewalUrgency() {
+                    let tint: Color = switch urgency {
+                    case .expired: .red
+                    case .urgent: .orange
+                    case .soon: .yellow
+                    case .normal: .secondary
+                    }
+                    HStack(alignment: .center, spacing: RX.Space.s2) {
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(urgency == .soon ? .orange : tint)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(badge)
+                                    .font(.rxBodyStrong.monospacedDigit())
+                                    .foregroundStyle(urgency == .soon ? .orange : tint)
+                                if !read.renewalPrice.isEmpty {
+                                    Text("· \(read.renewalPrice)")
+                                        .font(.rxHelp)
+                                        .foregroundStyle(.rxInkSecondary)
+                                }
+                            }
+                            Text("\(date.formatted(date: .abbreviated, time: .omitted)) · \(read.renewalCycle.localizedTitle)")
+                                .font(.rxHelp)
+                                .foregroundStyle(.rxInkSecondary)
+                        }
+                        Spacer(minLength: 4)
+                        if read.renewalCycle != .custom {
+                            Button("Renewed") {
+                                var updated = read
+                                updated.advanceRenewalCycle()
+                                store.machineGroup.insert(updated)
+                            }
+                            .buttonStyle(.rx)
+                        }
+                    }
+                }
+
+                if showNotes && showRenewal {
+                    Hairline()
+                }
+
+                if showNotes {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("NOTES")
+                            .font(.system(size: 10, weight: .medium))
+                            .tracking(0.4)
+                            .foregroundStyle(.rxInkSecondary)
+                        Text(read.trimmedComment)
+                            .font(.rxBody)
+                            .foregroundStyle(.rxInk)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
     }

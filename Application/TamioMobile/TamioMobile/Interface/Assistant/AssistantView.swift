@@ -1341,11 +1341,27 @@ private struct ChatMessageRow: View {
             }
 
         case .notice:
-            Text(message.text)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 2)
+            VStack(spacing: 6) {
+                Text(message.text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                if canMutate,
+                   ServerAssistant.shared.activeSession.canContinueAfterToolLimit,
+                   ServerAssistant.shared.activeSession.messages.last?.id == message.id
+                {
+                    Button {
+                        ServerAssistant.shared.activeSession.continueExecution()
+                    } label: {
+                        Label("Continue", systemImage: "play.fill")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 2)
 
         case .error:
             VStack(alignment: .leading, spacing: 8) {

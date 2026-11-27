@@ -242,8 +242,41 @@ private struct MacServerStatusCard: View {
                             .font(.system(size: 13.5, weight: .semibold))
                             .foregroundStyle(.rxInk)
                             .lineLimit(1)
+
+                        if store.showRenewalReminder,
+                           let badge = machine.renewalBadgeText(),
+                           let urgency = machine.renewalUrgency()
+                        {
+                            let tint: Color = switch urgency {
+                            case .expired: .red
+                            case .urgent: .orange
+                            case .soon: .yellow
+                            case .normal: .secondary
+                            }
+                            Text(badge)
+                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                .foregroundStyle(urgency == .soon ? .orange : tint)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1.5)
+                                .background(tint.opacity(0.14), in: Capsule())
+                                .fixedSize()
+                                .help(renewalTooltip(for: machine))
+                        }
                     }
                     MacCardSubtitle(machine: machine, session: session)
+
+                    if store.showServerNotes, !machine.trimmedComment.isEmpty {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Image(systemName: "note.text")
+                                .font(.system(size: 9.5))
+                                .foregroundStyle(.rxInkTertiary)
+                            Text(machine.trimmedComment)
+                                .font(.caption2)
+                                .foregroundStyle(.rxInkSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.top, 2)
+                    }
                 }
 
                 Spacer(minLength: 6)
@@ -299,6 +332,18 @@ private struct MacServerStatusCard: View {
         .contextMenu {
             ServerContextMenu(machine: machine.id)
         }
+    }
+
+    private func renewalTooltip(for machine: RDMachine) -> String {
+        var parts: [String] = []
+        if let date = machine.renewalDate {
+            parts.append(date.formatted(date: .abbreviated, time: .omitted))
+        }
+        parts.append(machine.renewalCycle.localizedTitle)
+        if !machine.renewalPrice.isEmpty {
+            parts.append(machine.renewalPrice)
+        }
+        return parts.joined(separator: " · ")
     }
 
     private func quickButton(_ systemImage: String, help: String, action: @escaping () -> Void) -> some View {

@@ -317,8 +317,9 @@ final class ConversationSession {
     private(set) var isStreaming = false
     private(set) var activeToolStatus: String?
     private(set) var didPruneContext = false
+    private(set) var canContinueAfterToolLimit = false
 
-    private static let maxRemoteToolRounds = 12
+    private static let maxRemoteToolRounds = 40
     private static let maxStoredToolOutputChars = 32_768
     private static let clientName = "Tamio AI"
 
@@ -370,7 +371,19 @@ final class ConversationSession {
             messages.removeLast()
         }
         guard !messages.isEmpty else { return }
+        canContinueAfterToolLimit = false
         onDeviceSessionBox = nil
+        persistMessages()
+        startInference()
+    }
+
+    func continueExecution() {
+        guard !isStreaming else { return }
+        canContinueAfterToolLimit = false
+        while let last = messages.last, last.role == .notice {
+            messages.removeLast()
+        }
+        guard !messages.isEmpty else { return }
         persistMessages()
         startInference()
     }
@@ -527,6 +540,7 @@ final class ConversationSession {
         streamText = ""
         streamReasoning = ""
         activeToolStatus = nil
+        canContinueAfterToolLimit = false
         manager.markExecuting(conversationID, running: true)
 
         let apiKey = manager.providerStore.apiKey(for: config.id)
@@ -603,10 +617,40 @@ final class ConversationSession {
                 activeToolStatus = nil
 
                 if round == Self.maxRemoteToolRounds - 1 {
+                    streamText = ""
+                    streamReasoning = ""
+                    let wrapBase = manager.buildInstructions(for: conversationID, compactForOnDevice: false)
+                    let wrapPrepared = ConversationContextBuilder.build(
+                        messages: messages,
+                        baseSystemPrompt: wrapBase,
+                        tools: [],
+                        tokenBudget: budget
+                    )
+                    if let summaryTurn = try? await streamCompletionWithRetry(
+                        config: config,
+                        apiKey: apiKey,
+                        systemPrompt: wrapPrepared.systemPrompt,
+                        messages: wrapPrepared.turns,
+                        tools: []
+                    ) {
+                        let summaryText = summaryTurn.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let summaryReasoning = summaryTurn.reasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !summaryText.isEmpty || !summaryReasoning.isEmpty {
+                            appendMessage(
+                                AssistantChatMessage(
+                                    role: .assistant,
+                                    text: summaryText.isEmpty ? String(localized: "(No response)") : summaryText,
+                                    reasoning: summaryReasoning,
+                                    modelLabel: config.model
+                                )
+                            )
+                        }
+                    }
+                    canContinueAfterToolLimit = true
                     appendMessage(
                         AssistantChatMessage(
                             role: .notice,
-                            text: String(localized: "Completed multiple tool rounds. Send a follow-up to continue.")
+                            text: String(localized: "Reached \(Self.maxRemoteToolRounds) tool rounds in one pass. Click Continue to keep going.")
                         )
                     )
                 }

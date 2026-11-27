@@ -90,6 +90,14 @@ struct SettingView: View {
                 Toggle(isOn: $allowsRemoteClipboard) {
                     settingLabel("Allow Programs to Copy (OSC 52)", icon: "doc.on.clipboard.fill", tint: .teal)
                 }
+
+                Toggle(isOn: $store.showServerNotes) {
+                    settingLabel("Show Server Notes", icon: "note.text", tint: .blue)
+                }
+
+                Toggle(isOn: $store.showRenewalReminder) {
+                    settingLabel("Show VPS Renewal Reminders", icon: "calendar.badge.clock", tint: .orange)
+                }
             }
 
             // MARK: Sessions & Security

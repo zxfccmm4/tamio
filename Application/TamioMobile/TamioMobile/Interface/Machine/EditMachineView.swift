@@ -37,6 +37,11 @@ struct MobileServerDraft: Equatable {
     var comment = ""
     var proxyCommand = ""
     var shellIntegration = false
+    var renewalEnabled = false
+    var renewalDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+    var renewalCycle: RDMachine.RenewalCycle = .monthly
+    var renewalPrice = ""
+    var renewalRemindDays = 7
 }
 
 struct EditMachineView: View {
@@ -338,6 +343,44 @@ struct EditMachineView: View {
                 }
             }
 
+            // MARK: Notes & VPS Renewal
+            Section("Notes & VPS Renewal") {
+                TextField("Notes / Comment (shown on card & detail)", text: $draft.comment, axis: .vertical)
+                    .lineLimit(1 ... 4)
+
+                Toggle(isOn: $draft.renewalEnabled) {
+                    fieldLabel("VPS Renewal Reminder", icon: "calendar.badge.clock", tint: .orange)
+                }
+
+                if draft.renewalEnabled {
+                    DatePicker(
+                        "Renewal Date",
+                        selection: $draft.renewalDate,
+                        displayedComponents: .date
+                    )
+
+                    Picker("Billing Cycle", selection: $draft.renewalCycle) {
+                        ForEach(RDMachine.RenewalCycle.allCases) { cycle in
+                            Text(cycle.localizedTitle).tag(cycle)
+                        }
+                    }
+
+                    HStack(spacing: 12) {
+                        Text("Price")
+                            .foregroundStyle(.secondary)
+                        TextField("$5/mo", text: $draft.renewalPrice)
+                            .multilineTextAlignment(.trailing)
+                    }
+
+                    Picker("Remind Before", selection: $draft.renewalRemindDays) {
+                        Text("3 days").tag(3)
+                        Text("7 days").tag(7)
+                        Text("14 days").tag(14)
+                        Text("30 days").tag(30)
+                    }
+                }
+            }
+
             // MARK: Advanced
             Section {
                 DisclosureGroup(isExpanded: $showsAdvanced) {
@@ -366,8 +409,6 @@ struct EditMachineView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-
-                    TextField("Comment (optional)", text: $draft.comment)
 
                     if !draft.proxyCommand.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
@@ -503,9 +544,13 @@ struct EditMachineView: View {
         draft.startupSnippet = read.startupSnippet
         draft.proxyCommand = read.proxyCommand
         draft.shellIntegration = read.shellIntegration
+        draft.renewalEnabled = read.renewalEnabled
+        if let date = read.renewalDate { draft.renewalDate = date }
+        draft.renewalCycle = read.renewalCycle
+        draft.renewalPrice = read.renewalPrice
+        draft.renewalRemindDays = read.renewalRemindDays
         banner = read.lastBanner
         showsAdvanced = read.startupSnippet != nil
-            || !read.comment.isEmpty
             || !read.startsInHomeFolder
             || !read.proxyCommand.isEmpty
             || read.shellIntegration
@@ -593,6 +638,11 @@ struct EditMachineView: View {
         target.startupSnippet = draft.startupSnippet
         target.proxyCommand = draft.proxyCommand
         target.shellIntegration = draft.shellIntegration
+        target.renewalEnabled = draft.renewalEnabled
+        target.renewalDate = draft.renewalEnabled ? draft.renewalDate : nil
+        target.renewalCycle = draft.renewalCycle
+        target.renewalPrice = draft.renewalPrice
+        target.renewalRemindDays = draft.renewalRemindDays
 
         let previousPrivate = existingPrivateIdentity
         let identity = credentialsToUse()

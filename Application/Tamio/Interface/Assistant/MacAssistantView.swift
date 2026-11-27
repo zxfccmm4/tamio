@@ -1011,10 +1011,23 @@ private struct MacChatMessageRow: View {
             }
 
         case .notice:
-            Text(message.text)
-                .font(.caption)
-                .foregroundStyle(.rxInkSecondary)
-                .frame(maxWidth: .infinity)
+            VStack(spacing: 6) {
+                Text(message.text)
+                    .font(.caption)
+                    .foregroundStyle(.rxInkSecondary)
+                if canMutate,
+                   ServerAssistant.shared.activeSession.canContinueAfterToolLimit,
+                   ServerAssistant.shared.activeSession.messages.last?.id == message.id
+                {
+                    Button {
+                        ServerAssistant.shared.activeSession.continueExecution()
+                    } label: {
+                        Label("Continue", systemImage: "play.fill")
+                    }
+                    .buttonStyle(.rx)
+                }
+            }
+            .frame(maxWidth: .infinity)
 
         case .error:
             VStack(alignment: .leading, spacing: 8) {

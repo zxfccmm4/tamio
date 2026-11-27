@@ -61,7 +61,7 @@ struct ServerDetailView: View {
                 Group {
                     switch tab {
                     case .overview:
-                        DetailOverviewTab(session: session)
+                        DetailOverviewTab(session: session, machineID: machineID)
                             .id(session.id)
                     case .charts:
                         DetailChartsTab(session: session, machineID: machineID)
@@ -128,6 +128,10 @@ struct ServerDetailView: View {
 
 private struct DetailOverviewTab: View {
     @ObservedObject var session: MonitorSession
+    let machineID: RDMachine.ID
+    @EnvironmentObject private var store: TamioStore
+
+    private var machine: RDMachine { store.machineGroup[machineID] }
 
     var body: some View {
         let status = session.status
@@ -140,6 +144,8 @@ private struct DetailOverviewTab: View {
                         .padding(.horizontal, 4)
                         .textSelection(.enabled)
                 }
+
+                notesAndRenewalBlock
 
                 if status.hasData {
                     cpuBlock(status)
@@ -164,6 +170,71 @@ private struct DetailOverviewTab: View {
             .padding(.bottom, 24)
         }
         .appleGroupedBackground()
+    }
+
+    @ViewBuilder
+    private var notesAndRenewalBlock: some View {
+        let showNotes = store.showServerNotes && !machine.trimmedComment.isEmpty
+        let showRenewal = store.showRenewalReminder && machine.renewalEnabled && machine.renewalDate != nil
+        if showNotes || showRenewal {
+            card {
+                if showRenewal, let date = machine.renewalDate, let badge = machine.renewalBadgeText(), let urgency = machine.renewalUrgency() {
+                    let tint: Color = switch urgency {
+                    case .expired: .red
+                    case .urgent: .orange
+                    case .soon: .yellow
+                    case .normal: .secondary
+                    }
+                    HStack(alignment: .center, spacing: 10) {
+                        Image(systemName: "calendar.badge.clock")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(urgency == .soon ? .orange : tint)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text(badge)
+                                    .font(.subheadline.weight(.semibold).monospacedDigit())
+                                    .foregroundStyle(urgency == .soon ? .orange : tint)
+                                if !machine.renewalPrice.isEmpty {
+                                    Text("· \(machine.renewalPrice)")
+                                        .font(.caption.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Text("\(date.formatted(date: .abbreviated, time: .omitted)) · \(machine.renewalCycle.localizedTitle)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 4)
+                        if machine.renewalCycle != .custom {
+                            Button("Renewed") {
+                                var updated = machine
+                                updated.advanceRenewalCycle()
+                                store.machineGroup.insert(updated)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+                }
+
+                if showNotes && showRenewal {
+                    Divider()
+                }
+
+                if showNotes {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Notes", systemImage: "note.text")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text(machine.trimmedComment)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+        }
     }
 
     private func card<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {

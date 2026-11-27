@@ -42,6 +42,11 @@ struct ServerDraft: Equatable {
     /// A command the connection goes through, as in ssh_config's ProxyCommand.
     var proxyCommand = ""
     var shellIntegration = false
+    var renewalEnabled = false
+    var renewalDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
+    var renewalCycle: RDMachine.RenewalCycle = .monthly
+    var renewalPrice = ""
+    var renewalRemindDays = 7
 }
 
 struct ServerEditorDialog: View {
@@ -89,6 +94,7 @@ struct ServerEditorDialog: View {
                     generalSection
                     sshSection
                     credentialsSection
+                    notesAndRenewalSection
                     advancedSection
                 }
                 .padding(RX.Space.s5)
@@ -349,6 +355,52 @@ struct ServerEditorDialog: View {
         }
     }
 
+    var notesAndRenewalSection: some View {
+        section("Notes & VPS Renewal") {
+            row("Notes") {
+                TextField("Optional notes (shown on card & inspector)", text: $draft.comment, axis: .vertical)
+                    .lineLimit(1 ... 3)
+                    .textFieldStyle(.rx)
+            }
+            row("Renewal reminder") {
+                Toggle("Renewal reminder", isOn: $draft.renewalEnabled)
+                    .labelsHidden()
+                    .rxSwitchToggle()
+                    .tint(.rxAccent)
+                    .controlSize(.small)
+            }
+            if draft.renewalEnabled {
+                row("Renewal date") {
+                    DatePicker("", selection: $draft.renewalDate, displayedComponents: .date)
+                        .labelsHidden()
+                }
+                row("Billing cycle") {
+                    Picker("Billing cycle", selection: $draft.renewalCycle) {
+                        ForEach(RDMachine.RenewalCycle.allCases) { cycle in
+                            Text(cycle.localizedTitle).tag(cycle)
+                        }
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 160, alignment: .leading)
+                }
+                row("Price") {
+                    TextField("$5/mo", text: $draft.renewalPrice)
+                        .textFieldStyle(.rx)
+                }
+                row("Remind before") {
+                    Picker("Remind before", selection: $draft.renewalRemindDays) {
+                        Text("3 days").tag(3)
+                        Text("7 days").tag(7)
+                        Text("14 days").tag(14)
+                        Text("30 days").tag(30)
+                    }
+                    .labelsHidden()
+                    .frame(maxWidth: 140, alignment: .leading)
+                }
+            }
+        }
+    }
+
     var footer: some View {
         HStack(spacing: RX.Space.s2) {
             if connecting {
@@ -450,8 +502,13 @@ struct ServerEditorDialog: View {
         draft.startupSnippet = read.startupSnippet
         draft.proxyCommand = read.proxyCommand
         draft.shellIntegration = read.shellIntegration
+        draft.renewalEnabled = read.renewalEnabled
+        if let date = read.renewalDate { draft.renewalDate = date }
+        draft.renewalCycle = read.renewalCycle
+        draft.renewalPrice = read.renewalPrice
+        draft.renewalRemindDays = read.renewalRemindDays
         banner = read.lastBanner
-        showsAdvanced = read.startupSnippet != nil || !read.comment.isEmpty || !read.startsInHomeFolder || !read.proxyCommand.isEmpty || read.shellIntegration
+        showsAdvanced = read.startupSnippet != nil || !read.startsInHomeFolder || !read.proxyCommand.isEmpty || read.shellIntegration
         let identity = read.associatedIdentity.flatMap(UUID.init(uuidString:)).map { store.identityGroup[$0] }
         let user = read.loginUsername(with: identity)
         draft.username = user == RDMachine.defaultUsername && read.username.isEmpty ? "" : user
@@ -531,6 +588,11 @@ struct ServerEditorDialog: View {
         target.startupSnippet = draft.startupSnippet
         target.proxyCommand = draft.proxyCommand
         target.shellIntegration = draft.shellIntegration
+        target.renewalEnabled = draft.renewalEnabled
+        target.renewalDate = draft.renewalEnabled ? draft.renewalDate : nil
+        target.renewalCycle = draft.renewalCycle
+        target.renewalPrice = draft.renewalPrice
+        target.renewalRemindDays = draft.renewalRemindDays
 
         let previousPrivate = existingPrivateIdentity
         let identity = credentialsToUse()

@@ -133,6 +133,137 @@ public struct RDMachine: Codable, Identifiable, Equatable, Sendable {
         set { attachment["auth"] = newValue ? "none" : nil }
     }
 
+    // MARK: - Notes & VPS Renewal Reminder
+
+    public enum RenewalCycle: String, Codable, CaseIterable, Identifiable, Sendable {
+        case monthly
+        case quarterly
+        case semiannual
+        case yearly
+        case custom
+
+        public var id: String { rawValue }
+
+        public var localizedTitle: String {
+            switch self {
+            case .monthly: String(localized: "Monthly")
+            case .quarterly: String(localized: "Quarterly")
+            case .semiannual: String(localized: "Semi-Annual")
+            case .yearly: String(localized: "Yearly")
+            case .custom: String(localized: "Custom")
+            }
+        }
+
+        public func nextDate(from date: Date, calendar: Calendar = .current) -> Date? {
+            switch self {
+            case .monthly: calendar.date(byAdding: .month, value: 1, to: date)
+            case .quarterly: calendar.date(byAdding: .month, value: 3, to: date)
+            case .semiannual: calendar.date(byAdding: .month, value: 6, to: date)
+            case .yearly: calendar.date(byAdding: .year, value: 1, to: date)
+            case .custom: nil
+            }
+        }
+    }
+
+    public enum RenewalUrgency: Equatable, Sendable {
+        case expired
+        case urgent
+        case soon
+        case normal
+    }
+
+    public var trimmedComment: String {
+        comment.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    public var renewalEnabled: Bool {
+        get { attachment["vps.renewal.enabled"] == "1" }
+        set { attachment["vps.renewal.enabled"] = newValue ? "1" : nil }
+    }
+
+    public var renewalDate: Date? {
+        get {
+            guard let raw = attachment["vps.renewal.date"], !raw.isEmpty else { return nil }
+            return Self.renewalDateFormatter.date(from: raw)
+        }
+        set {
+            if let newValue {
+                attachment["vps.renewal.date"] = Self.renewalDateFormatter.string(from: newValue)
+            } else {
+                attachment["vps.renewal.date"] = nil
+            }
+        }
+    }
+
+    public var renewalCycle: RenewalCycle {
+        get { attachment["vps.renewal.cycle"].flatMap(RenewalCycle.init(rawValue:)) ?? .monthly }
+        set { attachment["vps.renewal.cycle"] = newValue.rawValue }
+    }
+
+    public var renewalPrice: String {
+        get { attachment["vps.renewal.price"] ?? "" }
+        set {
+            let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            attachment["vps.renewal.price"] = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    public var renewalRemindDays: Int {
+        get {
+            if let raw = attachment["vps.renewal.remindDays"], let val = Int(raw), val > 0 {
+                return val
+            }
+            return 7
+        }
+        set {
+            attachment["vps.renewal.remindDays"] = String(max(1, newValue))
+        }
+    }
+
+    /// Whole calendar days from today until the VPS renewal date. Negative means expired.
+    public func daysUntilRenewal(from reference: Date = Date(), calendar: Calendar = .current) -> Int? {
+        guard renewalEnabled, let target = renewalDate else { return nil }
+        let startToday = calendar.startOfDay(for: reference)
+        let startTarget = calendar.startOfDay(for: target)
+        return calendar.dateComponents([.day], from: startToday, to: startTarget).day
+    }
+
+    public func renewalUrgency(from reference: Date = Date()) -> RenewalUrgency? {
+        guard let days = daysUntilRenewal(from: reference) else { return nil }
+        if days < 0 { return .expired }
+        if days <= max(3, renewalRemindDays) { return .urgent }
+        if days <= 30 { return .soon }
+        return .normal
+    }
+
+    public func renewalBadgeText(from reference: Date = Date()) -> String? {
+        guard let days = daysUntilRenewal(from: reference) else { return nil }
+        if days < 0 {
+            return String(localized: "Expired \(abs(days))d")
+        } else if days == 0 {
+            return String(localized: "Due today")
+        } else {
+            return String(localized: "Renews in \(days)d")
+        }
+    }
+
+    /// Advances the renewal date by one billing cycle from the later of today or the current renewal date.
+    public mutating func advanceRenewalCycle(from reference: Date = Date()) {
+        guard let current = renewalDate else { return }
+        let base = max(current, reference)
+        if let next = renewalCycle.nextDate(from: base) {
+            renewalDate = next
+        }
+    }
+
+    private static var renewalDateFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }
+
     // convince
 
     public func isQualifiedForSearch(text: String) -> Bool {
