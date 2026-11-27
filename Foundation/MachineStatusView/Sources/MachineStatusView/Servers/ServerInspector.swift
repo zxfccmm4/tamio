@@ -206,7 +206,8 @@ private struct InspectorOverview: View {
 
                 if showNotes {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("NOTES")
+                        Text("Notes")
+                            .textCase(.uppercase)
                             .font(.system(size: 10, weight: .medium))
                             .tracking(0.4)
                             .foregroundStyle(.rxInkSecondary)
