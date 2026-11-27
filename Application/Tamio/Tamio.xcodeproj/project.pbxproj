@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		003578176B7DDCA5FF7F9159 /* RemoteLLMClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22CD2800D421CCB89B3555D8 /* RemoteLLMClient.swift */; };
 		008E9FBC042818DE1C7C7460 /* MacTerminalFindBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 448A036B9EB42351D20344F3 /* MacTerminalFindBar.swift */; };
+		0106C680569D727EDE45CEAC /* MacTerminalAIPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20F3DF4F30D704B1B7610746 /* MacTerminalAIPanel.swift */; };
 		0169A95EFF5163A62FB765A2 /* AssistantConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A54AC1944FCA796E8E9076D /* AssistantConversationStore.swift */; };
 		0A1F4D25A45E91BA6FFFE0EF /* MacBackupTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D5C24D1B91754CDBC47383 /* MacBackupTransfer.swift */; };
 		0D996008869B53B9E095749C /* PageScaffold.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDE29F5CD9A23175CCFBCF3 /* PageScaffold.swift */; };
@@ -101,6 +102,7 @@
 		1331A09CA06BF20442B6E738 /* MacChartsDashboard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacChartsDashboard.swift; sourceTree = "<group>"; };
 		18038823C6B06193E1A8D86A /* DoubleConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleConfirm.swift; sourceTree = "<group>"; };
 		19EE5D514035098C28958260 /* SyncedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedSettings.swift; sourceTree = "<group>"; };
+		20F3DF4F30D704B1B7610746 /* MacTerminalAIPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacTerminalAIPanel.swift; sourceTree = "<group>"; };
 		22CD2800D421CCB89B3555D8 /* RemoteLLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLLMClient.swift; sourceTree = "<group>"; };
 		29183565D571B1DD9EFBC65E /* UpdateCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateCenter.swift; sourceTree = "<group>"; };
 		2AD8E54833D616102BA84271 /* SnippetEditorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetEditorSheet.swift; sourceTree = "<group>"; };
@@ -403,6 +405,7 @@
 		C45AC04BF9EF83A970E52F65 /* Terminal */ = {
 			isa = PBXGroup;
 			children = (
+				20F3DF4F30D704B1B7610746 /* MacTerminalAIPanel.swift */,
 				448A036B9EB42351D20344F3 /* MacTerminalFindBar.swift */,
 				C465A43736C58AD6B51CEC59 /* TerminalManager.swift */,
 				F42B19215937CD8331FA07FC /* TerminalManager+Context.swift */,
@@ -611,6 +614,7 @@
 				25CDF552B46CD7D4EBC96C45 /* MacProcessesAndContainers.swift in Sources */,
 				8EE9CC6C4E8DE3A90DD5A473 /* MacServerAssistant.swift in Sources */,
 				2B6242749F6B87A0ECB35D0B /* MacStatusItem.swift in Sources */,
+				0106C680569D727EDE45CEAC /* MacTerminalAIPanel.swift in Sources */,
 				008E9FBC042818DE1C7C7460 /* MacTerminalFindBar.swift in Sources */,
 				BEB4DE2C2050BCC4316E8C40 /* MacUpdates.swift in Sources */,
 				6847782BF8AA67783B857696 /* MainView.swift in Sources */,

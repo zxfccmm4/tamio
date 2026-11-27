@@ -329,6 +329,7 @@ private final class TerminalPresentation: NSObject, TerminalSurfaceTitleDelegate
     private let output: TerminalOutputBuffer
     private let clipboardNotice: RemoteClipboardNotice
     private var initialFontPreferenceApplied = false
+    private var hasExplicitFontOverride = false
     private var didAttach = false
 
     // SSH workers may release the last session reference. Ghostty's coordinator
@@ -363,7 +364,11 @@ private final class TerminalPresentation: NSObject, TerminalSurfaceTitleDelegate
     func applyFontSize(preferConfigured: Bool) {
         if preferConfigured && initialFontPreferenceApplied { return }
         initialFontPreferenceApplied = true
-        if preferConfigured { applyConfiguredFontSize(); return }
+        if preferConfigured, let configured = TamioTerminalConfiguration.appliedFontSize {
+            _ = view.performBindingAction("set_font_size:\(Self.surfaceFontSize(configured))")
+            return
+        }
+        hasExplicitFontOverride = !preferConfigured
         // Changing configuration.fontSize would recreate the surface and erase
         // scrollback. A binding action updates the existing surface in place.
         _ = view.performBindingAction("set_font_size:\(Self.surfaceFontSize(Double(callbacks.fontSize)))")
@@ -391,7 +396,14 @@ private final class TerminalPresentation: NSObject, TerminalSurfaceTitleDelegate
     }
 
     func terminalDidAttachSurface(_ surface: TerminalSurface) {
-        if !didAttach { applyConfiguredFontSize(); didAttach = true }
+        if !didAttach {
+            if hasExplicitFontOverride {
+                _ = view.performBindingAction("set_font_size:\(Self.surfaceFontSize(Double(callbacks.fontSize)))")
+            } else {
+                applyConfiguredFontSize()
+            }
+            didAttach = true
+        }
         output.setAttached(true)
     }
 

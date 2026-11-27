@@ -45,6 +45,7 @@ struct ServerDraft: Equatable {
     var renewalEnabled = false
     var renewalDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
     var renewalCycle: RDMachine.RenewalCycle = .monthly
+    var renewalCurrency: RDMachine.RenewalCurrency = .usd
     var renewalPrice = ""
     var renewalRemindDays = 7
 }
@@ -384,8 +385,25 @@ struct ServerEditorDialog: View {
                     .frame(maxWidth: 160, alignment: .leading)
                 }
                 row("Price") {
-                    TextField("$5/mo", text: $draft.renewalPrice)
-                        .textFieldStyle(.rx)
+                    HStack(spacing: RX.Space.s2) {
+                        Picker("Currency", selection: $draft.renewalCurrency) {
+                            ForEach(RDMachine.RenewalCurrency.allCases) { currency in
+                                Text(currency.pickerLabel).tag(currency)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(width: 118)
+
+                        TextField(draft.renewalCurrency == .custom ? "$5/mo" : "9.99", text: $draft.renewalPrice)
+                            .textFieldStyle(.rx)
+
+                        if !draft.renewalCycle.shortSuffix.isEmpty, draft.renewalCurrency != .custom {
+                            Text(draft.renewalCycle.shortSuffix)
+                                .font(.rxHelp)
+                                .foregroundStyle(.rxInkSecondary)
+                                .fixedSize()
+                        }
+                    }
                 }
                 row("Remind before") {
                     Picker("Remind before", selection: $draft.renewalRemindDays) {
@@ -505,6 +523,7 @@ struct ServerEditorDialog: View {
         draft.renewalEnabled = read.renewalEnabled
         if let date = read.renewalDate { draft.renewalDate = date }
         draft.renewalCycle = read.renewalCycle
+        draft.renewalCurrency = read.renewalCurrency
         draft.renewalPrice = read.renewalPrice
         draft.renewalRemindDays = read.renewalRemindDays
         banner = read.lastBanner
@@ -591,6 +610,7 @@ struct ServerEditorDialog: View {
         target.renewalEnabled = draft.renewalEnabled
         target.renewalDate = draft.renewalEnabled ? draft.renewalDate : nil
         target.renewalCycle = draft.renewalCycle
+        target.renewalCurrency = draft.renewalCurrency
         target.renewalPrice = draft.renewalPrice
         target.renewalRemindDays = draft.renewalRemindDays
 

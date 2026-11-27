@@ -194,8 +194,8 @@ private struct DetailOverviewTab: View {
                                 Text(badge)
                                     .font(.subheadline.weight(.semibold).monospacedDigit())
                                     .foregroundStyle(urgency == .soon ? .orange : tint)
-                                if !machine.renewalPrice.isEmpty {
-                                    Text("· \(machine.renewalPrice)")
+                                if !machine.formattedRenewalPrice.isEmpty {
+                                    Text("· \(machine.formattedRenewalPrice)")
                                         .font(.caption.weight(.medium))
                                         .foregroundStyle(.secondary)
                                 }

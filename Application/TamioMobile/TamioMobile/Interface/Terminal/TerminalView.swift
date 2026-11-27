@@ -32,6 +32,7 @@ struct TerminalView: View {
     @State private var showsTabSwitcher = false
     @State private var showsKeyboardEditor = false
     @State private var showsThemeSettings = false
+    @State private var showsAICopilot = false
     @State private var keyboardVisible = false
 
     @Environment(\.dismiss) private var dismiss
@@ -71,6 +72,7 @@ struct TerminalView: View {
             showsTabSwitcher: $showsTabSwitcher,
             showsKeyboardEditor: $showsKeyboardEditor,
             showsThemeSettings: $showsThemeSettings,
+            showsAICopilot: $showsAICopilot,
             onSwitchTab: switchTo(_:),
             onSwipePrevious: {
                 if let prev = manager.neighbor(of: activeContext.id, delta: -1) { switchTo(prev) }
@@ -121,6 +123,15 @@ struct TerminalView: View {
                         Button("Done") { showsThemeSettings = false }
                     }
                 }
+            }
+        }
+        .sheet(isPresented: $showsAICopilot) {
+            TerminalAICopilotSheet(
+                machine: activeContext.remoteType == .machine && activeContext.machine.isNotPlaceholder() ? activeContext.machine : nil,
+                terminalTitle: activeContext.remoteType == .machine ? activeContext.machine.name : activeContext.navigationTitle,
+                terminal: activeContext.termInterface
+            ) { command, run in
+                activeContext.termInterface.sendInputText(run ? command + "\n" : command)
             }
         }
         .onAppear {
@@ -214,6 +225,7 @@ private struct TerminalSessionHost: View {
     @Binding var showsTabSwitcher: Bool
     @Binding var showsKeyboardEditor: Bool
     @Binding var showsThemeSettings: Bool
+    @Binding var showsAICopilot: Bool
     let onSwitchTab: (TerminalContext) -> Void
     let onSwipePrevious: () -> Void
     let onSwipeNext: () -> Void
@@ -312,16 +324,59 @@ private struct TerminalSessionHost: View {
                     Button {
                         activeContext.reconnect()
                     } label: {
-                        Label("Reconnect", rx: "arrow.clockwise")
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.orange)
                     }
+                    .accessibilityLabel("Reconnect")
                 }
+
+                Button {
+                    showsAICopilot = true
+                } label: {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+                .accessibilityLabel("SSH AI Copilot")
+
+                Menu {
+                    Text(String(localized: "Font Size: \(store.terminalFontSize) pt"))
+                    Divider()
+                    Button {
+                        store.terminalFontSize = max(6, store.terminalFontSize - 1)
+                    } label: {
+                        Label("Smaller Text", systemImage: "textformat.size.smaller")
+                    }
+                    .disabled(store.terminalFontSize <= 6)
+
+                    Button {
+                        store.terminalFontSize = min(30, store.terminalFontSize + 1)
+                    } label: {
+                        Label("Larger Text", systemImage: "textformat.size.larger")
+                    }
+                    .disabled(store.terminalFontSize >= 30)
+
+                    Divider()
+                    Button {
+                        store.terminalFontSize = 12
+                    } label: {
+                        Label("Reset to 12 pt", systemImage: "arrow.counterclockwise")
+                    }
+                } label: {
+                    Image(systemName: "textformat.size")
+                        .font(.system(size: 14, weight: .medium))
+                }
+                .accessibilityLabel("Text Size")
 
                 if activeContext.remoteType == .machine, activeContext.machine.isNotPlaceholder() {
                     Button {
                         FileTransferManager.shared.begin(for: activeContext.machine.id)
                     } label: {
-                        Label("Files", rx: "folder")
+                        Image(systemName: "folder")
+                            .font(.system(size: 14, weight: .medium))
                     }
+                    .accessibilityLabel("Files")
                 }
 
                 Menu {
@@ -491,7 +546,7 @@ private struct TerminalPaneSurface: View {
                     updateTerminalSize()
                 }
                 .onAppear {
-                    context.termInterface.setTerminalFontSize(with: fontSize, preferConfigured: true)
+                    context.termInterface.setTerminalFontSize(with: fontSize, preferConfigured: false)
                     context.termInterface.setActive(isActive)
                 }
                 .onChange(of: fontSize) { _, newValue in

@@ -41,6 +41,7 @@
 		689CD0D7E31E57D01EA71974 /* Keychain in Frameworks */ = {isa = PBXBuildFile; productRef = 5E2D3161DA2CE68EC13944D1 /* Keychain */; };
 		69AEFDE45760BC24532EB60A /* EditPortForwardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D803B8EA093421DB0A805ED1 /* EditPortForwardView.swift */; };
 		6B22B325D7FE78B6DA5BFF3B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E10E1DF8074D5FDC5F2A403 /* Assets.xcassets */; };
+		6BF6FEEC507B4E0B23662044 /* TerminalAICopilotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC8F16A25D2C25DAB283864 /* TerminalAICopilotSheet.swift */; };
 		6F7125F21381B0EDE216BF28 /* AIProviderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41BA6368FDE84EDA3C212815 /* AIProviderSettingsView.swift */; };
 		6FC5E8A328C093CE3A767F49 /* SessionActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2520C07CB5D78A5BDEB9373C /* SessionActivityController.swift */; };
 		708ADFDE878FF809811ED19F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AB61E60BFB0A594CA2A312 /* ContentView.swift */; };
@@ -128,17 +129,17 @@
 		0EDCF36782302AB01A6B0A72 /* TerminalFindBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalFindBar.swift; sourceTree = "<group>"; };
 		111AB15CD85F7C4049F4DD6B /* SyncedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedSettings.swift; sourceTree = "<group>"; };
 		1303CB2609E0DDEAA3532A47 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		17422EF7A536531F729316F0 /* EULA */ = {isa = PBXFileReference; lastKnownFileType = text; path = EULA; sourceTree = "<group>"; };
+		17422EF7A536531F729316F0 /* EULA */ = {isa = PBXFileReference; path = EULA; sourceTree = "<group>"; };
 		19F73F2B60E3EBA5985DCA5E /* MonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitorView.swift; sourceTree = "<group>"; };
 		20FAF14052D52D7E046C5CF0 /* SPIndicator */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SPIndicator; path = ../../Foundation/SPIndicator; sourceTree = SOURCE_ROOT; };
 		22820C7DA41DD51F5BA8EF00 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		2520C07CB5D78A5BDEB9373C /* SessionActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionActivityController.swift; sourceTree = "<group>"; };
-		2A06FC87D7D06DA8FDCB9E46 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		2A06FC87D7D06DA8FDCB9E46 /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		2EA6621401C7CF9830819274 /* AppLockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockManager.swift; sourceTree = "<group>"; };
 		31D13A01158679F48CE0129B /* SnippetExecuteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetExecuteView.swift; sourceTree = "<group>"; };
 		38D84A870D616452FBFA85B4 /* SnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetView.swift; sourceTree = "<group>"; };
 		3E10E1DF8074D5FDC5F2A403 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		3ECD267FE035490B7295B47E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		3ECD267FE035490B7295B47E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		41BA6368FDE84EDA3C212815 /* AIProviderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsView.swift; sourceTree = "<group>"; };
 		42119825202958FD07542C3A /* GlassStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassStyle.swift; sourceTree = "<group>"; };
 		45762E74B695C2F52867420B /* SymbolPicker */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SymbolPicker; path = ../../Foundation/SymbolPicker; sourceTree = SOURCE_ROOT; };
@@ -150,7 +151,7 @@
 		6094102DDA369188B7AB4E64 /* TerminalSnippetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSnippetSheet.swift; sourceTree = "<group>"; };
 		65075A1779401EEEF376382D /* PickMachineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickMachineView.swift; sourceTree = "<group>"; };
 		666844E39584E45983C73097 /* ServerOpsSkills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerOpsSkills.swift; sourceTree = "<group>"; };
-		6AF598C2E281C9697868C5C6 /* Tamio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tamio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6AF598C2E281C9697868C5C6 /* TamioMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TamioMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EF4241321F7FA054A06E996 /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		7349BE7DEA492FCB587BE49E /* TamioModule */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TamioModule; path = ../../Foundation/TamioModule; sourceTree = SOURCE_ROOT; };
 		74CC753C58839D6AB0F22D3B /* RemoteFileEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteFileEditorView.swift; sourceTree = "<group>"; };
@@ -194,6 +195,7 @@
 		E52791215A5F671E1C506E88 /* MobileTerminalLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileTerminalLifecycle.swift; sourceTree = "<group>"; };
 		E60A279F40A4779B262C8A83 /* DoubleConfirm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoubleConfirm.swift; sourceTree = "<group>"; };
 		EA04D6102BBF2D1161E9A113 /* AppleChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleChrome.swift; sourceTree = "<group>"; };
+		EBC8F16A25D2C25DAB283864 /* TerminalAICopilotSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalAICopilotSheet.swift; sourceTree = "<group>"; };
 		EC5742F679F85BB165475D90 /* GhostRemoteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostRemoteEngine.swift; sourceTree = "<group>"; };
 		EC856C5FF2A8CCA46A1DE701 /* TerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalView.swift; sourceTree = "<group>"; };
 		EF71CE0BCB1922F53189C9B8 /* TamioMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioMobileApp.swift; sourceTree = "<group>"; };
@@ -459,6 +461,7 @@
 				42119825202958FD07542C3A /* GlassStyle.swift */,
 				751C43259E0CCA342D3EFAB4 /* KeyboardBarStore.swift */,
 				E52791215A5F671E1C506E88 /* MobileTerminalLifecycle.swift */,
+				EBC8F16A25D2C25DAB283864 /* TerminalAICopilotSheet.swift */,
 				A9BA9F4A07B488AAF6598395 /* TerminalContext.swift */,
 				0EDCF36782302AB01A6B0A72 /* TerminalFindBar.swift */,
 				80C98AD7D876A740C35A8039 /* TerminalManager.swift */,
@@ -508,7 +511,7 @@
 		FFB3B738E74EFBD9D02C825B /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6AF598C2E281C9697868C5C6 /* Tamio.app */,
+				6AF598C2E281C9697868C5C6 /* TamioMobile.app */,
 				A72EDCC74FF7D1D776352828 /* TamioMobileWidgets.appex */,
 			);
 			name = Products;
@@ -564,7 +567,7 @@
 				F6EF80BF86C8201D470E4968 /* CodeEditorUI */,
 			);
 			productName = TamioMobile;
-			productReference = 6AF598C2E281C9697868C5C6 /* Tamio.app */;
+			productReference = 6AF598C2E281C9697868C5C6 /* TamioMobile.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -577,11 +580,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					1E0C9F16032ABB5AF80E497A = {
-						DevelopmentTeam = NCFNX3LJ83;
+						DevelopmentTeam = VXNXPX5UP8;
 						ProvisioningStyle = Automatic;
 					};
 					F1CA00056305115D56DDE95A = {
-						DevelopmentTeam = NCFNX3LJ83;
+						DevelopmentTeam = VXNXPX5UP8;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -706,6 +709,7 @@
 				9C13B1F34763638CE8E7047D /* TamioMobileApp.swift in Sources */,
 				0B9CB44989100B557CFDF751 /* TamioSessionAttributes.swift in Sources */,
 				FF39656ECD0D385A2F72704F /* TamioShortcuts.swift in Sources */,
+				6BF6FEEC507B4E0B23662044 /* TerminalAICopilotSheet.swift in Sources */,
 				FBA1C8A73693B03C11EF9A16 /* TerminalContext.swift in Sources */,
 				C76A2C040E7D902E6FB1FCF5 /* TerminalFindBar.swift in Sources */,
 				05F2710E31998D8BA9FCB808 /* TerminalManager.swift in Sources */,
@@ -742,13 +746,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TamioMobile/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tamio;
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID confirms it is you before a sensitive step or unlocking Tamio.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 MOE AI LLC. Based on Rayon: © 2022 Lakr Aream, © 2026 mizorewww and catussh contributors.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Tamio connects to SSH servers and discovers nearby Ghost Remote devices on your local network.";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIApplicationSupportsMultipleScenes = YES;
@@ -928,13 +929,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TamioMobile/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tamio;
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Face ID confirms it is you before a sensitive step or unlocking Tamio.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 MOE AI LLC. Based on Rayon: © 2022 Lakr Aream, © 2026 mizorewww and catussh contributors.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Tamio connects to SSH servers and discovers nearby Ghost Remote devices on your local network.";
-				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UIApplicationSupportsMultipleScenes = YES;

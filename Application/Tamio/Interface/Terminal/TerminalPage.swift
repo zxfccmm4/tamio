@@ -22,6 +22,7 @@ struct TerminalPage: View {
     @Environment(\.isActivePage) private var isActive
     /// The snippets panel beside the terminal, shown or hidden for every terminal.
     @AppStorage(TerminalSnippetPanel.shownKey) private var snippetsShown = false
+    @State private var aiPanelShown = false
 
     var body: some View {
         HStack(alignment: .top, spacing: RX.Space.s3) {
@@ -49,7 +50,13 @@ struct TerminalPage: View {
                 TerminalStatusBar(context: context)
                     .frame(height: RX.Space.s6)
             }
-            if snippetsShown {
+            if aiPanelShown {
+                MacTerminalAIPanel(context: context) { aiPanelShown = false }
+                    .frame(width: MacTerminalAIPanel.width)
+                    .padding(.bottom, RX.Space.s6)
+                    .transition(.move(edge: .trailing).combined(with: .opacity)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.9)))
+            } else if snippetsShown {
                 TerminalSnippetPanel(context: context) { snippetsShown = false }
                     .frame(width: TerminalSnippetPanel.width)
                     .padding(.bottom, RX.Space.s6)
@@ -87,7 +94,17 @@ struct TerminalPage: View {
                 .disabled(store.terminalFontSize >= 30)
                 .keyboardShortcut("+", modifiers: .command)
             }
-            .help(String(localized: "Text Size"))
+            .help(String(localized: "Text Size (\(store.terminalFontSize) pt)"))
+            Button {
+                withAnimation(.snappy(duration: 0.2)) {
+                    aiPanelShown.toggle()
+                    if aiPanelShown { snippetsShown = false }
+                }
+            } label: {
+                Label("AI Copilot", systemImage: "sparkles")
+            }
+            .keyboardShortcut("a", modifiers: [.command, .shift])
+            .help(String(localized: "Show or hide SSH AI Copilot (⇧⌘A)"))
             Button {
                 withAnimation(.snappy(duration: 0.18)) {
                     if findState.isPresented {
@@ -101,7 +118,13 @@ struct TerminalPage: View {
             }
             .keyboardShortcut("f", modifiers: .command)
             .help(String(localized: "Find in terminal (⌘F)"))
-            Toggle(isOn: $snippetsShown) {
+            Toggle(isOn: Binding(
+                get: { snippetsShown },
+                set: { next in
+                    snippetsShown = next
+                    if next { aiPanelShown = false }
+                }
+            )) {
                 // The Mac's own symbol, the mirror of the sidebar button's.
                 Label("Snippets", systemImage: "sidebar.trailing")
             }
@@ -131,7 +154,7 @@ struct TerminalPage: View {
                     context.termInterface.setTerminalFontSize(with: newValue)
                 }
                 .onAppear {
-                    context.termInterface.setTerminalFontSize(with: store.terminalFontSize, preferConfigured: true)
+                    context.termInterface.setTerminalFontSize(with: store.terminalFontSize, preferConfigured: false)
                 }
         } else {
             EmptyStateView(

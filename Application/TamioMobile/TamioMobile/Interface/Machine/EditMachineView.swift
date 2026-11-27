@@ -40,6 +40,7 @@ struct MobileServerDraft: Equatable {
     var renewalEnabled = false
     var renewalDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
     var renewalCycle: RDMachine.RenewalCycle = .monthly
+    var renewalCurrency: RDMachine.RenewalCurrency = .usd
     var renewalPrice = ""
     var renewalRemindDays = 7
 }
@@ -365,11 +366,30 @@ struct EditMachineView: View {
                         }
                     }
 
-                    HStack(spacing: 12) {
+                    Picker("Currency", selection: $draft.renewalCurrency) {
+                        ForEach(RDMachine.RenewalCurrency.allCases) { currency in
+                            Text(currency.pickerLabel).tag(currency)
+                        }
+                    }
+
+                    HStack(spacing: 10) {
                         Text("Price")
                             .foregroundStyle(.secondary)
-                        TextField("$5/mo", text: $draft.renewalPrice)
+                        Spacer(minLength: 8)
+                        if !draft.renewalCurrency.symbol.isEmpty {
+                            Text(draft.renewalCurrency.symbol)
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        TextField(draft.renewalCurrency == .custom ? "$5/mo" : "9.99", text: $draft.renewalPrice)
                             .multilineTextAlignment(.trailing)
+                            .keyboardType(draft.renewalCurrency == .custom ? .default : .decimalPad)
+                            .frame(maxWidth: 140)
+                        if !draft.renewalCycle.shortSuffix.isEmpty, draft.renewalCurrency != .custom {
+                            Text(draft.renewalCycle.shortSuffix)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.tertiary)
+                        }
                     }
 
                     Picker("Remind Before", selection: $draft.renewalRemindDays) {
@@ -547,6 +567,7 @@ struct EditMachineView: View {
         draft.renewalEnabled = read.renewalEnabled
         if let date = read.renewalDate { draft.renewalDate = date }
         draft.renewalCycle = read.renewalCycle
+        draft.renewalCurrency = read.renewalCurrency
         draft.renewalPrice = read.renewalPrice
         draft.renewalRemindDays = read.renewalRemindDays
         banner = read.lastBanner
@@ -641,6 +662,7 @@ struct EditMachineView: View {
         target.renewalEnabled = draft.renewalEnabled
         target.renewalDate = draft.renewalEnabled ? draft.renewalDate : nil
         target.renewalCycle = draft.renewalCycle
+        target.renewalCurrency = draft.renewalCurrency
         target.renewalPrice = draft.renewalPrice
         target.renewalRemindDays = draft.renewalRemindDays
 

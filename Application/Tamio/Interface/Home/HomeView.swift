@@ -340,8 +340,8 @@ private struct MacServerStatusCard: View {
             parts.append(date.formatted(date: .abbreviated, time: .omitted))
         }
         parts.append(machine.renewalCycle.localizedTitle)
-        if !machine.renewalPrice.isEmpty {
-            parts.append(machine.renewalPrice)
+        if !machine.formattedRenewalPrice.isEmpty {
+            parts.append(machine.formattedRenewalPrice)
         }
         return parts.joined(separator: " · ")
     }

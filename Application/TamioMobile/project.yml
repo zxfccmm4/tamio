@@ -35,7 +35,7 @@ settings:
     # The same version as the Mac app: one changelog, one release.
     MARKETING_VERSION: "0.2.21"
     CURRENT_PROJECT_VERSION: $(MARKETING_VERSION)
-    DEVELOPMENT_TEAM: NCFNX3LJ83
+    DEVELOPMENT_TEAM: VXNXPX5UP8
 targets:
   TamioMobile:
     type: application

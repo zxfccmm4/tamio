@@ -163,6 +163,58 @@ public struct RDMachine: Codable, Identifiable, Equatable, Sendable {
             case .custom: nil
             }
         }
+
+        public var shortSuffix: String {
+            switch self {
+            case .monthly: String(localized: "/mo")
+            case .quarterly: String(localized: "/qtr")
+            case .semiannual: String(localized: "/6m")
+            case .yearly: String(localized: "/yr")
+            case .custom: ""
+            }
+        }
+    }
+
+    public enum RenewalCurrency: String, Codable, CaseIterable, Identifiable, Sendable {
+        case usd
+        case cny
+        case eur
+        case hkd
+        case jpy
+        case gbp
+        case twd
+        case krw
+        case custom
+
+        public var id: String { rawValue }
+
+        public var symbol: String {
+            switch self {
+            case .usd: "$"
+            case .cny: "¥"
+            case .eur: "€"
+            case .hkd: "HK$"
+            case .jpy: "JP¥"
+            case .gbp: "£"
+            case .twd: "NT$"
+            case .krw: "₩"
+            case .custom: ""
+            }
+        }
+
+        public var pickerLabel: String {
+            switch self {
+            case .usd: "USD ($)"
+            case .cny: "CNY (¥)"
+            case .eur: "EUR (€)"
+            case .hkd: "HKD (HK$)"
+            case .jpy: "JPY (¥)"
+            case .gbp: "GBP (£)"
+            case .twd: "TWD (NT$)"
+            case .krw: "KRW (₩)"
+            case .custom: String(localized: "Custom")
+            }
+        }
     }
 
     public enum RenewalUrgency: Equatable, Sendable {
@@ -206,6 +258,25 @@ public struct RDMachine: Codable, Identifiable, Equatable, Sendable {
             let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
             attachment["vps.renewal.price"] = trimmed.isEmpty ? nil : trimmed
         }
+    }
+
+    public var renewalCurrency: RenewalCurrency {
+        get { attachment["vps.renewal.currency"].flatMap(RenewalCurrency.init(rawValue:)) ?? .usd }
+        set { attachment["vps.renewal.currency"] = newValue.rawValue }
+    }
+
+    /// Formats the renewal amount with its selected currency symbol and billing cycle suffix
+    /// (preserving legacy free-form entries that already include a symbol or slash).
+    public var formattedRenewalPrice: String {
+        let raw = renewalPrice.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return "" }
+        if renewalCurrency == .custom { return raw }
+        let knownPrefixes = ["$", "¥", "€", "£", "₩", "HK$", "NT$", "JP¥", "US$", "RMB"]
+        let hasPrefix = knownPrefixes.contains { raw.hasPrefix($0) }
+        let amount = hasPrefix ? raw : "\(renewalCurrency.symbol)\(raw)"
+        let hasCycle = raw.contains("/")
+        let suffix = hasCycle ? "" : renewalCycle.shortSuffix
+        return amount + suffix
     }
 
     public var renewalRemindDays: Int {

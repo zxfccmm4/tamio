@@ -178,8 +178,8 @@ private struct InspectorOverview: View {
                                 Text(badge)
                                     .font(.rxBodyStrong.monospacedDigit())
                                     .foregroundStyle(urgency == .soon ? .orange : tint)
-                                if !read.renewalPrice.isEmpty {
-                                    Text("· \(read.renewalPrice)")
+                                if !read.formattedRenewalPrice.isEmpty {
+                                    Text("· \(read.formattedRenewalPrice)")
                                         .font(.rxHelp)
                                         .foregroundStyle(.rxInkSecondary)
                                 }
