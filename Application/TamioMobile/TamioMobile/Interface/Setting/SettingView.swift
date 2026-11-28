@@ -26,6 +26,7 @@ struct SettingView: View {
     @AppStorage(AppLockManager.enabledKey) private var appLockEnabled = false
     @AppStorage(AppLockManager.timeoutKey) private var lockTimeout = 60
     @AppStorage(FilesPreference.showsHiddenKey) private var showsHidden = false
+    @AppStorage(FilesSyncPreference.terminalFollowsFilesKey) private var terminalFollowsFiles = false
     @AppStorage(RemoteClipboardPreference.allowsWriteKey) private var allowsRemoteClipboard = false
 
     @State private var hostKeyCount = KnownHosts.shared.count
@@ -177,6 +178,10 @@ struct SettingView: View {
 
                 Toggle(isOn: $showsHidden) {
                     settingLabel("Show Hidden Files in SFTP", icon: "eye.fill", tint: .indigo)
+                }
+
+                Toggle(isOn: $terminalFollowsFiles) {
+                    settingLabel("Terminal Follows Files", icon: "arrow.triangle.2.circlepath", tint: .teal)
                 }
 
                 Button {

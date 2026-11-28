@@ -110,6 +110,10 @@ public final class TransferJob: ObservableObject, Identifiable {
     /// The folder they go into.
     public let destination: String
     public let collision: Collision
+    public let useSudoFrom: Bool
+    public let sudoPasswordFrom: String?
+    public let useSudoTo: Bool
+    public let sudoPasswordTo: String?
 
     @Published public internal(set) var state: State = .queued
     @Published public private(set) var currentFile = ""
@@ -121,13 +125,28 @@ public final class TransferJob: ObservableObject, Identifiable {
 
     private let continueFlag = ContinueFlag()
 
-    public init(direction: Direction, sources: [String], from: RDMachine?, to: RDMachine?, destination: String, collision: Collision = .replace) {
+    public init(
+        direction: Direction,
+        sources: [String],
+        from: RDMachine?,
+        to: RDMachine?,
+        destination: String,
+        collision: Collision = .replace,
+        useSudoFrom: Bool = false,
+        sudoPasswordFrom: String? = nil,
+        useSudoTo: Bool = false,
+        sudoPasswordTo: String? = nil
+    ) {
         self.direction = direction
         self.sources = sources
         self.from = from
         self.to = to
         self.destination = destination
         self.collision = collision
+        self.useSudoFrom = useSudoFrom
+        self.sudoPasswordFrom = sudoPasswordFrom
+        self.useSudoTo = useSudoTo
+        self.sudoPasswordTo = sudoPasswordTo
     }
 
     public var title: String {
@@ -192,6 +211,10 @@ public final class TransferJob: ObservableObject, Identifiable {
         let collision = collision
         let from = from.map { ($0, TamioStore.shared.associatedIdentity(for: $0)) }
         let to = to.map { ($0, TamioStore.shared.associatedIdentity(for: $0)) }
+        let useSudoFrom = useSudoFrom
+        let sudoPasswordFrom = sudoPasswordFrom
+        let useSudoTo = useSudoTo
+        let sudoPasswordTo = sudoPasswordTo
         let timeout = TamioStore.shared.timeoutNumber
         let report: @Sendable (String, Int64, Int64, Int) -> Void = { file, done, total, speed in
             Task { @MainActor in
@@ -203,7 +226,7 @@ public final class TransferJob: ObservableObject, Identifiable {
         }
         let failure: String? = await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
-                func open(_ side: (RDMachine, RDIdentity?)) -> (NSRemoteShell?, String?) {
+                func open(_ side: (RDMachine, RDIdentity?), useSudo: Bool, sudoPassword: String?) -> (NSRemoteShell?, String?) {
                     let (machine, identity) = side
                     let shell = NSRemoteShell.configured(for: machine, timeout: timeout)
                     let outcome = shell.connectAndAuthenticate(identity: identity, autoIdentities: TamioStore.shared.workerIdentitiesForAutoAuth, for: machine)
@@ -211,9 +234,15 @@ public final class TransferJob: ObservableObject, Identifiable {
                         let reason = outcome == .connectFailed ? shell.getLastError() : nil
                         return (nil, shell.hostKeyRefusal ?? reason ?? String(localized: "Could not connect to \(machine.name)."))
                     }
-                    shell.requestConnectFileTransferAndWait()
-                    guard shell.isConnectedFileTransfer else {
-                        return (nil, String(localized: "\(machine.name) does not offer SFTP."))
+                    if useSudo {
+                        guard shell.requestConnectPrivilegedFileTransfer(withSudoPassword: sudoPassword) else {
+                            return (nil, shell.getLastFileTransferError() ?? String(localized: "Could not start privileged SFTP on \(machine.name)."))
+                        }
+                    } else {
+                        shell.requestConnectFileTransferAndWait()
+                        guard shell.isConnectedFileTransfer else {
+                            return (nil, String(localized: "\(machine.name) does not offer SFTP."))
+                        }
                     }
                     return (shell, nil)
                 }
@@ -229,7 +258,7 @@ public final class TransferJob: ObservableObject, Identifiable {
                 switch direction {
                 case .upload:
                     guard let to else { return continuation.resume(returning: String(localized: "No server to upload to.")) }
-                    let (shell, error) = open(to)
+                    let (shell, error) = open(to, useSudo: useSudoTo, sudoPassword: sudoPasswordTo)
                     defer { close(shell) }
                     guard let shell else { return continuation.resume(returning: error) }
                     var existing = TransferPlacement.remoteNames(in: destination, on: shell)
@@ -241,6 +270,26 @@ public final class TransferJob: ObservableObject, Identifiable {
                         if place.clearing, !TransferPlacement.removeRemote(target, on: shell) {
                             return continuation.resume(returning: String(localized: "\(place.name) could not be replaced."))
                         }
+                        if !isDirectory.boolValue, collision == .replace, !place.clearing, let prior = shell.requestFileInfo(at: target), !prior.isDirectory {
+                            // Stage to a sibling temporary file and atomically rename into place so an interrupted
+                            // upload never corrupts the previous remote file.
+                            let tempName = ".tamio-tmp-\(UUID().uuidString.prefix(12))"
+                            let tempRemote = (destination as NSString).appendingPathComponent(tempName)
+                            guard shell.requestUpload(forFileAndWait: source, toDirectory: destination, named: tempName, onProgress: progress, withContinuationHandler: { flag.value }) else {
+                                _ = shell.requestDelete(forFileAndWait: tempRemote, withProgressBlock: { _ in }, withContinuationHandler: { true })
+                                return continuation.resume(returning: flag.value ? (shell.getLastFileTransferError() ?? String(localized: "\((source as NSString).lastPathComponent) could not be uploaded.")) : nil)
+                            }
+                            let priorMode = UInt(prior.permissions & 0o7777)
+                            if priorMode != 0 { _ = shell.requestSetPermissionsAndWait(priorMode, atPath: tempRemote) }
+                            if !shell.requestRenameFileAndWait(tempRemote, withNewPath: target) {
+                                _ = shell.requestDelete(forFileAndWait: tempRemote, withProgressBlock: { _ in }, withContinuationHandler: { true })
+                                if !shell.requestUpload(forFileAndWait: source, toDirectory: destination, named: place.name, onProgress: progress, withContinuationHandler: { flag.value }) {
+                                    return continuation.resume(returning: flag.value ? (shell.getLastFileTransferError() ?? String(localized: "\((source as NSString).lastPathComponent) could not be uploaded.")) : nil)
+                                }
+                                if priorMode != 0 { _ = shell.requestSetPermissionsAndWait(priorMode, atPath: target) }
+                            }
+                            continue
+                        }
                         if !shell.requestUpload(forFileAndWait: source, toDirectory: destination, named: place.name, onProgress: progress, withContinuationHandler: { flag.value }) {
                             return continuation.resume(returning: flag.value ? (shell.getLastFileTransferError() ?? String(localized: "\((source as NSString).lastPathComponent) could not be uploaded.")) : nil)
                         }
@@ -248,7 +297,7 @@ public final class TransferJob: ObservableObject, Identifiable {
                     continuation.resume(returning: nil)
                 case .download:
                     guard let from else { return continuation.resume(returning: String(localized: "No server to download from.")) }
-                    let (shell, error) = open(from)
+                    let (shell, error) = open(from, useSudo: useSudoFrom, sudoPassword: sudoPasswordFrom)
                     defer { close(shell) }
                     guard let shell else { return continuation.resume(returning: error) }
                     var existing = TransferPlacement.localNames(in: destination)
@@ -269,10 +318,10 @@ public final class TransferJob: ObservableObject, Identifiable {
                     let staging = FileManager.default.temporaryDirectory.appendingPathComponent("tamio-relay-\(UUID().uuidString)")
                     try? FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
                     defer { try? FileManager.default.removeItem(at: staging) }
-                    let (source, sourceError) = open(from)
+                    let (source, sourceError) = open(from, useSudo: useSudoFrom, sudoPassword: sudoPasswordFrom)
                     defer { close(source) }
                     guard let source else { return continuation.resume(returning: sourceError) }
-                    let (target, targetError) = open(to)
+                    let (target, targetError) = open(to, useSudo: useSudoTo, sudoPassword: sudoPasswordTo)
                     defer { close(target) }
                     guard let target else { return continuation.resume(returning: targetError) }
                     var existing = TransferPlacement.remoteNames(in: destination, on: target)

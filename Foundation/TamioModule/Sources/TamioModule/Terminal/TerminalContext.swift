@@ -77,6 +77,10 @@ open class TerminalContext: ObservableObject, Identifiable, Equatable {
     @Published public private(set) var workingDirectory: String?
     /// Main thread only, like the writes to the surface.
     private var directoryReader = WorkingDirectoryReader()
+    private var promptStateReader = PromptStateReader()
+    private var isAtIdlePrompt = false
+    private var hasTypedSincePrompt = false
+    private let directoryHookToken = UUID()
 
     private var title: String = "" {
         didSet {
@@ -172,6 +176,14 @@ open class TerminalContext: ObservableObject, Identifiable, Equatable {
         defer { bufferAccessLock.unlock() }
         guard !closed else { return }
         _dataBuffer += str
+        onMainThread { [weak self] in
+            if str.contains("\r") || str.contains("\n") {
+                self?.isAtIdlePrompt = false
+                self?.hasTypedSincePrompt = false
+            } else if !str.isEmpty {
+                self?.hasTypedSincePrompt = true
+            }
+        }
         Self.queue.async { [weak self] in
             self?.shell.explicitRequestStatusPickup()
         }
@@ -364,6 +376,27 @@ open class TerminalContext: ObservableObject, Identifiable, Equatable {
             // opened for, are typed once the shell is there, as if the user
             // had typed them.
             onMainThread {
+                if let self, self.remoteType == .machine {
+                    let token = self.directoryHookToken
+                    let machineID = self.machine.id
+                    nonisolated(unsafe) weak var weakSession = self
+                    MainActor.assumeIsolated {
+                        TerminalDirectories.shared.registerTerminal(
+                            token: token,
+                            for: machineID,
+                            isIdlePrompt: {
+                                guard let session = weakSession, !session.closed else { return false }
+                                return session.isAtIdlePrompt && !session.hasTypedSincePrompt
+                            },
+                            changeDirectory: { path in
+                                guard let session = weakSession, !session.closed else { return }
+                                session.isAtIdlePrompt = false
+                                session.hasTypedSincePrompt = false
+                                session.insertBuffer(TerminalDirectories.shellChangeDirectoryCommand(for: path))
+                            }
+                        )
+                    }
+                }
                 let snippet = startupSnippet.map { TamioStore.shared.snippetGroup[$0].code } ?? ""
                 for code in [hook, snippet, initialCommand ?? ""] where !code.isEmpty {
                     let typed = code.replacingOccurrences(of: "\r\n", with: "\r").replacingOccurrences(of: "\n", with: "\r")
@@ -421,6 +454,10 @@ open class TerminalContext: ObservableObject, Identifiable, Equatable {
     }
 
     private func readDirectory(in output: String) {
+        if let promptReady = promptStateReader.read(output) {
+            isAtIdlePrompt = promptReady
+            if promptReady { hasTypedSincePrompt = false }
+        }
         guard let path = directoryReader.read(output), path != workingDirectory else { return }
         workingDirectory = path
         guard remoteType == .machine else { return }
@@ -429,6 +466,15 @@ open class TerminalContext: ObservableObject, Identifiable, Equatable {
     }
 
     public func processShutdown(exitFromShell: Bool = false) {
+        if remoteType == .machine {
+            let token = directoryHookToken
+            let machineID = machine.id
+            onMainThread {
+                MainActor.assumeIsolated {
+                    TerminalDirectories.shared.unregisterTerminal(token: token, for: machineID)
+                }
+            }
+        }
         if !exitFromShell { closedByUser = true }
         if remoteType == .local {
             // Nothing to disconnect: the surface owns the shell, and ends it

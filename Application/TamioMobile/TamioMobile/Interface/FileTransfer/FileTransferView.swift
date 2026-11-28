@@ -126,6 +126,7 @@ struct FileTransferView: View {
                     MobileBrowserPane(
                         model: localPane,
                         peer: remotePane,
+                        context: context,
                         onEdit: { editing = EditedFile(path: $0) },
                         onTransfer: startTransfer
                     )
@@ -133,6 +134,7 @@ struct FileTransferView: View {
                     MobileBrowserPane(
                         model: remotePane,
                         peer: localPane,
+                        context: context,
                         onEdit: { editing = EditedFile(path: $0) },
                         onTransfer: startTransfer
                     )
@@ -150,6 +152,7 @@ struct FileTransferView: View {
                     MobileBrowserPane(
                         model: remotePane,
                         peer: localPane,
+                        context: context,
                         onEdit: { editing = EditedFile(path: $0) },
                         onTransfer: startTransfer
                     )
@@ -157,6 +160,7 @@ struct FileTransferView: View {
                     MobileBrowserPane(
                         model: localPane,
                         peer: remotePane,
+                        context: context,
                         onEdit: { editing = EditedFile(path: $0) },
                         onTransfer: startTransfer
                     )
@@ -275,7 +279,7 @@ struct FileTransferView: View {
         guard let report = directories.latest[context.machine.id], report.serial != followedSerial else { return }
         followedSerial = report.serial
         if remotePane.browser.machine?.id == context.machine.id {
-            remotePane.browser.open(report.path)
+            remotePane.browser.open(report.path, syncTerminal: false)
         }
     }
 
@@ -332,13 +336,19 @@ struct FileTransferView: View {
         } else {
             direction = .relay
         }
+        let fromRemote = [localPane.browser, remotePane.browser].compactMap { $0 as? RemoteBrowser }.first { $0.server.id == pending.from?.id }
+        let toRemote = [localPane.browser, remotePane.browser].compactMap { $0 as? RemoteBrowser }.first { $0.server.id == pending.to?.id }
         let job = TransferJob(
             direction: direction,
             sources: pending.sources,
             from: pending.from,
             to: pending.to,
             destination: pending.destination,
-            collision: collision
+            collision: collision,
+            useSudoFrom: fromRemote?.isSudoActive ?? false,
+            sudoPasswordFrom: fromRemote?.activeSudoPassword,
+            useSudoTo: toRemote?.isSudoActive ?? false,
+            sudoPasswordTo: toRemote?.activeSudoPassword
         )
         TransferQueue.shared.enqueue(job)
         pending.onDone()
@@ -350,6 +360,7 @@ struct FileTransferView: View {
 private struct MobileBrowserPane: View {
     @ObservedObject var model: MobileFilePaneModel
     @ObservedObject var peer: MobileFilePaneModel
+    let context: FileTransferContext
     let onEdit: (String) -> Void
     let onTransfer: ([String], RDMachine?, RDMachine?, String, [FileEntry], @escaping () -> Void) -> Void
 
@@ -358,6 +369,7 @@ private struct MobileBrowserPane: View {
             model: model,
             peer: peer,
             browser: model.browser,
+            context: context,
             onEdit: onEdit,
             onTransfer: onTransfer
         )
@@ -369,6 +381,7 @@ private struct MobileBrowserContent: View {
     @ObservedObject var model: MobileFilePaneModel
     @ObservedObject var peer: MobileFilePaneModel
     @ObservedObject var browser: FileBrowser
+    let context: FileTransferContext
     @ObservedObject private var store = TamioStore.shared
     @AppStorage(FilesPreference.showsHiddenKey) private var showsHidden = false
 
@@ -376,6 +389,8 @@ private struct MobileBrowserContent: View {
     let onTransfer: ([String], RDMachine?, RDMachine?, String, [FileEntry], @escaping () -> Void) -> Void
 
     @State private var openFilePicker = false
+    @State private var showsSudoAlert = false
+    @State private var sudoPasswordInput = ""
 
     private var visibleEntries: [FileEntry] {
         model.entries(browser.entries, showsHidden: showsHidden)
@@ -398,6 +413,25 @@ private struct MobileBrowserContent: View {
                     browser.reload()
                 }
             }
+        }
+        .alert("Use sudo for remote files", isPresented: $showsSudoAlert) {
+            SecureField("Sudo password (optional)", text: $sudoPasswordInput)
+            Button("Enable sudo") {
+                guard let remote = remoteBrowser else { return }
+                let pw = sudoPasswordInput
+                sudoPasswordInput = ""
+                Task {
+                    let passwordArg = pw.isEmpty ? nil : pw
+                    if let err = await remote.enableSudo(password: passwordArg) {
+                        UIBridge.presentError(with: err.message)
+                    } else if remote.server.id == context.machine.id {
+                        _ = await context.enableSudo(password: passwordArg)
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) { sudoPasswordInput = "" }
+        } message: {
+            Text("Elevates SFTP browsing, transfers, and editing for this session only. Your SSH terminal is not elevated and the password is never saved.")
         }
     }
 
@@ -433,6 +467,34 @@ private struct MobileBrowserContent: View {
             }
 
             Spacer(minLength: 4)
+
+            if let remote = remoteBrowser {
+                Button {
+                    if remote.isSudoActive {
+                        Task {
+                            await remote.disableSudo()
+                            if remote.server.id == context.machine.id {
+                                await context.disableSudo()
+                            }
+                        }
+                    } else {
+                        sudoPasswordInput = ""
+                        showsSudoAlert = true
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: remote.isSudoActive ? "lock.open.fill" : "shield")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("sudo")
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    }
+                    .foregroundStyle(remote.isSudoActive ? Color.orange : .secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(remote.isSudoActive ? Color.orange.opacity(0.16) : Color.primary.opacity(0.06)))
+                }
+                .buttonStyle(.plain)
+            }
 
             if browser.isLoading || (remoteBrowser?.connecting ?? false) {
                 ProgressView()

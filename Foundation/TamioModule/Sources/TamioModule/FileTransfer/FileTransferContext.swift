@@ -33,6 +33,7 @@ public class FileTransferContext: ObservableObject, Identifiable, Equatable {
     // but we check and tag this each time we operate
     @Published public var connected: Bool = false
     @Published public var processConnection: Bool = false
+    @Published public private(set) var isSudoActive: Bool = false
 
     /// Where the session is between bootstrap and shutdown. Views branch
     /// on this instead of matching `currentHint`, so the hint text below
@@ -200,6 +201,7 @@ public class FileTransferContext: ObservableObject, Identifiable, Equatable {
         // I may add a control later tho
         onMainThread {
             self.connected = false
+            self.isSudoActive = false
             self.currentFileList = []
             self.processConnection = false
             self.isProgressRunning = false
@@ -208,6 +210,50 @@ public class FileTransferContext: ObservableObject, Identifiable, Equatable {
         DispatchQueue.global().async { [weak shell] in
             shell?.requestDisconnectAndWait()
         }
+    }
+
+    /// Elevates this SFTP context (including remote text editing) to `sudo sftp-server`
+    /// for the current session only. Returns an error message on failure.
+    @MainActor
+    public func enableSudo(password: String?) async -> String? {
+        guard connected else { return String(localized: "Not connected to the server.") }
+        nonisolated(unsafe) let shell = shell
+        let failure: String? = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                if shell.requestConnectPrivilegedFileTransfer(withSudoPassword: password) {
+                    continuation.resume(returning: nil)
+                } else {
+                    let msg = shell.getLastFileTransferError() ?? String(localized: "Could not start privileged SFTP with sudo.")
+                    shell.requestConnectFileTransferAndWait()
+                    continuation.resume(returning: msg)
+                }
+            }
+        }
+        if failure == nil {
+            isSudoActive = true
+            loadCurrentFileList()
+        } else {
+            isSudoActive = false
+        }
+        return failure
+    }
+
+    /// Drops privileged SFTP and returns to the normal SSH account.
+    @MainActor
+    public func disableSudo() async {
+        isSudoActive = false
+        guard connected else { return }
+        nonisolated(unsafe) let shell = shell
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                shell.requestDisconnectFileTransferAndWait()
+                if shell.isConnected, shell.isAuthenticated {
+                    shell.requestConnectFileTransferAndWait()
+                }
+                continuation.resume()
+            }
+        }
+        loadCurrentFileList()
     }
 
     public func connectionAvailableCheckPassed() -> Bool {

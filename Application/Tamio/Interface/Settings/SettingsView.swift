@@ -185,6 +185,12 @@ private struct SessionSettings: View {
 
 private struct FilesSettings: View {
     @AppStorage(FilesPreference.showsHiddenKey) private var showsHidden = false
+    @AppStorage(FilesSyncPreference.terminalFollowsFilesKey) private var terminalFollowsFiles = false
+    @AppStorage(ExternalRemoteEditor.preferenceKey) private var externalEditorRaw = ExternalRemoteEditor.none.rawValue
+
+    private var installedEditors: [ExternalRemoteEditor] {
+        ExternalRemoteEditor.installedOptions
+    }
 
     var body: some View {
         RXDividedStack {
@@ -193,6 +199,24 @@ private struct FilesSettings: View {
                 description: "Files whose names start with a dot, on this Mac and on servers. Each pane's Actions menu turns them on and off too.",
                 isOn: $showsHidden
             )
+            SwitchRow(
+                "Terminal follows Files",
+                description: "When you navigate folders in Files, automatically change directory in that server's active SSH terminal if it is sitting at an idle, empty prompt (requires Shell integration).",
+                isOn: $terminalFollowsFiles
+            )
+            RXFormRow(
+                "External remote editor",
+                description: "Hand a remote SFTP folder to an installed editor via its SSH URL scheme. Appears in the remote pane's Actions menu once selected."
+            ) {
+                Picker("External remote editor", selection: $externalEditorRaw) {
+                    ForEach(installedEditors) { editor in
+                        Text(editor.title).tag(editor.rawValue)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
+            }
         }
     }
 }

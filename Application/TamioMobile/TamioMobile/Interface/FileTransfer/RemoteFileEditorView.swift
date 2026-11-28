@@ -26,11 +26,13 @@ struct RemoteFileEditorView: View {
     @State private var phase = Phase.loading
     @State private var text = ""
     @State private var savedText = ""
+    @State private var loadedDocument: RemoteTextDocument?
     @State private var language = EditorLanguage.plain
     @State private var caret = EditorCaret(line: 1, column: 1)
     @State private var wrapsLines = false
     @State private var saving = false
     @State private var saveError: String?
+    @State private var showConflictAlert = false
     @State private var confirmClose = false
 
     private var name: String { (remotePath as NSString).lastPathComponent }
@@ -55,6 +57,17 @@ struct RemoteFileEditorView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(saveError ?? "")
+        }
+        .alert("File Changed on Server", isPresented: $showConflictAlert) {
+            Button("Overwrite Remote", role: .destructive) {
+                Task { await save(force: true) }
+            }
+            Button("Reload Remote") {
+                Task { await load() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("\(name) was modified on the server after you opened it. Overwrite it with your changes, or reload the latest remote version?")
         }
         .task { await load() }
     }
@@ -133,14 +146,13 @@ struct RemoteFileEditorView: View {
 
     private func load() async {
         phase = .loading
-        // The transfer context serialises its own SFTP calls; the view only
-        // hands it the path, so the hop off the main actor is safe.
         nonisolated(unsafe) let context = context
         do {
-            let loaded = try await context.readText(at: remotePath)
-            text = loaded
-            savedText = loaded
-            let firstLine = loaded.prefix { $0 != "\n" }
+            let document = try await context.readTextDocument(at: remotePath)
+            loadedDocument = document
+            text = document.text
+            savedText = document.text
+            let firstLine = document.text.prefix { $0 != "\n" }
             language = EditorLanguage.detect(fileName: name, firstLine: String(firstLine))
             phase = .editing
         } catch {
@@ -149,16 +161,21 @@ struct RemoteFileEditorView: View {
     }
 
     @discardableResult
-    private func save() async -> Bool {
+    private func save(force: Bool = false) async -> Bool {
         let snapshot = text
+        let expected = loadedDocument
         saving = true
         defer { saving = false }
         nonisolated(unsafe) let context = context
         do {
-            try await context.writeText(snapshot, to: remotePath)
+            let updated = try await context.writeTextDocument(snapshot, to: remotePath, expected: expected, force: force)
+            loadedDocument = updated
             savedText = snapshot
             context.loadCurrentFileList()
             return true
+        } catch RemoteTextFileError.remoteModified {
+            showConflictAlert = true
+            return false
         } catch {
             saveError = error.localizedDescription
             return false

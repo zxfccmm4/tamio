@@ -71,6 +71,7 @@
 		D3CDEBCD8F8F7C158C37684E /* SnippetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F3921042144F0D341016173 /* SnippetsView.swift */; };
 		DA0FCE8BE1CAB49BF7A258D9 /* MachineStatusView in Frameworks */ = {isa = PBXBuildFile; productRef = E178D6448CCD527E2E86C9A7 /* MachineStatusView */; };
 		E288C769C302172FF2B4E21B /* SymbolPicker in Frameworks */ = {isa = PBXBuildFile; productRef = 494A60B5E6422F9A68176956 /* SymbolPicker */; };
+		E59622AE46CE35816799D66F /* ExternalEditorLauncher.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E47E52FE28B8CC57EBE198 /* ExternalEditorLauncher.swift */; };
 		E6B055B6F5DC499B463F136E /* PresentError.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9D95BD46C45D856C39E3568 /* PresentError.swift */; };
 		E7B54C8C9217F44A0F0879FD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2CCA7D202C6C5E5196E9048C /* Localizable.xcstrings */; };
 		EACDC3F0CDA599CFD2B1BE38 /* TamioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89D30D618CFFED4A6386D0E1 /* TamioApp.swift */; };
@@ -152,6 +153,7 @@
 		BD5F05A6A10CA869F43251F4 /* ServersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServersView.swift; sourceTree = "<group>"; };
 		BFD45B6D35CE50211D749144 /* MacServerAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacServerAssistant.swift; sourceTree = "<group>"; };
 		C465A43736C58AD6B51CEC59 /* TerminalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalManager.swift; sourceTree = "<group>"; };
+		C5E47E52FE28B8CC57EBE198 /* ExternalEditorLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalEditorLauncher.swift; sourceTree = "<group>"; };
 		D04861C651FF022994A33251 /* TamioShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioShortcuts.swift; sourceTree = "<group>"; };
 		D9D95A164114CD21CB58BAC1 /* AgentBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBridge.swift; sourceTree = "<group>"; };
 		D9EEF0A9C4110C84CABB1CFD /* MachineStatusView */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MachineStatusView; path = ../../Foundation/MachineStatusView; sourceTree = SOURCE_ROOT; };
@@ -397,6 +399,7 @@
 		B30B1E14DFAC3D4ED821EA85 /* FileTransfer */ = {
 			isa = PBXGroup;
 			children = (
+				C5E47E52FE28B8CC57EBE198 /* ExternalEditorLauncher.swift */,
 				00A9886FBD07731927E83976 /* FileTransferPage.swift */,
 			);
 			path = FileTransfer;
@@ -603,6 +606,7 @@
 				1D739D0FC4F886FBF900BB47 /* Bench.swift in Sources */,
 				3ADFC17BCCDEBF396674C9E8 /* Dialogs.swift in Sources */,
 				9F47B627FDC40959A351D89B /* DoubleConfirm.swift in Sources */,
+				E59622AE46CE35816799D66F /* ExternalEditorLauncher.swift in Sources */,
 				CEF40A995067F231A4D0EA2B /* FileTransferPage.swift in Sources */,
 				4E0E07201D15B47A69732148 /* Generic.swift in Sources */,
 				B7E46F6E3621804D80A5BE16 /* HomeView.swift in Sources */,

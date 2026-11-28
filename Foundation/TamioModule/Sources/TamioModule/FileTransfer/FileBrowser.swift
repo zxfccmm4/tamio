@@ -59,12 +59,15 @@ public class FileBrowser: ObservableObject, Identifiable {
     /// The server, nil on this Mac.
     public var machine: RDMachine? { nil }
 
-    public func open(_ path: String) {
+    public func open(_ path: String, syncTerminal: Bool = true) {
         let target = Self.normalize(path)
         guard target != self.path else { return reload() }
         back.append(self.path)
         forward.removeAll()
         self.path = target
+        if syncTerminal, let server = machine {
+            TerminalDirectories.shared.notifyFilesNavigated(to: target, on: server.id)
+        }
         reload()
     }
 
@@ -254,10 +257,16 @@ public final class RemoteBrowser: FileBrowser {
     public let server: RDMachine
     @Published public private(set) var connected = false
     @Published public private(set) var connecting = false
+    @Published public private(set) var isSudoActive = false
 
     nonisolated(unsafe) private let shell: NSRemoteShell
     private let identity: RDIdentity?
+    /// Held strictly in memory for the current elevated SFTP session, never persisted.
+    private var sessionSudoPassword: String?
     nonisolated private static let queue = DispatchQueue(label: "sb.moe.tamio.sftp.browse", attributes: .concurrent)
+
+    /// Session-scoped sudo credential for transfers launched from this pane while sudo is active.
+    public var activeSudoPassword: String? { isSudoActive ? sessionSudoPassword : nil }
 
     public init(machine: RDMachine) {
         server = machine
@@ -302,6 +311,64 @@ public final class RemoteBrowser: FileBrowser {
             shell.requestDisconnectAndWait()
             shell.destroyPermanently()
         }
+    }
+
+    /// Switches this browser's SFTP channel to `sudo sftp-server` without elevating any terminal.
+    public func enableSudo(password: String?) async -> FileBrowserError? {
+        connecting = true
+        nonisolated(unsafe) let shell = shell
+        let identity = identity
+        let machine = server
+        let result: Result<Void, FileBrowserError> = await withCheckedContinuation { continuation in
+            Self.queue.async {
+                if !(shell.isConnected && shell.isAuthenticated) {
+                    let outcome = shell.connectAndAuthenticate(identity: identity, autoIdentities: TamioStore.shared.workerIdentitiesForAutoAuth, for: machine)
+                    guard outcome == .success else {
+                        let message = shell.hostKeyRefusal ?? (outcome == .connectFailed
+                            ? shell.getLastError() ?? String(localized: "Could not reach \(machine.remoteAddress):\(machine.remotePort).")
+                            : String(localized: "Could not sign in as \(machine.loginUsername(with: identity))."))
+                        return continuation.resume(returning: .failure(FileBrowserError(message)))
+                    }
+                }
+                if shell.requestConnectPrivilegedFileTransfer(withSudoPassword: password) {
+                    return continuation.resume(returning: .success(()))
+                }
+                let reason = shell.getLastFileTransferError() ?? String(localized: "Could not start privileged SFTP with sudo.")
+                // Restore normal SFTP session so browsing continues uninterrupted.
+                shell.requestConnectFileTransferAndWait()
+                continuation.resume(returning: .failure(FileBrowserError(reason)))
+            }
+        }
+        connecting = false
+        switch result {
+        case .success:
+            connected = true
+            isSudoActive = true
+            sessionSudoPassword = password
+            reload()
+            return nil
+        case let .failure(error):
+            isSudoActive = false
+            sessionSudoPassword = nil
+            return error
+        }
+    }
+
+    /// Drops the privileged SFTP channel and returns to the normal SSH user.
+    public func disableSudo() async {
+        sessionSudoPassword = nil
+        isSudoActive = false
+        nonisolated(unsafe) let shell = shell
+        await withCheckedContinuation { continuation in
+            Self.queue.async {
+                shell.requestDisconnectFileTransferAndWait()
+                if shell.isConnected, shell.isAuthenticated {
+                    shell.requestConnectFileTransferAndWait()
+                }
+                continuation.resume()
+            }
+        }
+        reload()
     }
 
     /// Runs `work` on the connection, connecting first when needed.

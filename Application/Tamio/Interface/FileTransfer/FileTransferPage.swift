@@ -67,7 +67,7 @@ struct FileTransferPage: View {
     private func follow() {
         guard let report = directories.latest[context.machine.id], report.serial != followed else { return }
         followed = report.serial
-        serverPane?.browser?.open(report.path)
+        serverPane?.browser?.open(report.path, syncTerminal: false)
     }
 
     private var serverPane: PaneModel? {
@@ -252,7 +252,11 @@ private struct BrowserPane: View {
     @State private var prompt: Prompt?
     @State private var hoveredFolder: String?
     @AppStorage(FilesPreference.showsHiddenKey) private var showsHidden = false
+    @AppStorage(ExternalRemoteEditor.preferenceKey) private var externalEditorRaw = ExternalRemoteEditor.none.rawValue
     @State private var problem: String?
+    @State private var showsSudoPrompt = false
+    @State private var sudoPasswordInput = ""
+    @State private var elevatingSudo = false
     /// Holds the keyboard for ⌘V.
     @FocusState private var focused: Bool
     @ObservedObject private var directories = TerminalDirectories.shared
@@ -301,6 +305,29 @@ private struct BrowserPane: View {
             // keeps SwiftUI's alert machinery out of the way.
             Alert(title: Text(verbatim: prompt.id))
         }
+        .sheet(isPresented: $showsSudoPrompt) {
+            SudoElevationSheet(
+                serverName: browser.title,
+                password: $sudoPasswordInput,
+                busy: elevatingSudo,
+                onConfirm: {
+                    guard let remote = browser as? RemoteBrowser else { return }
+                    let pw = sudoPasswordInput
+                    sudoPasswordInput = ""
+                    elevatingSudo = true
+                    Task {
+                        let err = await remote.enableSudo(password: pw.isEmpty ? nil : pw)
+                        elevatingSudo = false
+                        showsSudoPrompt = false
+                        if let err { problem = err.message }
+                    }
+                },
+                onCancel: {
+                    sudoPasswordInput = ""
+                    showsSudoPrompt = false
+                }
+            )
+        }
         .overlay(alignment: .bottom) {
             if let problem {
                 HStack {
@@ -321,8 +348,35 @@ private struct BrowserPane: View {
     var header: some View {
         HStack(spacing: RX.Space.s3) {
             SourceMenu(model: model, title: browser.title, systemImage: isLocal ? "laptopcomputer" : "server.rack")
-            if let remote = browser as? RemoteBrowser, remote.connecting {
-                ProgressView().controlSize(.small)
+            if let remote = browser as? RemoteBrowser {
+                Button {
+                    if remote.isSudoActive {
+                        Task { await remote.disableSudo() }
+                    } else {
+                        sudoPasswordInput = ""
+                        showsSudoPrompt = true
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: remote.isSudoActive ? "lock.open.fill" : "shield")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("sudo")
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    }
+                    .foregroundStyle(remote.isSudoActive ? Color.orange : .rxInkSecondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule().fill(remote.isSudoActive ? Color.orange.opacity(0.16) : Color.rxSurfaceSunken)
+                    )
+                }
+                .buttonStyle(.plain)
+                .help(remote.isSudoActive
+                    ? String(localized: "Privileged SFTP active (click to return to normal mode)")
+                    : String(localized: "Use sudo for remote files (session-only, never saved)"))
+                if remote.connecting {
+                    ProgressView().controlSize(.small)
+                }
             }
             Spacer(minLength: RX.Space.s2)
             RXSearchField("Filter", text: $model.filter, width: 140)
@@ -355,6 +409,14 @@ private struct BrowserPane: View {
             } else if let machine = browser.machine {
                 Button("Open Terminal Here") {
                     AppRouter.shared.openTerminal(machine: machine.id, initialCommand: "cd \(shellQuote(browser.path))")
+                }
+                let editor = ExternalRemoteEditor(rawValue: externalEditorRaw) ?? .none
+                if editor != .none, editor.isInstalled {
+                    Button(String(localized: "Open in \(editor.title)")) {
+                        if let err = ExternalEditorLauncher.open(machine: machine, remotePath: browser.path, in: editor) {
+                            problem = err
+                        }
+                    }
                 }
             }
         } label: {
@@ -656,8 +718,14 @@ private struct BrowserPane: View {
         ) { urls in
             guard !urls.isEmpty, let machine = browser.machine else { return }
             let folder = browser.path
+            let remote = browser as? RemoteBrowser
             settleNames(urls.map(\.path), into: folder, on: browser) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .upload, sources: urls.map(\.path), from: nil, to: machine, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .upload, sources: urls.map(\.path), from: nil, to: machine,
+                    destination: folder, collision: collision,
+                    useSudoTo: remote?.isSudoActive ?? false,
+                    sudoPasswordTo: remote?.activeSudoPassword
+                ))
             }
         }
     }
@@ -772,16 +840,25 @@ private struct BrowserPane: View {
         let to = browser.machine
         let paths = payload.paths.filter { ($0 as NSString).deletingLastPathComponent != folder || from?.id != to?.id }
         guard !paths.isEmpty else { return }
+        let selfRemote = browser as? RemoteBrowser
+        let peerRemote = peer.browser as? RemoteBrowser
         switch (from, to) {
         case (nil, nil):
             copyLocally(paths, into: folder, on: browser)
         case let (nil, server?):
             settleNames(paths, into: folder, on: browser) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .upload, sources: paths, from: nil, to: server, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .upload, sources: paths, from: nil, to: server, destination: folder, collision: collision,
+                    useSudoTo: selfRemote?.isSudoActive ?? false, sudoPasswordTo: selfRemote?.activeSudoPassword
+                ))
             }
         case let (server?, nil):
+            let sourceRemote = peerRemote?.server.id == server.id ? peerRemote : nil
             settleNames(paths, into: folder, on: browser) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .download, sources: paths, from: server, to: nil, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .download, sources: paths, from: server, to: nil, destination: folder, collision: collision,
+                    useSudoFrom: sourceRemote?.isSudoActive ?? false, sudoPasswordFrom: sourceRemote?.activeSudoPassword
+                ))
             }
         case let (source?, target?) where source.id == target.id:
             // Within one server: a move, by rename.
@@ -792,8 +869,13 @@ private struct BrowserPane: View {
                 }
             }
         case let (source?, target?):
+            let sourceRemote = peerRemote?.server.id == source.id ? peerRemote : nil
             settleNames(paths, into: folder, on: browser) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .relay, sources: paths, from: source, to: target, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .relay, sources: paths, from: source, to: target, destination: folder, collision: collision,
+                    useSudoFrom: sourceRemote?.isSudoActive ?? false, sudoPasswordFrom: sourceRemote?.activeSudoPassword,
+                    useSudoTo: selfRemote?.isSudoActive ?? false, sudoPasswordTo: selfRemote?.activeSudoPassword
+                ))
             }
         }
     }
@@ -801,20 +883,32 @@ private struct BrowserPane: View {
     func copy(_ entries: [FileEntry], to peer: PaneModel, folder: String) {
         guard let target = peer.browser else { return }
         let paths = entries.map(\.path)
+        let sourceRemote = browser as? RemoteBrowser
+        let targetRemote = target as? RemoteBrowser
         switch (browser.machine, target.machine) {
         case (nil, nil):
             copyLocally(paths, into: folder, on: target)
         case let (nil, server?):
             settleNames(paths, into: folder, on: target) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .upload, sources: paths, from: nil, to: server, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .upload, sources: paths, from: nil, to: server, destination: folder, collision: collision,
+                    useSudoTo: targetRemote?.isSudoActive ?? false, sudoPasswordTo: targetRemote?.activeSudoPassword
+                ))
             }
         case let (server?, nil):
             settleNames(paths, into: folder, on: target) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .download, sources: paths, from: server, to: nil, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .download, sources: paths, from: server, to: nil, destination: folder, collision: collision,
+                    useSudoFrom: sourceRemote?.isSudoActive ?? false, sudoPasswordFrom: sourceRemote?.activeSudoPassword
+                ))
             }
         case let (source?, other?):
             settleNames(paths, into: folder, on: target) { collision in
-                TransferQueue.shared.enqueue(TransferJob(direction: .relay, sources: paths, from: source, to: other, destination: folder, collision: collision))
+                TransferQueue.shared.enqueue(TransferJob(
+                    direction: .relay, sources: paths, from: source, to: other, destination: folder, collision: collision,
+                    useSudoFrom: sourceRemote?.isSudoActive ?? false, sudoPasswordFrom: sourceRemote?.activeSudoPassword,
+                    useSudoTo: targetRemote?.isSudoActive ?? false, sudoPasswordTo: targetRemote?.activeSudoPassword
+                ))
             }
         }
     }
@@ -837,6 +931,50 @@ private struct BrowserPane: View {
 
     func shellQuote(_ path: String) -> String {
         "'" + path.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+}
+
+private struct SudoElevationSheet: View {
+    let serverName: String
+    @Binding var password: String
+    let busy: Bool
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: RX.Space.s4) {
+            HStack(spacing: 8) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .foregroundStyle(.orange)
+                    .font(.title3)
+                Text("Use sudo for remote files")
+                    .font(.rxSheetTitle)
+            }
+            Text("Switches this SFTP pane on \(serverName) to a privileged sftp-server without elevating your SSH terminal. The password is kept only in memory for this session and is never saved.")
+                .font(.rxHelp)
+                .foregroundStyle(.rxInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            SecureField("Sudo password (leave empty if passwordless)", text: $password)
+                .textFieldStyle(.rxMono)
+                .onSubmit { if !busy { onConfirm() } }
+            HStack {
+                if busy {
+                    ProgressView().controlSize(.small)
+                    Text("Elevating SFTP…").font(.rxHelp).foregroundStyle(.rxInkSecondary)
+                }
+                Spacer()
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.rx)
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(busy)
+                Button("Enable sudo", action: onConfirm)
+                    .buttonStyle(.rxPrimary)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(busy)
+            }
+        }
+        .padding(RX.Space.s5)
+        .frame(width: 420)
     }
 }
 
