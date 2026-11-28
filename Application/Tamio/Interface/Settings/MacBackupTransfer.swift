@@ -134,7 +134,7 @@ enum MacBackupManager {
 
         var payload = MacBackupPayload(
             exportedAt: Date(),
-            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.0"
+            appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.1"
         )
 
         if options.includeServersAndCredentials {

@@ -22,7 +22,7 @@ struct AgreementView: View {
     @State private var document = ParsedEULA.empty
 
     private var shortVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.1"
     }
 
     var body: some View {

@@ -13,6 +13,15 @@ the user. To release, rename that heading to the version and date
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-28
+
+### Added
+- **Apple-native What’s New sheet across iOS, iPadOS, and macOS.** Shows release highlights once after accepting the license on a fresh install and automatically on every subsequent version update, with full 5-language localization (`en`, `zh-Hans`, `zh-Hant`, `ja`, `ko`). You can reopen it anytime from **Settings › About › What’s New** on iOS or **Tamio › What’s New…** / **Settings › About** on macOS.
+
+### Fixed
+- **Fixed iOS SSH terminal Find bar not closing.** Separated the close control into a dedicated circular glass button with proper hit testing and keyboard dismissal, and made all Find triggers (floating toolbar, iPad toolbar, and More menu) toggle the bar cleanly.
+- **Enabled and fixed iOS Live Activities for Dynamic Island, Lock Screen, and StandBy.** Added the missing `NSSupportsLiveActivities` and `NSSupportsLiveActivitiesFrequentUpdates` keys to `Info.plist`, kept active session state synced across tab switches, connection closures, foreground transitions, and throttled CPU/memory updates, and added luminance-reduced dimming for Always-On Display and StandBy night mode.
+
 ## [0.3.0] - 2026-11-28
 
 ### Added

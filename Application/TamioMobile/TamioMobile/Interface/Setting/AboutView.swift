@@ -214,7 +214,7 @@ private struct AboutHeaderView: View {
     @State private var copiedVersion = false
 
     private var shortVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.0"
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.3.1"
     }
 
     private var buildNumber: String {
