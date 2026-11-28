@@ -13,7 +13,10 @@ the user. To release, rename that heading to the version and date
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-28
+
 ### Added
+- **Redesigned FlowDown-inspired AI Assistant & SSH Terminal Copilot across macOS and iOS.** Extracted a shared `Foundation/TamioAssistant` package (`TamioAssistant` core + `TamioAssistantUI` components) powered by `Lakr233/MarkdownView` with streaming fade-in, full GFM tables, syntax highlighting, and native **Insert** / **Run in SSH** / **Save as Snippet** actions inside shell code block headers. Consecutive thoughts and tool calls fold into a single **Activity Summary** row that opens a live-updating **Trace** sheet (with an optional **Inline Activity Steps** mode), every tool call asks the model for a human-readable `reason`, tool approvals morph in place inside the composer card with risk grading and scrollable full commands, and messages now support **Rewrite** presets, **View Raw**, **Redo (Edit)** in composer, **Delete w/ After**, and file/image/terminal-snapshot attachments.
 - **Automatic AI secret redaction.** Private keys, embedded URL passwords, HTTP authorization headers, well-known API/JWT tokens, and secret environment assignments are now scrubbed locally by default before terminal context or command output is sent to AI models or recorded in agent activity logs.
 - **MCP background jobs and per-host access control.** External agents and in-app AI can now run long commands asynchronously with `start_command`, `poll_command` (offset-based incremental output), and `stop_command`. Servers can be set to **Full Access**, **Read-Only** (`observe`), or **Disabled** for AI & MCP in Edit Server and Settings › MCP.
 - **Command risk grading and Ask / Agent modes for SSH AI Copilot.** Shell commands are classified locally as Read-only, Modify, or High Risk with explanations shown on approval dialogs and inline cards; high-risk commands always require explicit confirmation even during a 1-hour allowance. Terminal Copilot panels now support switching between read-only **Ask** mode (with one-click escalation to Agent mode) and full **Agent** mode.
@@ -24,6 +27,7 @@ the user. To release, rename that heading to the version and date
 - **PuTTY `.ppk` key import and multi-client host importers.** Importing or pasting PuTTY `.ppk` v2/v3 keys (including passphrase-encrypted RSA, ECDSA, and Ed25519 keys) converts them automatically to OpenSSH format; macOS Servers › Import now also reads Xshell (`.xsh`), WindTerm (`.sessions`), FinalShell (JSON), Termius (JSON), and CSV exports.
 
 ### Changed
+- **Complete 5-language localization across all apps, widgets, and packages.** Refactored remaining hardcoded Swift UI and error strings to modern Xcode localization and brought all five `Localizable.xcstrings` catalogs (macOS, iOS, Live Activity widgets, Ghostty terminal settings, and SymbolPicker) to 100% `en`, `zh-Hans`, `zh-Hant`, `ja`, and `ko` coverage.
 - **Refined SSH terminal top toolbars on iOS and macOS.** On iOS, modal terminals place the dismiss control on the leading edge, display a live connection-status title bar (with tab count tap-to-switch), separate AI Copilot from utility actions on iOS 26 Liquid Glass, fold redundant text-size controls into the More menu, and match the terminal backdrop to the active Ghostty theme. On macOS, Find, AI Copilot, and Snippets now share consistent active-state toggles and tooltips.
 
 ### Fixed
