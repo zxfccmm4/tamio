@@ -207,7 +207,7 @@ struct ConfigWidgetView: View {
                     if widget?.type == "custom-color" { colorInput } else { numericInput }
                 }
             case "number": numericInput
-            case "theme": ConfigThemePicker(value: value)
+            case "theme": ConfigThemePicker(value: value, onClear: { model.reset("theme") })
             case "palette": ConfigPaletteEditor(model: model)
             case "repeatable-text": ConfigRepeatableEditor(model: model, key: setting.key)
             case "feature-list":
@@ -243,14 +243,25 @@ struct ConfigWidgetView: View {
     }
 
     private var optionPicker: some View {
-        Picker(setting.name, selection: value) {
+        let optionsAllowEmpty = (widget?.options ?? []).contains { $0.value.isEmpty }
+        let selection = Binding<String>(
+            get: { value.wrappedValue },
+            set: { next in
+                if next.isEmpty && !optionsAllowEmpty {
+                    model.reset(setting.key)
+                } else {
+                    value.wrappedValue = next
+                }
+            }
+        )
+        return Picker(setting.name, selection: selection) {
             Text(ConfigLayout.tr("option.default", default: "Default")).tag("")
             Divider()
             ForEach(widget?.options ?? []) { option in
                 Text(ConfigLayout.optionName(setting.key, value: option.value, fallback: option.name)).tag(option.value).disabled(option.disabled == true)
             }
-            if !value.wrappedValue.isEmpty && !(widget?.options ?? []).contains(where: { $0.value == value.wrappedValue }) {
-                Text(value.wrappedValue).tag(value.wrappedValue)
+            if !selection.wrappedValue.isEmpty && !(widget?.options ?? []).contains(where: { $0.value == selection.wrappedValue }) {
+                Text(selection.wrappedValue).tag(selection.wrappedValue)
             }
         }
         .labelsHidden()

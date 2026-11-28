@@ -130,6 +130,16 @@ final class ConfigurationRuntimeTests: XCTestCase {
         XCTAssertEqual(model.document, before)
         XCTAssertTrue(model.save())
         XCTAssertEqual(ConfigEditorModel(defaults: defaults).document, before)
+        // Empty enum overrides must not break saving, and flushPendingSave persists immediately.
+        model.edit {
+            $0.set("theme", ["3024 Night"])
+            $0.set("cursor-style", [""])
+        }
+        XCTAssertTrue(model.isDirty)
+        model.flushPendingSave()
+        XCTAssertFalse(model.isDirty)
+        XCTAssertTrue(model.message.isEmpty)
+        XCTAssertEqual(ConfigEditorModel(defaults: defaults).document.text("theme"), "3024 Night")
         // The shared controller was temporarily changed by Save; restore its persisted production state.
         try TamioTerminalConfiguration.apply(ConfigEditorModel.storedDocument())
     }

@@ -172,11 +172,23 @@ final class TerminalContext: TamioModule.TerminalContext {
 extension TerminalContext {
     struct DefaultPresent: View {
         let context: TerminalContext
+        @Environment(\.dismiss) private var dismiss
 
         var body: some View {
-            DefaultModalPresenter {
+            NavigationStack {
                 TerminalView(context: context)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button {
+                                HapticsPreference.impact()
+                                dismiss()
+                            } label: {
+                                Label("Done", systemImage: "chevron.down")
+                            }
+                        }
+                    }
             }
+            .tint(.rxAccent)
         }
     }
 }

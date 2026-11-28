@@ -357,34 +357,50 @@ struct ConfigPageActions: View {
         }
     }
 
-    /// Settings save automatically; only a failed save needs a word.
-    struct ConfigErrorBar: View {
-        @ObservedObject var model: ConfigEditorModel
+#endif
 
-        var body: some View {
-            if !model.message.isEmpty {
-                HStack(spacing: RX.Space.s2) {
-                    Image(rx: "exclamationmark.triangle")
-                        .foregroundStyle(.rxWarning)
-                    Text(model.message)
-                        .font(.rxBody)
-                        .foregroundStyle(.rxInk)
-                        .textSelection(.enabled)
-                    Spacer()
-                    Button { model.message = "" } label: { Image(rx: "xmark") }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel(ConfigLayout.tr("action.dismiss", default: "Dismiss"))
+/// Settings save automatically; only a failed save needs a word (and a quick retry).
+struct ConfigErrorBar: View {
+    @ObservedObject var model: ConfigEditorModel
+
+    var body: some View {
+        if !model.message.isEmpty {
+            HStack(spacing: RX.Space.s2) {
+                Image(rx: "exclamationmark.triangle")
+                    .foregroundStyle(.rxWarning)
+                Text(model.message)
+                    .font(.rxBody)
+                    .foregroundStyle(.rxInk)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: RX.Space.s2)
+                if model.isDirty {
+                    Button(ConfigLayout.tr("action.retry", default: "Retry")) {
+                        _ = model.saveNow()
+                    }
+                    .buttonStyle(.rx(size: .small))
                 }
-                .padding(.horizontal, RX.Space.s4)
-                .padding(.vertical, RX.Space.s3)
-                .background(Color.clear.rxCard(padding: 0))
-                .padding(.horizontal, RX.Space.s6)
-                .padding(.bottom, RX.Space.s4)
+                Button { model.message = "" } label: { Image(rx: "xmark") }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(ConfigLayout.tr("action.dismiss", default: "Dismiss"))
             }
+            .padding(.horizontal, RX.Space.s4)
+            .padding(.vertical, RX.Space.s3)
+            #if os(iOS) && !targetEnvironment(macCatalyst)
+            .background(
+                Color.orange.opacity(0.12),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            #else
+            .background(Color.clear.rxCard(padding: 0))
+            .padding(.horizontal, RX.Space.s6)
+            .padding(.bottom, RX.Space.s4)
+            #endif
         }
     }
-
-#endif
+}
 
 #if !targetEnvironment(macCatalyst)
     /// The selected category's page, built when it is selected.

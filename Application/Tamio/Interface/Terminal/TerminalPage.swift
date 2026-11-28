@@ -86,6 +86,7 @@ struct TerminalPage: View {
                 }
                 .disabled(store.terminalFontSize <= 4)
                 .keyboardShortcut("-", modifiers: .command)
+                .help(String(localized: "Smaller Text (\(store.terminalFontSize) pt)"))
                 Button {
                     store.terminalFontSize += 1
                 } label: {
@@ -93,36 +94,44 @@ struct TerminalPage: View {
                 }
                 .disabled(store.terminalFontSize >= 30)
                 .keyboardShortcut("+", modifiers: .command)
+                .help(String(localized: "Larger Text (\(store.terminalFontSize) pt)"))
             }
-            .help(String(localized: "Text Size (\(store.terminalFontSize) pt)"))
-            Button {
-                withAnimation(.snappy(duration: 0.2)) {
-                    aiPanelShown.toggle()
-                    if aiPanelShown { snippetsShown = false }
-                }
-            } label: {
-                Label("AI Copilot", systemImage: "sparkles")
-            }
-            .keyboardShortcut("a", modifiers: [.command, .shift])
-            .help(String(localized: "Show or hide SSH AI Copilot (⇧⌘A)"))
-            Button {
-                withAnimation(.snappy(duration: 0.18)) {
-                    if findState.isPresented {
-                        findState.dismiss(on: context.termInterface)
-                    } else {
-                        findState.present(on: context.termInterface)
+            Toggle(isOn: Binding(
+                get: { findState.isPresented },
+                set: { next in
+                    withAnimation(.snappy(duration: 0.18)) {
+                        if next {
+                            findState.present(on: context.termInterface)
+                        } else {
+                            findState.dismiss(on: context.termInterface)
+                        }
                     }
                 }
-            } label: {
+            )) {
                 Label("Find", systemImage: "magnifyingglass")
             }
             .keyboardShortcut("f", modifiers: .command)
             .help(String(localized: "Find in terminal (⌘F)"))
             Toggle(isOn: Binding(
+                get: { aiPanelShown },
+                set: { next in
+                    withAnimation(.snappy(duration: 0.2)) {
+                        aiPanelShown = next
+                        if next { snippetsShown = false }
+                    }
+                }
+            )) {
+                Label("AI Copilot", systemImage: "sparkles")
+            }
+            .keyboardShortcut("a", modifiers: [.command, .shift])
+            .help(String(localized: "Show or hide SSH AI Copilot (⇧⌘A)"))
+            Toggle(isOn: Binding(
                 get: { snippetsShown },
                 set: { next in
-                    snippetsShown = next
-                    if next { aiPanelShown = false }
+                    withAnimation(.snappy(duration: 0.2)) {
+                        snippetsShown = next
+                        if next { aiPanelShown = false }
+                    }
                 }
             )) {
                 // The Mac's own symbol, the mirror of the sidebar button's.

@@ -96,6 +96,7 @@ public struct GhosttyConfigurationView: View {
                 resetConfirm: $resetConfirm
             )
             .onAppear(perform: installApplyHandler)
+            .onDisappear { model.flushPendingSave() }
             .confirmationDialog(ConfigLayout.tr("dialog.reset_terminal.title", default: "Reset every terminal setting to its default?"), isPresented: $resetConfirm) {
                 Button(ConfigLayout.tr("action.reset", default: "Reset"), role: .destructive) { model.edit { $0 = ConfigDocument() } }
             } message: {
@@ -146,7 +147,13 @@ public struct GhosttyConfigurationView: View {
         .onChange(of: showPreview && !previewBeside) { pageState.previewAbove = $0 }
         // Settings stays in the window; a search left behind would cover the
         // category it is next opened at.
-        .onChange(of: active) { if !$0 { search = "" } }
+        .onChange(of: active) {
+            if !$0 {
+                search = ""
+                model.flushPendingSave()
+            }
+        }
+        .onDisappear { model.flushPendingSave() }
         .animation(.easeOut(duration: 0.18), value: search.isEmpty)
         .frame(minWidth: embedded ? 700 : 960, minHeight: 560)
     }
@@ -154,53 +161,45 @@ public struct GhosttyConfigurationView: View {
 
     /// One category's groups as cards: the iOS page pushed from the category list.
     private func categoryPage(_ category: ConfigLayout.Category) -> some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                if category.previews {
-                    VStack(alignment: .leading, spacing: 0) {
-                        DisclosureGroup {
-                            ConfigPreview(model: model)
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                .padding(.top, 10)
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "eye.fill")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.indigo)
-                                Text(ConfigLayout.tr("preview.title", default: "Preview"))
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.primary)
+        #if !(os(macOS) || targetEnvironment(macCatalyst))
+            CompactCategoryPage(category: category, hostSections: hostSections, model: model)
+        #else
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 18) {
+                    if category.previews {
+                        VStack(alignment: .leading, spacing: 0) {
+                            DisclosureGroup {
+                                ConfigPreview(model: model)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .padding(.top, 10)
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "eye.fill")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.indigo)
+                                    Text(ConfigLayout.tr("preview.title", default: "Preview"))
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                }
                             }
                         }
+                        .padding(14)
+                        .rxCard(padding: 0)
                     }
-                    .padding(14)
-                    #if canImport(UIKit)
-                    .background(
-                        Color(uiColor: .secondarySystemGroupedBackground),
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
-                    #else
-                    .rxCard(padding: 0)
-                    #endif
-                }
-                if category.id == "keyboard" {
-                    ConfigKeybindingList(model: model)
-                } else {
-                    ForEach(category.groups) { group in
-                        ConfigGroupCard(group: group, hostSections: hostSections, model: model)
+                    if category.id == "keyboard" {
+                        ConfigKeybindingList(model: model)
+                    } else {
+                        ForEach(category.groups) { group in
+                            ConfigGroupCard(group: group, hostSections: hostSections, model: model)
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-        }
-        #if canImport(UIKit)
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
-        #else
-        .background(RXBackdrop().ignoresSafeArea())
+            .background(RXBackdrop().ignoresSafeArea())
+            .navigationTitle(category.title)
         #endif
-        .navigationTitle(category.title)
     }
 
     // MARK: Content
@@ -335,6 +334,91 @@ public struct GhosttyConfigurationView: View {
 }
 
 #if !(os(macOS) || targetEnvironment(macCatalyst))
+    /// iPhone and iPad detail page for a single Ghostty category, with explicit
+    /// Save / Saved status feedback, validation error banner, and flush on exit.
+    private struct CompactCategoryPage: View {
+        let category: ConfigLayout.Category
+        let hostSections: [String: ConfigHostSettingsSection]
+        @ObservedObject var model: ConfigEditorModel
+        @State private var showSavedConfirmation = false
+        @State private var confirmationTask: Task<Void, Never>?
+
+        var body: some View {
+            VStack(spacing: 0) {
+                ConfigErrorBar(model: model)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 18) {
+                        if category.previews {
+                            VStack(alignment: .leading, spacing: 0) {
+                                DisclosureGroup {
+                                    ConfigPreview(model: model)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                        .padding(.top, 10)
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "eye.fill")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.indigo)
+                                        Text(ConfigLayout.tr("preview.title", default: "Preview"))
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.primary)
+                                    }
+                                }
+                            }
+                            .padding(14)
+                            .background(
+                                Color(uiColor: .secondarySystemGroupedBackground),
+                                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            )
+                        }
+                        if category.id == "keyboard" {
+                            ConfigKeybindingList(model: model)
+                        } else {
+                            ForEach(category.groups) { group in
+                                ConfigGroupCard(group: group, hostSections: hostSections, model: model)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+            }
+            .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+            .navigationTitle(category.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    if model.isDirty {
+                        Button(ConfigLayout.tr("action.save", default: "Save")) {
+                            _ = model.saveNow()
+                        }
+                        .fontWeight(.semibold)
+                    } else if showSavedConfirmation {
+                        Label(ConfigLayout.tr("status.saved", default: "Saved"), systemImage: "checkmark.circle.fill")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.green)
+                            .labelStyle(.titleAndIcon)
+                            .transition(.opacity)
+                    }
+                }
+            }
+            .onChange(of: model.lastSavedAt) { _, newValue in
+                guard newValue != nil else { return }
+                confirmationTask?.cancel()
+                withAnimation(.easeInOut(duration: 0.2)) { showSavedConfirmation = true }
+                confirmationTask = Task {
+                    try? await Task.sleep(nanoseconds: 1_800_000_000)
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.easeInOut(duration: 0.25)) { showSavedConfirmation = false }
+                }
+            }
+            .onDisappear {
+                confirmationTask?.cancel()
+                model.flushPendingSave()
+            }
+        }
+    }
+
     /// iPhone and iPad: the categories as a grouped list, each pushing its page;
     /// searching replaces the list with matching settings.
     private struct CompactSettings<Page: View, Results: View>: View {
@@ -346,8 +430,16 @@ public struct GhosttyConfigurationView: View {
         @Binding var search: String
         @Binding var resetConfirm: Bool
 
-        private func modifiedCount(_ category: ConfigLayout.Category) -> Int {
+        private func customizedCount(_ category: ConfigLayout.Category) -> Int {
             model.document.overrides.keys.filter { ConfigLayout.categoryOfKey[$0]?.id == category.id }.count
+        }
+
+        private func hasUnsavedChanges(_ category: ConfigLayout.Category) -> Bool {
+            let allKeys = Set(model.document.overrides.keys).union(model.saved.overrides.keys)
+            return allKeys.contains { key in
+                ConfigLayout.categoryOfKey[key]?.id == category.id
+                    && model.document.overrides[key] != model.saved.overrides[key]
+            }
         }
 
         private func categoryTint(_ id: String) -> Color {
@@ -364,13 +456,14 @@ public struct GhosttyConfigurationView: View {
         }
 
         var body: some View {
-            Group {
+            VStack(spacing: 0) {
+                ConfigErrorBar(model: model)
                 if search.isEmpty {
                     List {
                         ForEach([ConfigLayout.Category.Section.app, .terminal, .info], id: \.self) { section in
                             let members = categories.filter { $0.section == section }
                             if !members.isEmpty {
-                                Section(section.localizedTitle) {
+                                Section {
                                     ForEach(members) { category in
                                         NavigationLink {
                                             categoryPage(category)
@@ -390,17 +483,34 @@ public struct GhosttyConfigurationView: View {
                                                     .font(.body)
                                                     .foregroundStyle(.primary)
                                                 Spacer()
-                                                let count = modifiedCount(category)
-                                                if count > 0 {
-                                                    Text(String(format: ConfigLayout.tr("category.changed_count", default: "%d changed"), count))
-                                                        .font(.caption.weight(.medium).monospacedDigit())
-                                                        .foregroundStyle(tint)
+                                                if hasUnsavedChanges(category) {
+                                                    Text(ConfigLayout.tr("status.unsaved", default: "Unsaved"))
+                                                        .font(.caption.weight(.semibold))
+                                                        .foregroundStyle(.orange)
                                                         .padding(.horizontal, 8)
                                                         .padding(.vertical, 3)
-                                                        .background(tint.opacity(0.12), in: Capsule())
+                                                        .background(Color.orange.opacity(0.14), in: Capsule())
+                                                } else {
+                                                    let count = customizedCount(category)
+                                                    if count > 0 {
+                                                        Text(String(format: ConfigLayout.tr("category.custom_count", default: "%d custom"), count))
+                                                            .font(.caption.weight(.medium).monospacedDigit())
+                                                            .foregroundStyle(tint)
+                                                            .padding(.horizontal, 8)
+                                                            .padding(.vertical, 3)
+                                                            .background(tint.opacity(0.12), in: Capsule())
+                                                    }
                                                 }
                                             }
                                         }
+                                    }
+                                } header: {
+                                    if !section.localizedTitle.isEmpty {
+                                        Text(section.localizedTitle)
+                                    }
+                                } footer: {
+                                    if section == .terminal {
+                                        Text(ConfigLayout.tr("settings.autosave_footer", default: "Changes are saved and applied to terminals automatically."))
                                     }
                                 }
                             }
@@ -414,8 +524,20 @@ public struct GhosttyConfigurationView: View {
             }
             .searchable(text: $search, prompt: Text(ConfigLayout.tr("search.prompt", default: "Search settings")))
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if model.isDirty {
+                        Button(ConfigLayout.tr("action.save", default: "Save")) {
+                            _ = model.saveNow()
+                        }
+                        .fontWeight(.semibold)
+                    }
                     Menu {
+                        if model.isDirty {
+                            Button { _ = model.saveNow() } label: {
+                                Label(ConfigLayout.tr("action.save", default: "Save"), systemImage: "checkmark.circle")
+                            }
+                            Divider()
+                        }
                         Button { model.undo() } label: { Label(ConfigLayout.tr("action.undo", default: "Undo"), rx: "arrow.uturn.backward") }
                             .disabled(model.undoStack.isEmpty)
                         Button { model.redo() } label: { Label(ConfigLayout.tr("action.redo", default: "Redo"), rx: "arrow.uturn.forward") }

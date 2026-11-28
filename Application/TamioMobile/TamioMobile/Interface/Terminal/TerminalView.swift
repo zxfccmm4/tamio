@@ -234,6 +234,8 @@ private struct TerminalSessionHost: View {
 
     @ObservedObject private var store = TamioStore.shared
     @ObservedObject private var monitors = MonitorCenter.shared
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var themeRevision = 0
 
     private var showsTopTabStrip: Bool {
         sizeClass == .regular && mountedTerminals.count > 1
@@ -241,6 +243,25 @@ private struct TerminalSessionHost: View {
 
     private var showsFloatingBottomBar: Bool {
         !findState.isPresented && !keyboardVisible && sizeClass != .regular
+    }
+
+    private var terminalBackdrop: Color {
+        _ = themeRevision
+        return TamioTerminalAppearance.backgroundColor(dark: colorScheme == .dark)
+    }
+
+    private var statusDotColor: Color {
+        if activeContext.closed { return .orange }
+        switch activeContext.bannerState {
+        case .ready: return .green
+        case .connecting, .awaitingShell: return .yellow
+        case .disconnected: return .orange
+        }
+    }
+
+    private var moreIconName: String {
+        if #available(iOS 26.0, *) { return "ellipsis" }
+        return "ellipsis.circle"
     }
 
     var body: some View {
@@ -312,71 +333,104 @@ private struct TerminalSessionHost: View {
                 TerminalLiveMetricsStrip(session: session)
             }
         }
-        .background(RXBackdrop().ignoresSafeArea())
+        .background(terminalBackdrop.ignoresSafeArea())
+        .onReceive(NotificationCenter.default.publisher(for: TamioTerminalAppearance.didChangeNotification)) { _ in
+            themeRevision &+= 1
+        }
         .onChange(of: activeContext.closed) { _, _ in
             activeContext.syncBannerState()
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                if activeContext.closed {
+            ToolbarItem(placement: .principal) {
+                Button {
+                    if mountedTerminals.count > 1 {
+                        HapticsPreference.impact()
+                        showsTabSwitcher = true
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(statusDotColor)
+                            .frame(width: 7, height: 7)
+                        Text(title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        if activeContext.isInteractionLocked {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.orange)
+                        }
+                        if mountedTerminals.count > 1 {
+                            Text("\(mountedTerminals.count)")
+                                .font(.caption2.weight(.semibold).monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.primary.opacity(0.08), in: Capsule())
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(mountedTerminals.count <= 1)
+            }
+
+            if activeContext.closed {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        HapticsPreference.impact()
                         activeContext.reconnect()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .semibold))
+                        Label("Reconnect", systemImage: "arrow.clockwise")
                             .foregroundStyle(.orange)
                     }
-                    .accessibilityLabel("Reconnect")
                 }
+            }
 
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
+                    HapticsPreference.impact()
                     showsAICopilot = true
                 } label: {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 14, weight: .semibold))
+                    Label("SSH AI Copilot", systemImage: "sparkles")
                         .foregroundStyle(Color.accentColor)
                 }
-                .accessibilityLabel("SSH AI Copilot")
+            }
 
-                Menu {
-                    Text(String(localized: "Font Size: \(store.terminalFontSize) pt"))
-                    Divider()
+            if #available(iOS 26.0, *) {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            }
+
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if sizeClass == .regular {
                     Button {
-                        store.terminalFontSize = max(6, store.terminalFontSize - 1)
+                        HapticsPreference.impact()
+                        findState.present(on: activeContext.termInterface)
                     } label: {
-                        Label("Smaller Text", systemImage: "textformat.size.smaller")
+                        Label("Find in Terminal", systemImage: "magnifyingglass")
                     }
-                    .disabled(store.terminalFontSize <= 6)
 
                     Button {
-                        store.terminalFontSize = min(30, store.terminalFontSize + 1)
+                        HapticsPreference.impact()
+                        showsSnippets = true
                     } label: {
-                        Label("Larger Text", systemImage: "textformat.size.larger")
+                        Label("Snippets", systemImage: "chevron.left.forwardslash.chevron.right")
                     }
-                    .disabled(store.terminalFontSize >= 30)
-
-                    Divider()
-                    Button {
-                        store.terminalFontSize = 12
-                    } label: {
-                        Label("Reset to 12 pt", systemImage: "arrow.counterclockwise")
-                    }
-                } label: {
-                    Image(systemName: "textformat.size")
-                        .font(.system(size: 14, weight: .medium))
                 }
-                .accessibilityLabel("Text Size")
 
-                if activeContext.remoteType == .machine, activeContext.machine.isNotPlaceholder() {
+                if !activeContext.closed || sizeClass == .regular,
+                   activeContext.remoteType == .machine,
+                   activeContext.machine.isNotPlaceholder()
+                {
                     Button {
+                        HapticsPreference.impact()
                         FileTransferManager.shared.begin(for: activeContext.machine.id)
                     } label: {
-                        Image(systemName: "folder")
-                            .font(.system(size: 14, weight: .medium))
+                        Label("Files", systemImage: "folder")
                     }
-                    .accessibilityLabel("Files")
                 }
 
                 Menu {
@@ -384,74 +438,98 @@ private struct TerminalSessionHost: View {
                         Button {
                             findState.present(on: activeContext.termInterface)
                         } label: {
-                            Label("Find in Terminal…", rx: "magnifyingglass")
+                            Label("Find in Terminal…", systemImage: "magnifyingglass")
                         }
                         .keyboardShortcut("f", modifiers: .command)
 
                         Button {
                             showsSnippets = true
                         } label: {
-                            Label("Run Snippet…", rx: "chevron.left.forwardslash.chevron.right")
+                            Label("Run Snippet…", systemImage: "chevron.left.forwardslash.chevron.right")
                         }
                         .keyboardShortcut("s", modifiers: [.command, .option])
 
                         Button {
                             showsTabSwitcher = true
                         } label: {
-                            Label("All Terminal Tabs (\(mountedTerminals.count))", rx: "macwindow")
+                            Label("All Terminal Tabs (\(mountedTerminals.count))", systemImage: "macwindow")
+                        }
+
+                        if activeContext.closed, sizeClass != .regular,
+                           activeContext.remoteType == .machine,
+                           activeContext.machine.isNotPlaceholder()
+                        {
+                            Button {
+                                FileTransferManager.shared.begin(for: activeContext.machine.id)
+                            } label: {
+                                Label("Files", systemImage: "folder")
+                            }
+                        }
+                    }
+
+                    Section(String(localized: "Font Size: \(store.terminalFontSize) pt")) {
+                        Button {
+                            HapticsPreference.impact()
+                            store.terminalFontSize = min(30, store.terminalFontSize + 1)
+                        } label: {
+                            Label("Larger Text", systemImage: "textformat.size.larger")
+                        }
+                        .disabled(store.terminalFontSize >= 30)
+                        .keyboardShortcut("+", modifiers: .command)
+
+                        Button {
+                            HapticsPreference.impact()
+                            store.terminalFontSize = max(6, store.terminalFontSize - 1)
+                        } label: {
+                            Label("Smaller Text", systemImage: "textformat.size.smaller")
+                        }
+                        .disabled(store.terminalFontSize <= 6)
+                        .keyboardShortcut("-", modifiers: .command)
+
+                        if store.terminalFontSize != 12 {
+                            Button {
+                                HapticsPreference.impact()
+                                store.terminalFontSize = 12
+                            } label: {
+                                Label("Reset to 12 pt", systemImage: "arrow.counterclockwise")
+                            }
                         }
                     }
 
                     Section {
-                        Toggle(isOn: $activeContext.isInteractionLocked) {
-                            Label("Lock Tab (Prevent Input)", rx: "lock.fill")
-                        }
-                        Toggle(isOn: $activeContext.isSoftwareKeyboardLocked) {
-                            Label("Lock Software Keyboard", rx: "keyboard")
-                        }
-                        Button {
-                            showsKeyboardEditor = true
-                        } label: {
-                            Label("Customize Keyboard Bar…", rx: "slider.horizontal.3")
-                        }
                         Button {
                             showsThemeSettings = true
                         } label: {
                             Label("Themes & Engine…", systemImage: "paintpalette")
                         }
-                    }
-
-                    Section {
-                        Button {
-                            store.terminalFontSize = min(30, store.terminalFontSize + 1)
-                        } label: {
-                            Label("Larger Text", rx: "textformat.size.larger")
+                        Toggle(isOn: $activeContext.isInteractionLocked) {
+                            Label("Lock Tab (Prevent Input)", systemImage: "lock.fill")
                         }
-                        .keyboardShortcut("+", modifiers: .command)
-
-                        Button {
-                            store.terminalFontSize = max(6, store.terminalFontSize - 1)
-                        } label: {
-                            Label("Smaller Text", rx: "textformat.size.smaller")
+                        Toggle(isOn: $activeContext.isSoftwareKeyboardLocked) {
+                            Label("Lock Software Keyboard", systemImage: "keyboard")
                         }
-                        .keyboardShortcut("-", modifiers: .command)
+                        Button {
+                            showsKeyboardEditor = true
+                        } label: {
+                            Label("Customize Keyboard Bar…", systemImage: "slider.horizontal.3")
+                        }
                     }
 
                     Section {
                         Button {
                             TerminalExportHelper.copyText(from: activeContext)
                         } label: {
-                            Label("Copy Screen Text", rx: "doc.on.clipboard")
+                            Label("Copy Screen Text", systemImage: "doc.on.clipboard")
                         }
                         Button {
                             TerminalExportHelper.copyImage(from: activeContext)
                         } label: {
-                            Label("Copy as Image", rx: "photo")
+                            Label("Copy as Image", systemImage: "photo")
                         }
                         Button {
                             TerminalExportHelper.exportTranscript(from: activeContext)
                         } label: {
-                            Label("Export Transcript…", rx: "arrow.up.right.square")
+                            Label("Export Transcript…", systemImage: "arrow.up.right.square")
                         }
                     }
 
@@ -460,12 +538,12 @@ private struct TerminalSessionHost: View {
                             Button {
                                 ServerActions.openMonitor(activeContext.machine.id)
                             } label: {
-                                Label("Open Monitor", rx: "waveform.path.ecg")
+                                Label("Open Monitor", systemImage: "waveform.path.ecg")
                             }
                             Button {
                                 onNewSession()
                             } label: {
-                                Label("New Terminal on \(activeContext.machine.name)", rx: "plus.rectangle")
+                                Label("New Terminal on \(activeContext.machine.name)", systemImage: "plus.rectangle")
                             }
                             if UIDevice.current.userInterfaceIdiom == .pad {
                                 Button {
@@ -481,12 +559,12 @@ private struct TerminalSessionHost: View {
                         Button(role: .destructive) {
                             onCloseTab(activeContext)
                         } label: {
-                            Label("Close Session", rx: "xmark.circle")
+                            Label("Close Session", systemImage: "xmark.circle")
                         }
                         .keyboardShortcut("w", modifiers: .command)
                     }
                 } label: {
-                    Label("More", rx: "ellipsis.circle")
+                    Label("More", systemImage: moreIconName)
                 }
             }
         }

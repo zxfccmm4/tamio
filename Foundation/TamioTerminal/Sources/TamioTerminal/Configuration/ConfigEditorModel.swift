@@ -53,6 +53,7 @@ final class ConfigEditorModel: ObservableObject {
         }
     }
     @Published private(set) var saved: ConfigDocument
+    @Published private(set) var lastSavedAt: Date?
     @Published var message = ""
     private(set) var undoStack: [ConfigDocument] = [] {
         didSet { if history.canUndo == undoStack.isEmpty { history.canUndo = !undoStack.isEmpty } }
@@ -122,11 +123,36 @@ final class ConfigEditorModel: ObservableObject {
         pendingSave = Task { [weak self] in
             try? await Task.sleep(nanoseconds: 400_000_000)
             guard !Task.isCancelled, let self, self.isDirty else { return }
-            let fontChanged = self.document.overrides["font-size"] != self.saved.overrides["font-size"]
-            if self.save(), fontChanged {
-                self.onApplied?(self.document.overrides["font-size"]?.first.flatMap(Double.init) ?? 14)
-            }
+            _ = self.saveNow()
         }
+    }
+
+    /// Applies and persists pending edits immediately, cancelling any queued debounce.
+    @discardableResult
+    func saveNow() -> Bool {
+        pendingSave?.cancel()
+        pendingSave = nil
+        guard isDirty || !message.isEmpty else { return true }
+        let fontChanged = document.overrides["font-size"] != saved.overrides["font-size"]
+        if save() {
+            lastSavedAt = Date()
+            if fontChanged {
+                #if os(iOS)
+                    let fallbackFontSize: Double = 10
+                #else
+                    let fallbackFontSize: Double = 14
+                #endif
+                onApplied?(document.overrides["font-size"]?.first.flatMap(Double.init) ?? fallbackFontSize)
+            }
+            return true
+        }
+        return false
+    }
+
+    /// Commits any unsaved or debounced edits right away (e.g. when leaving Settings).
+    func flushPendingSave() {
+        guard pendingSave != nil || isDirty else { return }
+        _ = saveNow()
     }
     func reset(_ key: String) { edit { $0.overrides.removeValue(forKey: key) } }
     /// Writes the values, or removes the key when there is nothing to write.
@@ -140,6 +166,7 @@ final class ConfigEditorModel: ObservableObject {
         try next.merge(source)
         edit { $0 = next }
     }
+    @discardableResult
     func save() -> Bool {
         do {
             try TamioTerminalConfiguration.apply(document)
@@ -170,6 +197,23 @@ public enum TerminalGlass {
     public static func refresh() {
         try? TamioTerminalConfiguration.apply(ConfigEditorModel.storedDocument())
         ConfigEditorModel.shared.objectWillChange.send()
+    }
+}
+
+/// Active terminal theme colors exposed to host UI chrome (e.g. iOS terminal backdrop).
+@MainActor
+public enum TamioTerminalAppearance {
+    public static let didChangeNotification = TamioTerminalConfiguration.didApply
+
+    public static func backgroundColor(dark: Bool) -> Color {
+        let document = ConfigEditorModel.shared.document
+        if document.overrides["background"] != nil || document.effectiveTheme(dark: dark) != nil {
+            let hex = document.effectiveColor("background", dark: dark)
+            if !hex.isEmpty {
+                return Color(configHex: hex)
+            }
+        }
+        return Color(configHex: dark ? "#212121" : "#f7f7f7")
     }
 }
 
@@ -285,7 +329,18 @@ enum TamioTerminalConfiguration {
             lines += theme.entries.map { "\($0.0) = \($0.1)" }
         }
         for key in document.overrides.keys.sorted() where supportedKeys.contains(key) && key != "theme" {
+            let setting = ConfigCatalog.shared.setting(key: key)
+            let allowsEmptyOverride: Bool = {
+                guard let setting else { return true }
+                if setting.defaultValue.values.allSatisfy(\.isEmpty) { return true }
+                if setting.widget?.allowEmpty == true { return true }
+                if setting.widget?.options?.contains(where: { $0.value.isEmpty }) == true { return true }
+                return false
+            }()
             for value in document.overrides[key] ?? [] {
+                if value.trimmingCharacters(in: .whitespaces).isEmpty && !allowsEmptyOverride {
+                    continue
+                }
                 if key == "keybind" {
                     let parsed = ConfigKeybinding(value)
                     guard parsed.errors.isEmpty, parsed.prefixes.allSatisfy({ $0 != "global" && $0 != "all" }),

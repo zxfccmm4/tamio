@@ -3,6 +3,7 @@ import SwiftUI
 
 struct ConfigThemePicker: View {
     @Binding var value: String
+    var onClear: (() -> Void)? = nil
     @State private var search = ""
     @State private var darkSide = false
     private var sides: (light: String, dark: String)? { ConfigDocument.themeSides(value) }
@@ -13,13 +14,38 @@ struct ConfigThemePicker: View {
     }
     private func select(_ name: String) {
         if let sides {
-            value = "light:\(darkSide ? sides.light : name),dark:\(darkSide ? name : sides.dark)"
-        } else { value = name }
+            let light = darkSide ? sides.light : name
+            let dark = darkSide ? name : sides.dark
+            if light.isEmpty && dark.isEmpty {
+                clearTheme()
+            } else {
+                value = "light:\(light),dark:\(dark)"
+            }
+        } else if name.isEmpty {
+            clearTheme()
+        } else {
+            value = name
+        }
+    }
+    private func clearTheme() {
+        if let onClear {
+            onClear()
+        } else {
+            value = ""
+        }
     }
     var body: some View {
         VStack(alignment: .leading, spacing: RX.Space.s3) {
             HStack(spacing: RX.Space.s3) {
-                Toggle("Separate light and dark themes", isOn: Binding(get: { dual }, set: { enabled in value = enabled ? "light:\(value),dark:\(value)" : selected }))
+                Toggle("Separate light and dark themes", isOn: Binding(get: { dual }, set: { enabled in
+                    if enabled {
+                        value = "light:\(value),dark:\(value)"
+                    } else if selected.isEmpty {
+                        clearTheme()
+                    } else {
+                        value = selected
+                    }
+                }))
                     .rxSwitchToggle()
                     .controlSize(.small)
                     .tint(.rxAccent)
@@ -38,7 +64,7 @@ struct ConfigThemePicker: View {
                     .truncationMode(.middle)
                 Spacer(minLength: RX.Space.s2)
                 if !selected.isEmpty {
-                    Button(ConfigLayout.tr("action.remove", default: "Remove")) { value = "" }
+                    Button(ConfigLayout.tr("action.remove", default: "Remove")) { select("") }
                         .buttonStyle(.rx(.plain, size: .small))
                         .fixedSize()
                         .help(ConfigLayout.tr("theme.remove_help", default: "Use no theme; the base colors below apply"))
