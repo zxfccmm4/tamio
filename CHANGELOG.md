@@ -13,6 +13,23 @@ the user. To release, rename that heading to the version and date
 
 ## [Unreleased]
 
+### Added
+- **Automatic AI secret redaction.** Private keys, embedded URL passwords, HTTP authorization headers, well-known API/JWT tokens, and secret environment assignments are now scrubbed locally by default before terminal context or command output is sent to AI models or recorded in agent activity logs.
+- **MCP background jobs and per-host access control.** External agents and in-app AI can now run long commands asynchronously with `start_command`, `poll_command` (offset-based incremental output), and `stop_command`. Servers can be set to **Full Access**, **Read-Only** (`observe`), or **Disabled** for AI & MCP in Edit Server and Settings › MCP.
+- **Command risk grading and Ask / Agent modes for SSH AI Copilot.** Shell commands are classified locally as Read-only, Modify, or High Risk with explanations shown on approval dialogs and inline cards; high-risk commands always require explicit confirmation even during a 1-hour allowance. Terminal Copilot panels now support switching between read-only **Ask** mode (with one-click escalation to Agent mode) and full **Agent** mode.
+- **Atomic SFTP writes and remote edit conflict detection.** Remote text edits and replacing SFTP uploads now stage to a sibling temporary file, preserve POSIX file permissions, and rename atomically into place; saving in the remote editor checks SHA-256 and metadata first to prevent silent overwrites when a file changed on the server.
+- **Session-only `sudo` elevation for remote SFTP files.** Remote file panes on macOS and iOS now include a default-off `sudo` toggle that starts a privileged `sftp-server` channel for browsing, transfers, and editing root-owned files without elevating SSH terminals or saving sudo passwords.
+- **Open remote folders in VS Code / Cursor / Zed and opt-in reverse folder sync.** On macOS, select an installed external editor in Settings › Files to open the current remote SFTP directory via its SSH URL scheme. Both macOS and iOS also support an optional, default-off **Terminal follows Files** switch that uses OSC 133 prompt readiness markers to `cd` an idle SSH terminal safely.
+- **SOCKS5 dynamic port forwarding (`-D`) and native cross-platform Jump Hosts.** Port Forward now supports loopback-only SOCKS5 dynamic proxies alongside local (`-L`) and remote (`-R`) rules. Saved servers can now chain through native Jump Hosts on both macOS and iOS using in-process libssh2 tunnels with independent host-key verification on every hop.
+- **PuTTY `.ppk` key import and multi-client host importers.** Importing or pasting PuTTY `.ppk` v2/v3 keys (including passphrase-encrypted RSA, ECDSA, and Ed25519 keys) converts them automatically to OpenSSH format; macOS Servers › Import now also reads Xshell (`.xsh`), WindTerm (`.sessions`), FinalShell (JSON), Termius (JSON), and CSV exports.
+
+### Changed
+- **Refined SSH terminal top toolbars on iOS and macOS.** On iOS, modal terminals place the dismiss control on the leading edge, display a live connection-status title bar (with tab count tap-to-switch), separate AI Copilot from utility actions on iOS 26 Liquid Glass, fold redundant text-size controls into the More menu, and match the terminal backdrop to the active Ghostty theme. On macOS, Find, AI Copilot, and Snippets now share consistent active-state toggles and tooltips.
+
+### Fixed
+- **Fixed saving Terminal Engine & Themes settings on iOS.** Selecting "Default" on enum pickers or removing a theme now clears the override instead of writing invalid empty values that blocked Ghostty validation; pending edits flush immediately when leaving Settings, validation errors surface on iOS with a Retry button, an explicit Save button and Saved indicator clarify save state, and saved overrides show as "custom" instead of a misleading "changed" badge.
+- **Eliminated blank bubbles after tool calls in SSH AI Copilot.** Intermediate reasoning-only turns from thinking models now render as a compact collapsible **Thinking Process** disclosure (matching the main AI Assistant) instead of empty cards on both iOS and macOS, empty assistant entries are skipped, and the streaming status no longer shows a duplicate **Thinking…** spinner while a tool is running.
+
 ## [0.2.22] - 2026-11-27
 
 ### Added
