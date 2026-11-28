@@ -57,10 +57,18 @@ struct IdentityDraft: Equatable {
             if trimmedPrivateKey.isEmpty {
                 return String(localized: "Paste, load, or generate a private key.")
             }
+            if PuTTYKeyConverter.isPuTTYKey(trimmedPrivateKey) {
+                do {
+                    _ = try PuTTYKeyConverter.convert(trimmedPrivateKey, passphrase: password)
+                    return nil
+                } catch {
+                    return error.localizedDescription
+                }
+            }
             if !trimmedPrivateKey.contains("PRIVATE KEY") {
                 return trimmedPrivateKey.hasPrefix("ssh-") || trimmedPrivateKey.hasPrefix("ecdsa-")
                     ? String(localized: "That is a public key. The private key starts with -----BEGIN … PRIVATE KEY-----.")
-                    : String(localized: "This does not look like a private key: it starts with -----BEGIN … PRIVATE KEY-----.")
+                    : String(localized: "This does not look like a private key: it starts with -----BEGIN … PRIVATE KEY----- or PuTTY-User-Key-File.")
             }
             return nil
         }
@@ -83,9 +91,18 @@ struct IdentityDraft: Equatable {
             result.privateKey = ""
             result.publicKey = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
         case .key:
-            result.password = password
-            result.privateKey = trimmedPrivateKey + "\n"
-            result.publicKey = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            if PuTTYKeyConverter.isPuTTYKey(trimmedPrivateKey),
+               let converted = try? PuTTYKeyConverter.convert(trimmedPrivateKey, passphrase: password)
+            {
+                result.password = ""
+                result.privateKey = converted.privateKey
+                let trimmedPub = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
+                result.publicKey = trimmedPub.isEmpty ? converted.publicKey : trimmedPub
+            } else {
+                result.password = password
+                result.privateKey = trimmedPrivateKey + "\n"
+                result.publicKey = publicKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
         }
         result.comment = comment
         result.authenticAutomatically = automatic
@@ -479,7 +496,7 @@ struct EditIdentityView: View {
             UIBridge.presentError(with: String(localized: "Nothing to paste."))
             return
         }
-        if raw.contains("PRIVATE KEY") {
+        if raw.contains("PRIVATE KEY") || PuTTYKeyConverter.isPuTTYKey(raw) {
             draft.privateKey = raw
             savedPrivateKey = false
         } else {

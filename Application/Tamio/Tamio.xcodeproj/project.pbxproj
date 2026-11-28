@@ -44,6 +44,7 @@
 		71658A0D61BE1808D86BAA58 /* TerminalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C465A43736C58AD6B51CEC59 /* TerminalManager.swift */; };
 		742B1D1D68A0C95C3886F494 /* PortForwardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B70567623556C8B0B16B25 /* PortForwardView.swift */; };
 		75E3C140B9C2A211EA3C9842 /* TerminalManager+Context.swift in Sources */ = {isa = PBXBuildFile; fileRef = F42B19215937CD8331FA07FC /* TerminalManager+Context.swift */; };
+		76114CF2C8872505F947E3DC /* ThirdPartyImportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8301519A6DEFB33C9CB3B354 /* ThirdPartyImportSheet.swift */; };
 		84A5501750B14CA6BA883C24 /* MacChartsDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1331A09CA06BF20442B6E738 /* MacChartsDashboard.swift */; };
 		8766A75FC53E74F9069FC9A2 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAB94544BDE15E396B57A48 /* AppRouter.swift */; };
 		8A07521B9F79187B9B9B0F83 /* IdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70FA3DE75DF8292D67006F07 /* IdentitiesView.swift */; };
@@ -138,6 +139,7 @@
 		75878EF1BDD335D8738E8C39 /* ServerActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerActions.swift; sourceTree = "<group>"; };
 		808348FC62417BEE869E4ED1 /* MacProcessesAndContainers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacProcessesAndContainers.swift; sourceTree = "<group>"; };
 		80EB68B4D88CEA4A817A8E92 /* PickerSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerSheets.swift; sourceTree = "<group>"; };
+		8301519A6DEFB33C9CB3B354 /* ThirdPartyImportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThirdPartyImportSheet.swift; sourceTree = "<group>"; };
 		85358DC98DB406C6FB6D164E /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		864CDE934ED78C564FA994CA /* Mac.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Mac.swift; sourceTree = "<group>"; };
 		89D30D618CFFED4A6386D0E1 /* TamioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioApp.swift; sourceTree = "<group>"; };
@@ -466,6 +468,7 @@
 				478253D7DC3B55196BDD73C9 /* ServerEditorDialog.swift */,
 				BD5F05A6A10CA869F43251F4 /* ServersView.swift */,
 				6EFCBE66686362A4C966742A /* SSHConfigImportSheet.swift */,
+				8301519A6DEFB33C9CB3B354 /* ThirdPartyImportSheet.swift */,
 			);
 			path = Servers;
 			sourceTree = "<group>";
@@ -650,6 +653,7 @@
 				71658A0D61BE1808D86BAA58 /* TerminalManager.swift in Sources */,
 				70204E86A5AF22D8ED6C79E8 /* TerminalPage.swift in Sources */,
 				B7855385DAEB2E20982F2AB8 /* TerminalSnippetPanel.swift in Sources */,
+				76114CF2C8872505F947E3DC /* ThirdPartyImportSheet.swift in Sources */,
 				4C93A467D097E649F9C04073 /* UpdateCenter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

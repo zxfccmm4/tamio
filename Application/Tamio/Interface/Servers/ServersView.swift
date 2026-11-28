@@ -18,6 +18,7 @@ struct ServersView: View {
     @State private var searchText = ""
     @State private var selection: RDMachine.ID?
     @State private var importsSSHConfig = false
+    @State private var importsThirdParty = false
 
     var filtered: [RDMachine] {
         let machines = store.machineGroup.machines
@@ -39,10 +40,13 @@ struct ServersView: View {
             }
         ) {
         } trailing: {
-            Button { importsSSHConfig = true } label: {
+            Menu {
+                Button("From SSH Config (~/.ssh/config)…") { importsSSHConfig = true }
+                Button("From Other Clients (Xshell, WindTerm, FinalShell, Termius, CSV)…") { importsThirdParty = true }
+            } label: {
                 Label("Import…", rx: "square.and.arrow.down")
             }
-            .help(String(localized: "Import from SSH Config"))
+            .help(String(localized: "Import servers from SSH config or other SSH clients"))
             RedactionMenu()
             Button { router.openTerminals() } label: {
                 Label("Open Terminals…", rx: "rectangle.stack.badge.plus")
@@ -77,6 +81,9 @@ struct ServersView: View {
         }
         .sheet(isPresented: $importsSSHConfig) {
             SSHConfigImportSheet().environmentObject(store)
+        }
+        .sheet(isPresented: $importsThirdParty) {
+            ThirdPartyImportSheet().environmentObject(store)
         }
         .background {
             // ⌘⌫ deletes the selected row.
