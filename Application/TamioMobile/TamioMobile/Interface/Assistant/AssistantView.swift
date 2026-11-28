@@ -2,19 +2,23 @@
 //  AssistantView.swift
 //  TamioMobile
 //
-//  Refined iOS 26/27 Liquid Glass AI Server Assistant with FlowDown-inspired
-//  multi-session history management:
-//  - Leading History drawer button (with live background badge) + Provider switcher
-//  - Trailing Ops Skills, Conversation Actions (Rename, Compress, Duplicate,
-//    Export Markdown), and New Chat button
-//  - Collapsible Reasoning (Thinking) & MCP Tool Call cards inside chat transcript
-//  - Per-message Copy, Regenerate, Edit & Resend, Fork from Here, Delete
-//  - Per-conversation isolated inline approval cards & draft preservation
+//  iOS & iPadOS AI Server Assistant built on `TamioAssistant` & `TamioAssistantUI`:
+//  - Preserves iOS 26.1+ Liquid Glass `.assistantBottomAccessory` tab-bar morphing
+//    (automatically expanding to the full composer when typing OR when a tool
+//    waits for in-place approval!)
+//  - Document-first `Lakr233/MarkdownView` transcript with streaming fade-in,
+//    folded `ActivitySummaryRow`, live `TraceSheetView`, Rewrite presets,
+//    Redo-in-Composer, and smart sticky-bottom scrolling
+//  - Unified FlowDown composer with file attachments, tool group toggles,
+//    floating cache hint, and in-place spring-morphed `ToolApprovalCardView`
 //
 
 import SwiftUI
+import TamioAssistant
+import TamioAssistantUI
 import TamioModule
 import UIKit
+import UniformTypeIdentifiers
 
 struct AssistantView: View {
     @EnvironmentObject private var store: TamioStore
@@ -24,9 +28,10 @@ struct AssistantView: View {
     @State private var assistant = ServerAssistant.shared
     @State private var providerStore = AIProviderStore.shared
     @State private var skillStore = ServerOpsSkillStore.shared
-    @State private var bridge = MobileAgentBridge.shared
+    @State private var bridge = AssistantAgentBridge.shared
 
     @State private var inputText = ""
+    @State private var pendingAttachments: [AssistantAttachment] = []
     @FocusState private var inputFocused: Bool
 
     @State private var showHistorySheet = false
@@ -35,18 +40,14 @@ struct AssistantView: View {
     @State private var showModelPicker = false
     @State private var showScopePicker = false
     @State private var showRenameSheet = false
-    @State private var editingMessage: AssistantChatMessage?
-    @State private var editMessageDraft = ""
+    @State private var showFileImporter = false
+    @State private var toastMessage: String?
 
     private var appleReady: Bool { AppleIntelligenceStatus.current == .available }
     private var pccReady: Bool { providerStore.privateCloudComputeEnabled && ApplePrivateCloudComputeStatus.current == .available }
     private var activeConversation: AssistantConversation { assistant.activeConversation }
     private var activeSession: ConversationSession { assistant.activeSession }
 
-    /// On iPhone running iOS 26.1+, the collapsed composer lives inside
-    /// ContentView's `.tabViewBottomAccessory(isEnabled:)` so it hides cleanly
-    /// on every other tab and morphs inline when the tab bar minimizes.
-    /// Tapping it activates the keyboard-docked composer above the keyboard.
     private var usesTabBarAccessoryComposer: Bool {
         if #available(iOS 26.1, *) {
             return sizeClass == .compact
@@ -69,12 +70,10 @@ struct AssistantView: View {
         return nil
     }
 
-    private var activeApprovals: [MobileAgentBridge.PendingApproval] {
-        bridge.pendingApprovals(for: activeConversation.id)
-    }
-
     private var hasContent: Bool {
-        activeSession.messages.contains(where: \.hasVisibleContent) || !activeApprovals.isEmpty || activeSession.isStreaming
+        activeSession.messages.contains(where: \.hasVisibleContent)
+            || activeSession.approvalGate.hasPendingRequest
+            || activeSession.isStreaming
     }
 
     private var groups: [String] {
@@ -94,6 +93,18 @@ struct AssistantView: View {
         .appleGroupedBackground()
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .top) {
+            if let toastMessage {
+                Text(toastMessage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.accentColor, in: Capsule())
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -141,7 +152,7 @@ struct AssistantView: View {
                             assistant.togglePin(activeConversation.id)
                         } label: {
                             Label(
-                                activeConversation.isPinned ? "Unpin" : "Pin",
+                                activeConversation.isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
                                 systemImage: activeConversation.isPinned ? "pin.slash" : "pin"
                             )
                         }
@@ -154,7 +165,7 @@ struct AssistantView: View {
                         .disabled(activeSession.isStreaming)
 
                         Button {
-                            assistant.duplicateConversation(activeConversation.id)
+                            _ = assistant.duplicateConversation(activeConversation.id)
                         } label: {
                             Label("Duplicate", systemImage: "plus.square.on.square")
                         }
@@ -210,10 +221,23 @@ struct AssistantView: View {
         }
         .onChange(of: assistant.activeConversationID) { _, _ in
             inputText = assistant.draftText
+            pendingAttachments = []
         }
         .onChange(of: inputText) { _, next in
             if assistant.draftText != next {
                 assistant.draftText = next
+            }
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.plainText, .sourceCode, .json, .yaml, .log, .image],
+            allowsMultipleSelection: true
+        ) { result in
+            guard case .success(let urls) = result else { return }
+            for url in urls {
+                if let item = AssistantAttachmentLoader.load(from: url) {
+                    pendingAttachments.append(item)
+                }
             }
         }
         .sheet(isPresented: $showHistorySheet) {
@@ -272,36 +296,6 @@ struct AssistantView: View {
         .sheet(isPresented: $showRenameSheet) {
             RenameConversationSheet(conversation: activeConversation) { newTitle, newIcon in
                 assistant.renameConversation(activeConversation.id, title: newTitle, icon: newIcon)
-            }
-        }
-        .sheet(item: $editingMessage) { msg in
-            NavigationStack {
-                Form {
-                    Section("Edit Prompt") {
-                        TextEditor(text: $editMessageDraft)
-                            .frame(minHeight: 140)
-                    }
-                    Section {} footer: {
-                        Text("Resending replaces messages after this prompt and generates a fresh response.")
-                    }
-                }
-                .navigationTitle("Edit & Resend")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { editingMessage = nil }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Send") {
-                            let id = msg.id
-                            let updated = editMessageDraft
-                            editingMessage = nil
-                            activeSession.editAndResend(messageID: id, newText: updated)
-                        }
-                        .fontWeight(.semibold)
-                        .disabled(editMessageDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
             }
         }
     }
@@ -429,8 +423,8 @@ struct AssistantView: View {
 
     private var chatContent: some View {
         let session = activeSession
-        let visibleMessages = session.messages.filter(\.hasVisibleContent)
-        let lastAssistantID = visibleMessages.last(where: { $0.role == .assistant })?.id
+        let scopedCount = assistant.resolvedScopedMachines(for: activeConversation.id).count
+        let showExpandedComposer = !usesTabBarAccessoryComposer || assistant.isComposerActive || session.approvalGate.hasPendingRequest
 
         return VStack(spacing: 0) {
             if !store.machineGroup.machines.isEmpty {
@@ -445,145 +439,66 @@ struct AssistantView: View {
             if !hasContent {
                 emptyChatState
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 12) {
-                            if session.didPruneContext {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "scissors")
-                                        .font(.caption2)
-                                    Text("Earlier turns were condensed to fit the context window.")
-                                        .font(.caption2)
-                                    Spacer()
-                                    Button("Compress") {
-                                        assistant.compressConversation(activeConversation.id)
-                                    }
-                                    .font(.caption2.weight(.semibold))
-                                }
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 7)
-                                .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            }
-
-                            ForEach(visibleMessages) { message in
-                                ChatMessageRow(
-                                    message: message,
-                                    canRegenerate: !session.isStreaming && message.id == lastAssistantID,
-                                    canMutate: !session.isStreaming,
-                                    onRegenerate: { session.regenerateLastReply() },
-                                    onEdit: {
-                                        editMessageDraft = message.text
-                                        editingMessage = message
-                                    },
-                                    onForkHere: {
-                                        assistant.duplicateConversation(activeConversation.id, upToMessageID: message.id)
-                                    },
-                                    onDelete: { session.deleteMessage(message.id) }
-                                )
-                                .id(message.id)
-                            }
-
-                            if session.isStreaming {
-                                streamingBubble(session)
-                                    .id("streaming-anchor")
-                            }
-
-                            if !activeApprovals.isEmpty {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "checkmark.shield.fill")
-                                            .font(.caption)
-                                            .foregroundStyle(.orange)
-                                        Text("Approval Required")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.orange)
-                                    }
-                                    .padding(.leading, 4)
-
-                                    ForEach(activeApprovals) { approval in
-                                        InlineApprovalCard(
-                                            approval: approval,
-                                            onApprove: { bridge.resolve(approval.id, approved: true) },
-                                            onApproveOneHour: { bridge.resolve(approval.id, approved: true, allowForOneHour: true) },
-                                            onDeny: { bridge.resolve(approval.id, approved: false) }
-                                        )
-                                    }
-                                }
-                                .id("approval-anchor")
-                            }
-
-                            // Generous bottom anchor so streaming text and approval cards
-                            // never sit tucked behind the composer or floating TabView.
-                            Color.clear
-                                .frame(height: 28)
-                                .id("bottom-anchor")
+                AssistantTranscriptView(
+                    assistant: assistant,
+                    session: session,
+                    compact: false,
+                    maxReadingWidth: sizeClass == .regular ? 780 : nil,
+                    horizontalPadding: 16,
+                    bottomPadding: 28,
+                    codeActions: AssistantMarkdownCodeActions(
+                        onSaveSnippet: { code, language in
+                            saveSnippet(code: code, language: language)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 10)
-                        .padding(.bottom, 24)
-                        .frame(maxWidth: sizeClass == .regular ? 780 : .infinity)
-                        .frame(maxWidth: .infinity)
+                    ),
+                    onRefillComposer: { text, attachments in
+                        inputText = text
+                        assistant.draftText = text
+                        pendingAttachments = attachments
+                        assistant.isComposerActive = true
+                        inputFocused = true
                     }
-                    .scrollDismissesKeyboard(.interactively)
-                    .onChange(of: session.messages.count) { _, _ in
-                        scrollToLatest(proxy, animated: true)
-                    }
-                    .onChange(of: activeApprovals.count) { _, _ in
-                        scrollToLatest(proxy, animated: true)
-                    }
-                    .onChange(of: session.isStreaming) { _, streaming in
-                        if streaming {
-                            scrollToLatest(proxy, animated: true)
-                        }
-                    }
-                    .onChange(of: session.streamText.count) { _, _ in
-                        if session.isStreaming {
-                            scrollToLatest(proxy, animated: false)
-                        }
-                    }
-                    .onChange(of: session.streamReasoning.count) { _, _ in
-                        if session.isStreaming {
-                            scrollToLatest(proxy, animated: false)
-                        }
-                    }
-                    .onChange(of: session.activeToolStatus) { _, _ in
-                        if session.isStreaming {
-                            scrollToLatest(proxy, animated: true)
-                        }
-                    }
-                    .onChange(of: assistant.activeConversationID) { _, _ in
-                        scrollToLatest(proxy, animated: false)
-                    }
-                }
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !usesTabBarAccessoryComposer || assistant.isComposerActive {
+            if showExpandedComposer {
                 VStack(spacing: 6) {
-                    if !usesTabBarAccessoryComposer, !skillStore.enabledSkills.isEmpty, !inputFocused {
+                    if !usesTabBarAccessoryComposer, !skillStore.enabledSkills.isEmpty, !inputFocused, !session.approvalGate.hasPendingRequest {
                         pinnedSkillsStrip
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
-                    liquidGlassComposerBar(session)
+                    UnifiedComposerView(
+                        assistant: assistant,
+                        session: session,
+                        text: $inputText,
+                        attachments: $pendingAttachments,
+                        compact: false,
+                        scopeLabel: store.machineGroup.machines.isEmpty ? nil : "\(scopedCount)",
+                        isScopeFiltered: assistant.targetScope.isFiltered,
+                        onTapScope: store.machineGroup.machines.isEmpty ? nil : { showScopePicker = true },
+                        onTapSkills: { showSkillsSheet = true },
+                        onAttachFile: { showFileImporter = true },
+                        externalFocus: $inputFocused,
+                        onDismissKeyboard: {
+                            assistant.isComposerActive = false
+                        },
+                        onSend: { text, attachments in
+                            HapticsPreference.impact()
+                            assistant.draftText = ""
+                            inputFocused = false
+                            assistant.isComposerActive = false
+                            session.send(text, attachments: attachments)
+                        }
+                    )
+                    .padding(.horizontal, 14)
+                    .padding(.top, 4)
+                    .padding(.bottom, 10)
                 }
                 .animation(.snappy(duration: 0.2), value: inputFocused)
                 .frame(maxWidth: sizeClass == .regular ? 780 : .infinity)
                 .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    private func scrollToLatest(_ proxy: ScrollViewProxy, animated: Bool) {
-        Task { @MainActor in
-            await Task.yield()
-            if animated {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    proxy.scrollTo("bottom-anchor", anchor: .bottom)
-                }
-            } else {
-                proxy.scrollTo("bottom-anchor", anchor: .bottom)
             }
         }
     }
@@ -740,8 +655,6 @@ struct AssistantView: View {
                             HStack(spacing: 5) {
                                 Text(active.model)
                                     .font(.caption.monospaced().weight(.medium))
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.system(size: 9, weight: .bold))
                             }
@@ -810,12 +723,6 @@ struct AssistantView: View {
                                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                                     .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05), lineWidth: 0.5)
                             )
-                            .shadow(
-                                color: colorScheme == .dark ? .clear : Color.black.opacity(0.03),
-                                radius: 8,
-                                x: 0,
-                                y: 2
-                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -835,10 +742,6 @@ struct AssistantView: View {
                         .padding(.horizontal, 13)
                         .padding(.vertical, 8)
                         .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05), lineWidth: 0.5)
-                        )
                     }
                     .buttonStyle(.plain)
 
@@ -856,10 +759,6 @@ struct AssistantView: View {
                             .padding(.horizontal, 13)
                             .padding(.vertical, 8)
                             .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05), lineWidth: 0.5)
-                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -879,64 +778,6 @@ struct AssistantView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.interactively)
-    }
-
-    // MARK: - Streaming Bubble (FlowDown-Style Shimmering Thinking & Auto-Collapse)
-
-    private func streamingBubble(_ session: ConversationSession) -> some View {
-        let streamText = session.streamText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let streamReasoning = session.streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
-        let isThinkingPhase = streamText.isEmpty
-
-        return VStack(alignment: .leading, spacing: 8) {
-            if let toolStatus = session.activeToolStatus {
-                HStack(spacing: 7) {
-                    ProgressView().controlSize(.mini)
-                    ShimmeringThinkingLabel(text: toolStatus, isThinking: true)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color.primary.opacity(0.05), in: Capsule())
-            }
-
-            if !streamReasoning.isEmpty {
-                ReasoningDisclosureBox(
-                    text: streamReasoning,
-                    defaultExpanded: isThinkingPhase,
-                    isThinking: isThinkingPhase
-                )
-            }
-
-            if streamText.isEmpty {
-                if session.activeToolStatus == nil && streamReasoning.isEmpty {
-                    HStack(spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.accentColor)
-                            .symbolEffect(.pulse, options: .repeating)
-                        ShimmeringThinkingLabel(
-                            text: String(localized: "Thinking…"),
-                            isThinking: true
-                        )
-                    }
-                    .padding(.vertical, 2)
-                }
-            } else {
-                AssistantMarkdownView(text: streamText)
-            }
-        }
-        .padding(.horizontal, 15)
-        .padding(.vertical, 12)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.04), lineWidth: 0.5)
-        )
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .animation(.snappy(duration: 0.22), value: isThinkingPhase)
     }
 
     // MARK: - Pinned Skills Strip
@@ -978,172 +819,34 @@ struct AssistantView: View {
         }
     }
 
-    // MARK: - FlowDown-Style Unified Liquid Glass Composer
+    // MARK: - Helpers
 
-    private func liquidGlassComposerBar(_ session: ConversationSession) -> some View {
-        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let canSend = !session.isStreaming && !trimmed.isEmpty
-        let scopedCount = assistant.resolvedScopedMachines(for: activeConversation.id).count
-        let pinnedCount = assistant.pinnedSkillIDs.count
-
-        return VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                TextField(
-                    "Ask to check metrics, run batch commands, or manage servers…",
-                    text: $inputText,
-                    axis: .vertical
-                )
-                .textFieldStyle(.plain)
-                .font(.body)
-                .lineLimit(1 ... 6)
-                .focused($inputFocused)
-                .onSubmit { sendCurrentInput() }
-                .padding(.horizontal, 14)
-                .padding(.top, 12)
-
-                HStack(spacing: 8) {
-                    // Quick Target Scope pill
-                    if !store.machineGroup.machines.isEmpty {
-                        Button {
-                            showScopePicker = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "server.rack")
-                                    .font(.caption2.weight(.semibold))
-                                Text("\(scopedCount)")
-                                    .font(.caption2.weight(.semibold).monospacedDigit())
-                            }
-                            .foregroundStyle(assistant.targetScope.isFiltered ? Color.accentColor : .secondary)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 6)
-                            .background(
-                                assistant.targetScope.isFiltered
-                                    ? Color.accentColor.opacity(0.14)
-                                    : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
-                                in: Capsule()
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Target Servers")
-                    }
-
-                    // Quick Ops Skills pill
-                    Button {
-                        showSkillsSheet = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: pinnedCount > 0 ? "wand.and.stars.inverse" : "wand.and.stars")
-                                .font(.caption2.weight(.semibold))
-                            if pinnedCount > 0 {
-                                Text("\(pinnedCount)")
-                                    .font(.caption2.weight(.semibold).monospacedDigit())
-                            }
-                        }
-                        .foregroundStyle(pinnedCount > 0 ? Color.accentColor : .secondary)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 6)
-                        .background(
-                            pinnedCount > 0
-                                ? Color.accentColor.opacity(0.14)
-                                : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
-                            in: Capsule()
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Ops Skills")
-
-                    if inputFocused {
-                        Button {
-                            inputFocused = false
-                            assistant.isComposerActive = false
-                        } label: {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
-                                    in: Capsule()
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.opacity.combined(with: .scale(scale: 0.9)))
-                        .accessibilityLabel("Hide Keyboard")
-                    }
-
-                    Spacer(minLength: 4)
-
-                    // Clear draft button when input is long
-                    if trimmed.count >= 40, !session.isStreaming {
-                        Button {
-                            withAnimation(.snappy(duration: 0.18)) {
-                                inputText = ""
-                                assistant.draftText = ""
-                            }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.tertiary)
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.opacity.combined(with: .scale(scale: 0.85)))
-                        .accessibilityLabel("Clear Draft")
-                    }
-
-                    // FlowDown Morphing Send / Stop Button
-                    FlowDownSendStopButton(
-                        isStreaming: session.isStreaming,
-                        canSend: canSend,
-                        onSend: { sendCurrentInput() },
-                        onStop: {
-                            HapticsPreference.impact()
-                            session.stopGenerating()
-                        }
-                    )
-                }
-                .padding(.horizontal, 10)
-                .padding(.bottom, 10)
-            }
-            .appleInteractiveGlass(
-                in: RoundedRectangle(cornerRadius: 24, style: .continuous),
-                fallback: Color(uiColor: .secondarySystemGroupedBackground)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(
-                        inputFocused
-                            ? Color.accentColor.opacity(colorScheme == .dark ? 0.40 : 0.28)
-                            : Color.primary.opacity(colorScheme == .dark ? 0.10 : 0.07),
-                        lineWidth: inputFocused ? 1.0 : 0.5
-                    )
-            )
-            .shadow(
-                color: colorScheme == .dark ? .clear : Color.black.opacity(0.05),
-                radius: 10,
-                x: 0,
-                y: 3
-            )
-            .animation(.snappy(duration: 0.2), value: inputFocused)
+    private func saveSnippet(code: String, language: String?) {
+        let firstLine = code.components(separatedBy: .newlines).first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? "AI Snippet"
+        var snippet = RDSnippet()
+        snippet.name = String(firstLine.trimmingCharacters(in: .whitespaces).prefix(48))
+        snippet.group = "AI Assistant"
+        snippet.code = code
+        if let language, !language.isEmpty {
+            snippet.comment = "Saved from Tamio AI (\(language))"
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 4)
-        .padding(.bottom, 10)
+        store.snippetGroup.insert(snippet)
+        HapticsPreference.impact()
+        flashToast(String(localized: "Saved to Snippets"))
     }
 
-    private func sendCurrentInput() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !activeSession.isStreaming else { return }
-        HapticsPreference.impact()
-        inputText = ""
-        assistant.draftText = ""
-        inputFocused = false
-        assistant.isComposerActive = false
-        activeSession.send(trimmed)
+    private func flashToast(_ message: String) {
+        withAnimation(.snappy) { toastMessage = message }
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.8))
+            withAnimation(.snappy) {
+                if toastMessage == message { toastMessage = nil }
+            }
+        }
     }
 }
 
-// MARK: - iOS 26.1+ TabView Bottom Accessory Composer (Hides on Other Tabs & Keyboard)
+// MARK: - iOS 26.1+ TabView Bottom Accessory Composer
 
 extension View {
     @ViewBuilder
@@ -1164,7 +867,10 @@ private struct AssistantTabBarAccessoryModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .tabViewBottomAccessory(
-                isEnabled: isEnabled && assistant.isReadyToChat && !assistant.isComposerActive
+                isEnabled: isEnabled
+                    && assistant.isReadyToChat
+                    && !assistant.isComposerActive
+                    && !assistant.activeSession.approvalGate.hasPendingRequest
             ) {
                 AssistantTabBarAccessoryComposer()
             }
@@ -1231,609 +937,11 @@ private struct AssistantTabBarAccessoryComposer: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(canSend ? "Send" : "Type a message")
+                .accessibilityLabel(canSend ? String(localized: "Send") : String(localized: "Type a message"))
             }
         }
         .padding(.horizontal, isInline ? 12 : 14)
         .padding(.vertical, isInline ? 6 : 8)
-    }
-}
-
-// MARK: - Chat Message Row (with Reasoning & Collapsible Tool Cards)
-
-private struct ChatMessageRow: View {
-    let message: AssistantChatMessage
-    let canRegenerate: Bool
-    let canMutate: Bool
-    let onRegenerate: () -> Void
-    let onEdit: () -> Void
-    let onForkHere: () -> Void
-    let onDelete: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        switch message.role {
-        case .user:
-            Text(message.text)
-                .font(.body)
-                .foregroundStyle(.white)
-                .textSelection(.enabled)
-                .padding(.horizontal, 15)
-                .padding(.vertical, 10)
-                .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .frame(maxWidth: 320, alignment: .trailing)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .contextMenu {
-                    Button {
-                        UIPasteboard.general.string = message.text
-                    } label: {
-                        Label("Copy", systemImage: "doc.on.doc")
-                    }
-                    if canMutate {
-                        Button(action: onEdit) {
-                            Label("Edit & Resend", systemImage: "pencil")
-                        }
-                        Button(action: onForkHere) {
-                            Label("Fork Conversation Here", systemImage: "arrow.triangle.branch")
-                        }
-                        Divider()
-                        Button(role: .destructive, action: onDelete) {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                }
-
-        case .assistant:
-            let text = message.trimmedText
-            let reasoning = message.trimmedReasoning
-            VStack(alignment: .leading, spacing: 8) {
-                if !reasoning.isEmpty {
-                    ReasoningDisclosureBox(text: reasoning, defaultExpanded: false)
-                }
-                if !text.isEmpty {
-                    AssistantMarkdownView(text: text)
-                }
-            }
-            .padding(.horizontal, 15)
-            .padding(.vertical, 12)
-            .background(
-                Color(uiColor: .secondarySystemGroupedBackground),
-                in: RoundedRectangle(cornerRadius: 20, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.04), lineWidth: 0.5)
-            )
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contextMenu {
-                Button {
-                    UIPasteboard.general.string = text.isEmpty ? reasoning : text
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                }
-                if canRegenerate {
-                    Button(action: onRegenerate) {
-                        Label("Regenerate", systemImage: "arrow.clockwise")
-                    }
-                }
-                if canMutate {
-                    Button(action: onForkHere) {
-                        Label("Fork Conversation Here", systemImage: "arrow.triangle.branch")
-                    }
-                    Divider()
-                    Button(role: .destructive, action: onDelete) {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
-            }
-
-        case .toolCall:
-            if let execution = message.toolExecution {
-                ToolExecutionDisclosureCard(title: message.text, execution: execution)
-                    .contextMenu {
-                        Button {
-                            UIPasteboard.general.string = execution.output
-                        } label: {
-                            Label("Copy Tool Output", systemImage: "doc.on.doc")
-                        }
-                        if canMutate {
-                            Button(role: .destructive, action: onDelete) {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
-            }
-
-        case .notice:
-            VStack(spacing: 6) {
-                Text(message.text)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                if canMutate,
-                   ServerAssistant.shared.activeSession.canContinueAfterToolLimit,
-                   ServerAssistant.shared.activeSession.messages.last?.id == message.id
-                {
-                    Button {
-                        ServerAssistant.shared.activeSession.continueExecution()
-                    } label: {
-                        Label("Continue", systemImage: "play.fill")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 2)
-
-        case .error:
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top, spacing: 9) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                        .padding(.top, 1)
-                    Text(message.text)
-                        .font(.subheadline)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if canMutate {
-                    Button {
-                        ServerAssistant.shared.activeSession.retryAfterError()
-                    } label: {
-                        Label("Retry", systemImage: "arrow.clockwise")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
-                    .controlSize(.small)
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 11)
-            .background(Color.red.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-// MARK: - FlowDown Morphing Send / Stop Action Button
-
-private struct FlowDownSendStopButton: View {
-    let isStreaming: Bool
-    let canSend: Bool
-    let onSend: () -> Void
-    let onStop: () -> Void
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulseRing = false
-
-    var body: some View {
-        Button {
-            if isStreaming {
-                onStop()
-            } else if canSend {
-                onSend()
-            }
-        } label: {
-            ZStack {
-                if isStreaming && !reduceMotion {
-                    Circle()
-                        .stroke(Color.red.opacity(pulseRing ? 0.0 : 0.42), lineWidth: 2)
-                        .frame(width: 34, height: 34)
-                        .scaleEffect(pulseRing ? 1.38 : 1.0)
-                }
-
-                Circle()
-                    .fill(buttonFill)
-                    .frame(width: 34, height: 34)
-
-                Group {
-                    if isStreaming {
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(Color.white)
-                            .frame(width: 11, height: 11)
-                            .transition(.scale(scale: 0.6).combined(with: .opacity))
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(canSend ? Color.white : Color.secondary.opacity(0.6))
-                            .transition(.scale(scale: 0.6).combined(with: .opacity))
-                    }
-                }
-            }
-            .frame(width: 34, height: 34)
-            .scaleEffect((isStreaming || canSend) ? 1.0 : 0.94)
-            .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!isStreaming && !canSend)
-        .animation(.spring(response: 0.28, dampingFraction: 0.72), value: isStreaming)
-        .animation(.spring(response: 0.24, dampingFraction: 0.75), value: canSend)
-        .onChange(of: isStreaming, initial: true) { _, streaming in
-            if streaming, !reduceMotion {
-                pulseRing = false
-                withAnimation(.easeOut(duration: 1.15).repeatForever(autoreverses: false)) {
-                    pulseRing = true
-                }
-            } else {
-                pulseRing = false
-            }
-        }
-        .accessibilityLabel(isStreaming ? "Stop Generating" : "Send")
-    }
-
-    private var buttonFill: Color {
-        if isStreaming { return .red }
-        if canSend { return .accentColor }
-        return Color.primary.opacity(0.08)
-    }
-}
-
-// MARK: - FlowDown Shimmering Thinking Status Label
-
-private struct ShimmeringThinkingLabel: View {
-    let text: String
-    let isThinking: Bool
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var shimmerOffset: CGFloat = -1.0
-
-    var body: some View {
-        let base = Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isThinking ? Color.primary.opacity(0.72) : Color.secondary)
-
-        if isThinking && !reduceMotion {
-            base
-                .overlay {
-                    GeometryReader { geo in
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: 0.0),
-                                .init(color: .white.opacity(0.85), location: 0.5),
-                                .init(color: .clear, location: 1.0),
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .frame(width: max(36, geo.size.width * 0.55))
-                        .offset(x: shimmerOffset * (geo.size.width + 48))
-                    }
-                    .mask(base)
-                }
-                .onAppear {
-                    shimmerOffset = -0.6
-                    withAnimation(.linear(duration: 1.45).repeatForever(autoreverses: false)) {
-                        shimmerOffset = 1.2
-                    }
-                }
-        } else {
-            base
-        }
-    }
-}
-
-// MARK: - FlowDown-Style Collapsible Reasoning Disclosure
-
-struct ReasoningDisclosureBox: View {
-    let text: String
-    let isThinking: Bool
-    @State private var expanded: Bool
-    @State private var userToggled = false
-
-    init(text: String, defaultExpanded: Bool, isThinking: Bool = false) {
-        self.text = text
-        self.isThinking = isThinking
-        _expanded = State(initialValue: defaultExpanded)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button {
-                userToggled = true
-                HapticsPreference.impact()
-                withAnimation(.snappy(duration: 0.24)) { expanded.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isThinking ? "sparkles" : "brain")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(isThinking ? Color.accentColor : Color.secondary)
-                    ShimmeringThinkingLabel(
-                        text: isThinking ? String(localized: "Thinking…") : String(localized: "Thinking Process"),
-                        isThinking: isThinking
-                    )
-                    Spacer(minLength: 4)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.tertiary)
-                        .rotationEffect(.degrees(expanded ? 90 : 0))
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
-                HStack(alignment: .top, spacing: 8) {
-                    Capsule()
-                        .fill(isThinking ? Color.accentColor.opacity(0.45) : Color.primary.opacity(0.14))
-                        .frame(width: 2)
-                        .padding(.vertical, 2)
-
-                    Text(text)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineSpacing(2.5)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.top, 2)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 8)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .onChange(of: isThinking) { _, thinking in
-            // Auto-collapse once the final answer starts streaming unless the user manually toggled it.
-            if !thinking && !userToggled {
-                withAnimation(.snappy(duration: 0.25)) {
-                    expanded = false
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Collapsible MCP Tool Execution Card
-
-private struct ToolExecutionDisclosureCard: View {
-    let title: String
-    let execution: AssistantToolExecution
-
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var expanded = false
-
-    private var durationLabel: String {
-        if execution.durationMs >= 1000 {
-            return String(format: "%.1fs", Double(execution.durationMs) / 1000.0)
-        }
-        return "\(execution.durationMs)ms"
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Button {
-                withAnimation(.snappy(duration: 0.2)) { expanded.toggle() }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: execution.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(execution.isError ? .red : .green)
-
-                    Text(title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.primary)
-
-                    if !execution.targetHosts.isEmpty {
-                        Text(execution.targetHosts.prefix(3).joined(separator: ", ") + (execution.targetHosts.count > 3 ? " +\(execution.targetHosts.count - 3)" : ""))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    Spacer(minLength: 4)
-
-                    if execution.durationMs > 0 {
-                        Text(durationLabel)
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.tertiary)
-                    }
-
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    if !execution.argumentsJSON.isEmpty, execution.argumentsJSON != "{}" {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text("Arguments")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.tertiary)
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                Text(execution.argumentsJSON)
-                                    .font(.caption2.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .textSelection(.enabled)
-                            }
-                        }
-                    }
-
-                    if !execution.output.isEmpty {
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack {
-                                Text("Output")
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
-                                Spacer()
-                                Button {
-                                    UIPasteboard.general.string = execution.output
-                                } label: {
-                                    Image(systemName: "doc.on.doc")
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            ScrollView([.horizontal, .vertical]) {
-                                Text(execution.output.prefix(6_000))
-                                    .font(.caption2.monospaced())
-                                    .foregroundStyle(.primary)
-                                    .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .frame(maxHeight: 220)
-                        }
-                    }
-                }
-                .padding(10)
-                .background(
-                    Color(uiColor: .tertiarySystemGroupedBackground).opacity(colorScheme == .dark ? 0.85 : 0.9),
-                    in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-                )
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground).opacity(0.85),
-            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(
-                    execution.isError ? Color.red.opacity(0.3) : Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
-                    lineWidth: 0.5
-                )
-        )
-    }
-}
-
-// MARK: - Inline Approval Card
-
-private struct InlineApprovalCard: View {
-    let approval: MobileAgentBridge.PendingApproval
-    let onApprove: () -> Void
-    let onApproveOneHour: () -> Void
-    let onDeny: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
-
-    var body: some View {
-        let req = approval.request
-        let risk = approval.risk
-        let accent: Color = switch risk.level {
-        case .readOnly: .green
-        case .modify: .orange
-        case .destructive: .red
-        }
-
-        VStack(alignment: .leading, spacing: 11) {
-            HStack(alignment: .center, spacing: 9) {
-                Image(systemName: approval.isDestructive ? "exclamationmark.shield.fill" : "terminal.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(accent)
-                    .frame(width: 28, height: 28)
-                    .background(accent.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(req.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    if let task = req.task, !task.isEmpty {
-                        Text(task)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer(minLength: 4)
-
-                Text(risk.level.localizedLabel)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(accent)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(accent.opacity(0.14), in: Capsule())
-            }
-
-            if !risk.reasons.isEmpty {
-                Text(risk.reasons.joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(accent)
-            }
-
-            if !req.hosts.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(req.hosts.prefix(12), id: \.self) { host in
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 5, height: 5)
-                                Text(host)
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(.primary)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.primary.opacity(0.06), in: Capsule())
-                        }
-                        if req.hosts.count > 12 {
-                            Text("+\(req.hosts.count - 12)")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-
-            if !req.detail.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    Text(req.detail)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.primary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(11)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Color(uiColor: .tertiarySystemGroupedBackground).opacity(colorScheme == .dark ? 0.85 : 0.9),
-                    in: RoundedRectangle(cornerRadius: 11, style: .continuous)
-                )
-            }
-
-            HStack(spacing: 8) {
-                Button(role: approval.isDestructive ? .destructive : nil, action: onApprove) {
-                    Label("Allow", systemImage: "checkmark.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                }
-                .appleProminentButton()
-                .tint(approval.isDestructive ? .red : .accentColor)
-
-                if !approval.isDestructive {
-                    Button(action: onApproveOneHour) {
-                        Text("1 Hour")
-                            .font(.subheadline.weight(.medium))
-                    }
-                    .appleGlassButton()
-                }
-
-                Button(role: .cancel, action: onDeny) {
-                    Text("Deny")
-                        .font(.subheadline)
-                }
-                .appleGlassButton()
-            }
-        }
-        .padding(14)
-        .background(
-            Color(uiColor: .secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(accent.opacity(0.45), lineWidth: 1)
-        )
     }
 }
 
@@ -1928,201 +1036,5 @@ private struct TargetScopePickerSheet: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Lightweight Native SwiftUI Markdown Renderer
-
-private struct AssistantMarkdownView: View {
-    let text: String
-
-    private enum Block: Identifiable {
-        case text(Int, String)
-        case code(Int, language: String, content: String)
-        case table(Int, headers: [String], rows: [[String]])
-
-        var id: Int {
-            switch self {
-            case .text(let i, _), .code(let i, _, _), .table(let i, _, _): i
-            }
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ForEach(parseBlocks(text)) { block in
-                switch block {
-                case .text(_, let content):
-                    inlineMarkdownText(content)
-                case .code(_, let language, let code):
-                    codeBlockView(language: language, code: code)
-                case .table(_, let headers, let rows):
-                    tableView(headers: headers, rows: rows)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func inlineMarkdownText(_ raw: String) -> some View {
-        let lines = raw.components(separatedBy: "\n")
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.isEmpty {
-                    EmptyView()
-                } else if trimmed.hasPrefix("### ") {
-                    markdownSpan(String(trimmed.dropFirst(4)))
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.top, 2)
-                } else if trimmed.hasPrefix("## ") {
-                    markdownSpan(String(trimmed.dropFirst(3)))
-                        .font(.headline)
-                        .padding(.top, 3)
-                } else if trimmed.hasPrefix("# ") {
-                    markdownSpan(String(trimmed.dropFirst(2)))
-                        .font(.headline.weight(.bold))
-                        .padding(.top, 4)
-                } else if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("•").foregroundStyle(.secondary)
-                        markdownSpan(String(trimmed.dropFirst(2)))
-                            .font(.subheadline)
-                    }
-                } else {
-                    markdownSpan(trimmed)
-                        .font(.subheadline)
-                }
-            }
-        }
-        .textSelection(.enabled)
-    }
-
-    private func markdownSpan(_ content: String) -> Text {
-        if let attributed = try? AttributedString(
-            markdown: content,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        ) {
-            return Text(attributed)
-        }
-        return Text(content)
-    }
-
-    private func codeBlockView(language: String, code: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(language.isEmpty ? "shell" : language)
-                    .font(.caption2.monospaced().weight(.medium))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button {
-                    UIPasteboard.general.string = code
-                } label: {
-                    Image(systemName: "doc.on.doc")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-            ScrollView(.horizontal, showsIndicators: false) {
-                Text(code)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.primary)
-                    .textSelection(.enabled)
-            }
-        }
-        .padding(10)
-        .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-    }
-
-    private func tableView(headers: [String], rows: [[String]]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 6) {
-                GridRow {
-                    ForEach(Array(headers.enumerated()), id: \.offset) { _, header in
-                        Text(header)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Divider().gridCellUnsizedAxes(.horizontal)
-                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                    GridRow {
-                        ForEach(0 ..< headers.count, id: \.self) { col in
-                            markdownSpan(col < row.count ? row[col] : "")
-                                .font(.caption.monospacedDigit())
-                        }
-                    }
-                }
-            }
-            .padding(10)
-            .background(Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-        }
-    }
-
-    private func parseBlocks(_ input: String) -> [Block] {
-        var blocks: [Block] = []
-        var textLines: [String] = []
-        let lines = input.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
-        var idx = 0
-
-        func flushText() {
-            let joined = textLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-            if !joined.isEmpty {
-                blocks.append(.text(blocks.count, joined))
-            }
-            textLines.removeAll()
-        }
-
-        while idx < lines.count {
-            let line = lines[idx]
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-            if trimmed.hasPrefix("```") {
-                flushText()
-                let lang = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-                var codeLines: [String] = []
-                idx += 1
-                while idx < lines.count, !lines[idx].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
-                    codeLines.append(lines[idx])
-                    idx += 1
-                }
-                blocks.append(.code(blocks.count, language: lang, content: codeLines.joined(separator: "\n")))
-                idx += 1
-                continue
-            }
-
-            if trimmed.contains("|"), idx + 1 < lines.count {
-                let nextTrimmed = lines[idx + 1].trimmingCharacters(in: .whitespaces)
-                if nextTrimmed.contains("|"), nextTrimmed.contains("-") {
-                    let headers = splitTableRow(trimmed)
-                    if !headers.isEmpty {
-                        flushText()
-                        var rows: [[String]] = []
-                        idx += 2
-                        while idx < lines.count {
-                            let rowTrimmed = lines[idx].trimmingCharacters(in: .whitespaces)
-                            guard rowTrimmed.contains("|") else { break }
-                            rows.append(splitTableRow(rowTrimmed))
-                            idx += 1
-                        }
-                        blocks.append(.table(blocks.count, headers: headers, rows: rows))
-                        continue
-                    }
-                }
-            }
-
-            textLines.append(line)
-            idx += 1
-        }
-        flushText()
-        return blocks
-    }
-
-    private func splitTableRow(_ line: String) -> [String] {
-        var trimmed = line.trimmingCharacters(in: .whitespaces)
-        if trimmed.hasPrefix("|") { trimmed.removeFirst() }
-        if trimmed.hasSuffix("|") { trimmed.removeLast() }
-        return trimmed.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) }
     }
 }

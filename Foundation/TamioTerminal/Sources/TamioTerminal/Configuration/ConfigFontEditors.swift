@@ -157,8 +157,8 @@ enum FontLibrary {
     /// "cv01"–"cv99" and "ss01"–"ss99" get their own groups.
     private static func featureGroup(tag: String, fallback: String) -> String {
         guard tag.count == 4, tag.dropFirst(2).allSatisfy({ $0.isASCII && $0.isNumber }) else { return fallback }
-        if tag.hasPrefix("cv") { return "Character Variants" }
-        if tag.hasPrefix("ss") { return "Stylistic Sets" }
+        if tag.hasPrefix("cv") { return ConfigLayout.tr("font.group.character_variants", default: "Character Variants") }
+        if tag.hasPrefix("ss") { return ConfigLayout.tr("font.group.stylistic_sets", default: "Stylistic Sets") }
         return fallback
     }
 
@@ -213,7 +213,7 @@ struct ConfigFontPicker: View {
             .frame(width: Self.width - 28)
         }
         .buttonStyle(.rx)
-        .help("Choose a font installed on this Mac")
+        .help(ConfigLayout.tr("help.choose_installed_font", default: "Choose a font installed on this Mac"))
         .popover(isPresented: $open, arrowEdge: Self.arrowEdge) {
             FontFamilyList(selection: $family, placeholder: placeholder) { open = false }
         }
@@ -479,7 +479,7 @@ struct ConfigFontFeatureEditor: View {
                     RXFlowLayout(spacing: 6) {
                         ForEach(groups[group] ?? []) { feature in
                             RXChip(feature.name, isOn: isOn(feature)) { set(feature, on: !isOn(feature)) }
-                                .help("\(feature.tag)\(feature.defaultOn ? " · on by default" : "")")
+                                .help(feature.defaultOn ? String(format: ConfigLayout.tr("font.feature.on_by_default", default: "%@ · on by default"), feature.tag) : feature.tag)
                         }
                     }
                 }

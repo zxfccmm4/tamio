@@ -18,7 +18,6 @@ import UIKit
 struct AboutView: View {
     @ScaledMetric private var iconColumnWidth: CGFloat = 28
     @State private var loveCount = 0
-    @Namespace private var zoomNamespace
 
     var body: some View {
         Form {
@@ -50,10 +49,9 @@ struct AboutView: View {
             Section("Core Capabilities") {
                 ForEach(TamioCapability.all) { capability in
                     NavigationLink {
-                        AboutCapabilityDetailView(capability: capability, namespace: zoomNamespace)
+                        AboutCapabilityDetailView(capability: capability)
                     } label: {
                         capabilityRow(capability)
-                            .appleZoomSource(id: capability.id, in: zoomNamespace, cornerRadius: 12, appliesCardSurface: false)
                     }
                 }
             }
@@ -396,7 +394,6 @@ private struct TamioCapability: Identifiable, Hashable {
 
 private struct AboutCapabilityDetailView: View {
     let capability: TamioCapability
-    let namespace: Namespace.ID
     @ScaledMetric private var emblemSize: CGFloat = 56
 
     var body: some View {
@@ -456,7 +453,6 @@ private struct AboutCapabilityDetailView: View {
             }
         }
         .appleGroupedBackground()
-        .appleZoomDestination(sourceID: capability.id, in: namespace)
         .navigationTitle(capability.title)
         .navigationBarTitleDisplayMode(.inline)
     }

@@ -24,11 +24,11 @@ struct ConfigDocument: Codable, Equatable, Sendable {
             let line = raw.trimmingCharacters(in: .whitespaces)
             if line.isEmpty || line.hasPrefix("#") { continue }
             guard let separator = line.firstIndex(of: "=") else {
-                throw ConfigError.message("Line \(index + 1): expected key = value")
+                throw ConfigError.message(String(format: ConfigLayout.tr("error.line_expected_key_value", default: "Line %d: expected key = value"), index + 1))
             }
             let key = String(line[..<separator]).trimmingCharacters(in: .whitespaces)
             guard !key.isEmpty, key.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }) else {
-                throw ConfigError.message("Line \(index + 1): invalid setting name")
+                throw ConfigError.message(String(format: ConfigLayout.tr("error.line_invalid_setting", default: "Line %d: invalid setting name"), index + 1))
             }
             var value = String(line[line.index(after: separator)...]).trimmingCharacters(in: .whitespaces)
             if ["background", "foreground", "cursor-color", "selection-background", "selection-foreground"].contains(key),
@@ -36,7 +36,7 @@ struct ConfigDocument: Codable, Equatable, Sendable {
             if key == "palette" {
                 guard let eq = value.firstIndex(of: "="), let slot = Int(value[..<eq]), (0...255).contains(slot),
                       !value[value.index(after: eq)...].isEmpty else {
-                    throw ConfigError.message("Line \(index + 1): palette needs an index from 0 to 255 and a color")
+                    throw ConfigError.message(String(format: ConfigLayout.tr("error.line_palette_format", default: "Line %d: palette needs an index from 0 to 255 and a color"), index + 1))
                 }
             }
             if catalog.setting(key: key)?.repeatable == true || catalog.setting(key: key) == nil {
@@ -102,13 +102,13 @@ struct ConfigDocument: Codable, Equatable, Sendable {
         guard trimmed.hasPrefix("https://") || trimmed.hasPrefix("http://") || trimmed.hasPrefix("#share=") else { return source }
         guard let payload = trimmed.components(separatedBy: "#").last?
             .components(separatedBy: "&").first(where: { $0.hasPrefix("share=") })?.dropFirst(6), !payload.isEmpty else {
-            throw ConfigError.message("This URL does not contain a shared configuration")
+            throw ConfigError.message(ConfigLayout.tr("error.url_no_shared_config", default: "This URL does not contain a shared configuration"))
         }
         var base64 = String(payload).removingPercentEncoding ?? String(payload)
         base64 = base64.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
         base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
         guard let data = Data(base64Encoded: base64), let decoded = String(data: data, encoding: .utf8) else {
-            throw ConfigError.message("The shared configuration is not valid UTF-8 base64")
+            throw ConfigError.message(ConfigLayout.tr("error.shared_config_invalid_base64", default: "The shared configuration is not valid UTF-8 base64"))
         }
         return decoded
     }

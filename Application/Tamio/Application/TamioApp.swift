@@ -9,6 +9,7 @@ import AppKit
 import Combine
 import MachineStatusView
 import SwiftUI
+import TamioAssistant
 import TamioDesign
 import TamioModule
 import TamioTerminal
@@ -33,6 +34,12 @@ struct TamioApp: App {
         PortForwardBackend.shared.reportProblem = { Dialogs.presentError(with: $0) }
         // Agents reach the servers through the MCP server (Settings › MCP).
         AgentBridge.shared.start()
+        // Wire in-app AI Assistant approvals to each session's in-place composer gate
+        // while keeping external MCP socket alerts routed through AgentBridge.
+        AssistantPlatformHooks.shared.onInstallInlineApprovalBridge = { handler in
+            AgentBridge.shared.inlineApprovalHandler = handler
+        }
+        AssistantAgentBridge.shared.install()
         // Release builds look for new versions (Sparkle) once a day.
         UpdateCenter.shared.start()
 

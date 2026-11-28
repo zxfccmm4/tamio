@@ -235,7 +235,7 @@ public struct GhosttyConfigurationView: View {
         let hosts = hostSearchResults
         return ScrollView {
             LazyVStack(alignment: .leading, spacing: RX.Space.s6) {
-                PageTitle("Search Results", subtitle: "\(searchSubtitle(settings.count + hosts.count))")
+                PageTitle(ConfigLayout.tr("search.results.title", default: "Search Results"), subtitle: "\(searchSubtitle(settings.count + hosts.count))")
                 ForEach(categories) { category in
                     let groups = category.groups.compactMap { group -> (ConfigLayout.Group, [String])? in
                         let hostMatch = group.items.contains { item in

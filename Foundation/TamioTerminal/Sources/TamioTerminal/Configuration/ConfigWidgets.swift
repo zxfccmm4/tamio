@@ -76,7 +76,7 @@ struct ConfigSettingRow: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .help("Ghostty setting: \(setting.key)")
+                .help(String(format: ConfigLayout.tr("help.ghostty_setting", default: "Ghostty setting: %@"), setting.key))
                 HStack(spacing: RX.Space.s2) {
                     if !widgetBelow {
                         ConfigWidgetView(model: model, setting: setting)
@@ -152,9 +152,9 @@ struct ConfigWidgetView: View {
     @ViewBuilder var body: some View {
         switch setting.key {
         case "font-family":
-            ConfigFontFamilyEditor(model: model, key: setting.key, placeholder: "Built-in (JetBrains Mono)")
+            ConfigFontFamilyEditor(model: model, key: setting.key, placeholder: ConfigLayout.tr("placeholder.builtin_font", default: "Built-in (JetBrains Mono)"))
         case "font-family-bold", "font-family-italic", "font-family-bold-italic":
-            ConfigFontFamilyEditor(model: model, key: setting.key, placeholder: "Same as main font")
+            ConfigFontFamilyEditor(model: model, key: setting.key, placeholder: ConfigLayout.tr("placeholder.same_as_main_font", default: "Same as main font"))
         case "font-style", "font-style-bold", "font-style-italic", "font-style-bold-italic":
             ConfigFontStylePicker(model: model, key: setting.key)
         case "scrollback-limit", "image-storage-limit":
@@ -282,10 +282,10 @@ struct ConfigWidgetView: View {
 
     private var rangeHelp: String {
         switch (widget?.min, widget?.max) {
-        case let (min?, max?): return "From \(min.formatted()) to \(max.formatted())"
-        case let (min?, nil): return "At least \(min.formatted())"
-        case let (nil, max?): return "At most \(max.formatted())"
-        default: return "Adjust"
+        case let (min?, max?): return String(format: ConfigLayout.tr("range.from_to", default: "From %@ to %@"), min.formatted(), max.formatted())
+        case let (min?, nil): return String(format: ConfigLayout.tr("range.at_least", default: "At least %@"), min.formatted())
+        case let (nil, max?): return String(format: ConfigLayout.tr("range.at_most", default: "At most %@"), max.formatted())
+        default: return ConfigLayout.tr("range.adjust", default: "Adjust")
         }
     }
 
@@ -297,7 +297,7 @@ struct ConfigWidgetView: View {
 
     private var colorInput: some View {
         HStack(spacing: RX.Space.s2) {
-            Text(model.document.overrides[setting.key] != nil ? "Custom" : model.document.effectiveTheme(dark: scheme == .dark) != nil ? "Theme" : "Default")
+            Text(model.document.overrides[setting.key] != nil ? ConfigLayout.tr("option.custom", default: "Custom") : model.document.effectiveTheme(dark: scheme == .dark) != nil ? ConfigLayout.tr("option.theme", default: "Theme") : ConfigLayout.tr("option.default", default: "Default"))
                 .font(.rxHelp)
                 .foregroundStyle(.rxInkSecondary)
                 .fixedSize()
@@ -379,11 +379,11 @@ struct ConfigUnitInput: View {
     private var number: String { units.first(where: { value.hasSuffix($0) }).map { String(value.dropLast($0.count)) } ?? value }
     var body: some View {
         HStack(spacing: RX.Space.s2) {
-            TextField("Default", text: Binding(get: { number }, set: { value = $0.isEmpty ? "" : $0 + (unit == "px" ? "" : unit) }))
+            TextField(ConfigLayout.tr("option.default", default: "Default"), text: Binding(get: { number }, set: { value = $0.isEmpty ? "" : $0 + (unit == "px" ? "" : unit) }))
                 .multilineTextAlignment(.trailing)
                 .textFieldStyle(.rx)
                 .frame(width: 96)
-            Picker("Unit", selection: Binding(get: { unit }, set: { value = number.isEmpty ? "" : number + ($0 == "px" ? "" : $0) })) {
+            Picker(ConfigLayout.tr("field.unit", default: "Unit"), selection: Binding(get: { unit }, set: { value = number.isEmpty ? "" : number + ($0 == "px" ? "" : $0) })) {
                 ForEach(units, id: \.self) { Text($0).tag($0) }
             }.labelsHidden().fixedSize()
         }
@@ -397,7 +397,7 @@ struct ConfigPairInput: View {
     var scrollDefaults: [String] = ["1", "3"]
     private var parts: [String] { ConfigPairCodec.parse(value, scroll: scroll, fallback: scrollDefaults).values }
     private var linked: Bool { ConfigPairCodec.parse(value, scroll: scroll, fallback: scrollDefaults).linked }
-    private var names: [String] { scroll ? ["Trackpad", "Wheel"] : labels }
+    private var names: [String] { scroll ? [ConfigLayout.tr("pair.trackpad", default: "Trackpad"), ConfigLayout.tr("pair.wheel", default: "Wheel")] : labels }
 
     var body: some View {
         // Side by side when there is room; in a narrow window each caption
@@ -434,7 +434,7 @@ struct ConfigPairInput: View {
 
     @ViewBuilder private var linkButton: some View {
         if !scroll {
-            RXIconButton(linked ? "Unlink: set \(names[0]) and \(names[1]) separately" : "Link: use one value for both",
+            RXIconButton(linked ? String(format: ConfigLayout.tr("action.unlink_pair", default: "Unlink: set %@ and %@ separately"), names[0], names[1]) : ConfigLayout.tr("action.link_pair", default: "Link: use one value for both"),
                          systemImage: linked ? "link" : "link.badge.plus", kind: .plain) {
                 write(parts[0], parts[1], !linked)
             }
@@ -455,7 +455,7 @@ struct ConfigRepeatableEditor: View {
     /// Its row says when to draw again (see `ConfigEditorModel.Scope`).
     @Environment(\.configRevision) private var revision
     let key: String
-    var placeholder = "Value"
+    var placeholder = ConfigLayout.tr("field.value", default: "Value")
     var body: some View {
         VStack(spacing: 0) {
             ForEach(Array(model.document.values(key).enumerated()), id: \.offset) { index, _ in

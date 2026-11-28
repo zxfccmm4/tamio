@@ -1,10 +1,10 @@
 //
 //  AssistantProviders.swift
-//  TamioMobile
+//  TamioAssistant
 //
-//  Multi-provider AI configuration and Keychain-backed credential store.
-//  Supports on-device Apple Intelligence (iOS 26+ FoundationModels) as well as
-//  OpenAI-compatible and Anthropic Messages remote providers.
+//  Cross-platform multi-provider AI configuration and Keychain-backed
+//  credential store supporting on-device Apple Intelligence, Private Cloud
+//  Compute, OpenAI-compatible, and Anthropic Messages remote providers.
 //
 
 import Foundation
@@ -17,7 +17,7 @@ import SwiftUI
 
 // MARK: - Apple Intelligence Availability
 
-enum AppleIntelligenceStatus: Equatable, Sendable {
+public enum AppleIntelligenceStatus: Equatable, Sendable {
     case available
     case requiresNewerOS
     case deviceNotEligible
@@ -25,9 +25,9 @@ enum AppleIntelligenceStatus: Equatable, Sendable {
     case modelNotReady
     case unavailable
 
-    static var current: AppleIntelligenceStatus {
+    public static var current: AppleIntelligenceStatus {
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, *) {
+        if #available(macOS 26.0, iOS 26.0, *) {
             switch SystemLanguageModel.default.availability {
             case .available:
                 return .available
@@ -48,12 +48,16 @@ enum AppleIntelligenceStatus: Equatable, Sendable {
         return .requiresNewerOS
     }
 
-    var localizedDescription: String {
+    public var localizedDescription: String {
         switch self {
         case .available:
             return String(localized: "Runs on device with no API key required.")
         case .requiresNewerOS:
+            #if os(macOS)
+            return String(localized: "Requires macOS 26 or later. Configure a remote AI provider instead.")
+            #else
             return String(localized: "Requires iOS 26 or later. Configure a remote AI provider instead.")
+            #endif
         case .deviceNotEligible:
             return String(localized: "This device does not support Apple Intelligence. Configure a remote AI provider instead.")
         case .notEnabled:
@@ -66,16 +70,18 @@ enum AppleIntelligenceStatus: Equatable, Sendable {
     }
 }
 
-// MARK: - Apple Intelligence Private Cloud Compute Availability (iOS 27+)
+// MARK: - Apple Intelligence Private Cloud Compute Availability
 
 private enum PrivateCloudComputeEntitlement {
     static let key = "com.apple.developer.private-cloud-compute"
 
-    /// Checks the app's signed `embedded.mobileprovision` before touching
-    /// `PrivateCloudComputeLanguageModel`, because FoundationModels raises a
-    /// fatal error on iOS 27 if the managed entitlement is missing.
     static let isGranted: Bool = {
-        guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
+        #if os(macOS)
+        let ext = "provisionprofile"
+        #else
+        let ext = "mobileprovision"
+        #endif
+        guard let url = Bundle.main.url(forResource: "embedded", withExtension: ext),
               let raw = try? Data(contentsOf: url),
               let text = String(data: raw, encoding: .isoLatin1),
               let start = text.range(of: "<?xml"),
@@ -94,7 +100,7 @@ private enum PrivateCloudComputeEntitlement {
     }()
 }
 
-enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
+public enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
     case available
     case missingEntitlement
     case requiresNewerOS
@@ -103,9 +109,9 @@ enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
     case systemNotReady
     case unavailable
 
-    static var current: ApplePrivateCloudComputeStatus {
+    public static var current: ApplePrivateCloudComputeStatus {
         #if canImport(FoundationModels) && compiler(>=6.4)
-        if #available(iOS 27.0, *) {
+        if #available(macOS 27.0, iOS 27.0, *) {
             guard PrivateCloudComputeEntitlement.isGranted else {
                 return .missingEntitlement
             }
@@ -130,7 +136,7 @@ enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
         return .requiresNewerOS
     }
 
-    var isEligibleHardwareAndOS: Bool {
+    public var isEligibleHardwareAndOS: Bool {
         switch self {
         case .requiresNewerOS, .deviceNotEligible, .missingEntitlement:
             return false
@@ -139,14 +145,18 @@ enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
         }
     }
 
-    var localizedDescription: String {
+    public var localizedDescription: String {
         switch self {
         case .available:
             return String(localized: "Runs on Apple's Private Cloud Compute with end-to-end privacy and no API key required.")
         case .missingEntitlement:
             return String(localized: "This build is signed without Apple's managed Private Cloud Compute entitlement.")
         case .requiresNewerOS:
+            #if os(macOS)
+            return String(localized: "Requires macOS 27 or later with Private Cloud Compute entitlement.")
+            #else
             return String(localized: "Requires iOS 27 or later with Private Cloud Compute entitlement.")
+            #endif
         case .deviceNotEligible:
             return String(localized: "This device does not support Apple Intelligence Private Cloud Compute.")
         case .appleIntelligenceNotEnabled:
@@ -159,16 +169,14 @@ enum ApplePrivateCloudComputeStatus: Equatable, Sendable {
     }
 }
 
-// MARK: - Wire Format
+// MARK: - Wire Format & Provider Kind
 
-nonisolated enum AIWireFormat: String, Codable, Hashable, Sendable {
+public nonisolated enum AIWireFormat: String, Codable, Hashable, Sendable {
     case openAIChatCompletions
     case anthropicMessages
 }
 
-// MARK: - Provider Kind
-
-nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
+public nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case openAI
     case anthropic
     case gemini
@@ -180,9 +188,9 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
     case openAICompatible
     case anthropicCompatible
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .openAI: "OpenAI"
         case .anthropic: "Anthropic Claude"
@@ -197,7 +205,7 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var shortDescription: String {
+    public var shortDescription: String {
         switch self {
         case .openAI: "GPT-4.1 · o4-mini"
         case .anthropic: "Claude Sonnet · Haiku"
@@ -212,7 +220,7 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .openAI: "sparkles"
         case .anthropic: "brain.head.profile"
@@ -227,7 +235,7 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var tintColor: Color {
+    public var tintColor: Color {
         switch self {
         case .openAI: .green
         case .anthropic: .orange
@@ -242,14 +250,14 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var protocolBadgeText: String {
+    public var protocolBadgeText: String {
         switch wireFormat {
         case .openAIChatCompletions: "OpenAI API"
         case .anthropicMessages: "Anthropic API"
         }
     }
 
-    var wireFormat: AIWireFormat {
+    public var wireFormat: AIWireFormat {
         switch self {
         case .anthropic, .anthropicCompatible:
             return .anthropicMessages
@@ -258,7 +266,7 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var defaultBaseURL: String {
+    public var defaultBaseURL: String {
         switch self {
         case .openAI: "https://api.openai.com/v1"
         case .anthropic: "https://api.anthropic.com/v1"
@@ -273,29 +281,25 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var defaultAppendV1Suffix: Bool {
+    public var defaultAppendV1Suffix: Bool {
         switch self {
-        case .gemini, .openRouter:
-            return false
-        default:
-            return true
+        case .gemini, .openRouter: false
+        default: true
         }
     }
 
-    var requiresAPIKey: Bool {
+    public var requiresAPIKey: Bool {
         self != .ollama && self != .magpie
     }
 
-    var defaultAuthToken: String? {
+    public var defaultAuthToken: String? {
         switch self {
-        case .magpie:
-            return "magpie-tamio"
-        default:
-            return nil
+        case .magpie: "magpie-tamio"
+        default: nil
         }
     }
 
-    var recommendedModels: [String] {
+    public var recommendedModels: [String] {
         switch self {
         case .openAI:
             ["gpt-4.1-mini", "gpt-4.1", "gpt-4o-mini", "gpt-4o", "o4-mini"]
@@ -320,46 +324,44 @@ nonisolated enum AIProviderKind: String, Codable, CaseIterable, Identifiable, Ha
         }
     }
 
-    var defaultModel: String {
+    public var defaultModel: String {
         recommendedModels.first ?? ""
     }
 }
 
-// MARK: - Custom Provider Icon
+// MARK: - Custom Provider Icon & Config
 
-nonisolated struct AIProviderCustomIcon: Codable, Hashable, Sendable {
-    enum Kind: String, Codable, Hashable, Sendable {
+public nonisolated struct AIProviderCustomIcon: Codable, Hashable, Sendable {
+    public enum Kind: String, Codable, Hashable, Sendable {
         case brandAsset
         case symbol
     }
 
-    var kind: Kind
-    var value: String
-    var tintName: String
+    public var kind: Kind
+    public var value: String
+    public var tintName: String
 
-    init(kind: Kind, value: String, tintName: String = "accent") {
+    public init(kind: Kind, value: String, tintName: String = "accent") {
         self.kind = kind
         self.value = value
         self.tintName = tintName
     }
 }
 
-// MARK: - Provider Config
+public nonisolated struct AIProviderConfig: Identifiable, Codable, Hashable, Sendable {
+    public let id: String
+    public var name: String
+    public var kind: AIProviderKind
+    public var baseURL: String
+    public var appendV1Suffix: Bool
+    public var model: String
+    public var availableModels: [String]
+    public var customUserAgent: String?
+    public var customIcon: AIProviderCustomIcon?
+    public var isEnabled: Bool
+    public var createdAt: Date
 
-nonisolated struct AIProviderConfig: Identifiable, Codable, Hashable, Sendable {
-    let id: String
-    var name: String
-    var kind: AIProviderKind
-    var baseURL: String
-    var appendV1Suffix: Bool
-    var model: String
-    var availableModels: [String]
-    var customUserAgent: String?
-    var customIcon: AIProviderCustomIcon?
-    var isEnabled: Bool
-    var createdAt: Date
-
-    init(
+    public init(
         id: String = UUID().uuidString,
         name: String,
         kind: AIProviderKind,
@@ -385,11 +387,11 @@ nonisolated struct AIProviderConfig: Identifiable, Codable, Hashable, Sendable {
         self.createdAt = createdAt
     }
 
-    var resolvedBaseURL: String {
+    public var resolvedBaseURL: String {
         AIURLBuilder.normalizedBaseURL(baseURL, appendV1: appendV1Suffix)
     }
 
-    var mergedModels: [String] {
+    public var mergedModels: [String] {
         var result: [String] = []
         var seen = Set<String>()
         for candidate in ([model] + availableModels + kind.recommendedModels) {
@@ -401,18 +403,16 @@ nonisolated struct AIProviderConfig: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
-// MARK: - Active Selection
-
-nonisolated enum AIActiveSelection: Codable, Equatable, Hashable, Sendable {
+public nonisolated enum AIActiveSelection: Codable, Equatable, Hashable, Sendable {
     case appleIntelligence
     case applePrivateCloudCompute
     case custom(providerId: String)
 }
 
-// MARK: - URL Builder
+// MARK: - URL Builder & Test Result
 
-nonisolated enum AIURLBuilder {
-    static func normalizedBaseURL(_ raw: String, appendV1: Bool) -> String {
+public nonisolated enum AIURLBuilder {
+    public static func normalizedBaseURL(_ raw: String, appendV1: Bool) -> String {
         var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         while trimmed.hasSuffix("/") {
             trimmed.removeLast()
@@ -439,7 +439,7 @@ nonisolated enum AIURLBuilder {
         return trimmed
     }
 
-    static func endpointURL(baseURL: String, appendV1: Bool, path: String) -> URL? {
+    public static func endpointURL(baseURL: String, appendV1: Bool, path: String) -> URL? {
         let base = normalizedBaseURL(baseURL, appendV1: appendV1)
         guard !base.isEmpty else { return nil }
         let cleanPath = path.hasPrefix("/") ? String(path.dropFirst()) : path
@@ -450,30 +450,35 @@ nonisolated enum AIURLBuilder {
     }
 }
 
-// MARK: - Connection Test Result
+public nonisolated struct AIProviderTestResult: Equatable, Sendable {
+    public let succeeded: Bool
+    public let latencyMs: Int
+    public let message: String
+    public let discoveredModels: [String]
 
-nonisolated struct AIProviderTestResult: Equatable, Sendable {
-    let succeeded: Bool
-    let latencyMs: Int
-    let message: String
-    let discoveredModels: [String]
+    public init(succeeded: Bool, latencyMs: Int, message: String, discoveredModels: [String]) {
+        self.succeeded = succeeded
+        self.latencyMs = latencyMs
+        self.message = message
+        self.discoveredModels = discoveredModels
+    }
 }
 
 // MARK: - Provider Store
 
 @MainActor
 @Observable
-final class AIProviderStore {
-    static let shared = AIProviderStore()
+public final class AIProviderStore {
+    public static let shared = AIProviderStore()
 
     private static let providersStorageKey = "sb.moe.tamio.ai.providers.v1"
     private static let activeSelectionStorageKey = "sb.moe.tamio.ai.activeSelection.v1"
     private static let pccEnabledStorageKey = "sb.moe.tamio.ai.pccEnabled.v1"
     private static let keychainService = "sb.moe.tamio.ai.apikeys"
 
-    private(set) var providers: [AIProviderConfig] = []
-    private(set) var activeSelection: AIActiveSelection = .appleIntelligence
-    var privateCloudComputeEnabled: Bool = true {
+    public private(set) var providers: [AIProviderConfig] = []
+    public private(set) var activeSelection: AIActiveSelection = .appleIntelligence
+    public var privateCloudComputeEnabled: Bool = true {
         didSet {
             defaults.set(privateCloudComputeEnabled, forKey: Self.pccEnabledStorageKey)
         }
@@ -483,7 +488,7 @@ final class AIProviderStore {
     private let keychain: Keychain
     private let session: URLSession
 
-    init(
+    public init(
         defaults: UserDefaults = .standard,
         session: URLSession = .shared
     ) {
@@ -496,17 +501,15 @@ final class AIProviderStore {
         loadFromDisk()
     }
 
-    // MARK: - Queries
-
-    var enabledProviders: [AIProviderConfig] {
+    public var enabledProviders: [AIProviderConfig] {
         providers.filter(\.isEnabled)
     }
 
-    func provider(id: String) -> AIProviderConfig? {
+    public func provider(id: String) -> AIProviderConfig? {
         providers.first { $0.id == id }
     }
 
-    func effectiveSelection(
+    public func effectiveSelection(
         appleIntelligenceAvailable: Bool,
         pccAvailable: Bool = ApplePrivateCloudComputeStatus.current == .available
     ) -> AIActiveSelection {
@@ -533,7 +536,7 @@ final class AIProviderStore {
         }
     }
 
-    func activeDisplayName(appleIntelligenceAvailable: Bool) -> String {
+    public func activeDisplayName(appleIntelligenceAvailable: Bool) -> String {
         switch effectiveSelection(appleIntelligenceAvailable: appleIntelligenceAvailable) {
         case .appleIntelligence:
             return String(localized: "Apple Intelligence")
@@ -544,7 +547,7 @@ final class AIProviderStore {
         }
     }
 
-    func activeModelSummary(appleIntelligenceAvailable: Bool) -> String {
+    public func activeModelSummary(appleIntelligenceAvailable: Bool) -> String {
         switch effectiveSelection(appleIntelligenceAvailable: appleIntelligenceAvailable) {
         case .appleIntelligence:
             return String(localized: "On-Device")
@@ -555,19 +558,17 @@ final class AIProviderStore {
         }
     }
 
-    func apiKey(for providerId: String) -> String? {
+    public func apiKey(for providerId: String) -> String? {
         try? keychain.getString(providerId)
     }
 
-    func hasCredential(for config: AIProviderConfig) -> Bool {
+    public func hasCredential(for config: AIProviderConfig) -> Bool {
         if !config.kind.requiresAPIKey { return true }
         guard let key = apiKey(for: config.id) else { return false }
         return !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    // MARK: - Mutations
-
-    func addProvider(_ config: AIProviderConfig, apiKey: String?, makeActive: Bool = true) throws {
+    public func addProvider(_ config: AIProviderConfig, apiKey: String?, makeActive: Bool = true) throws {
         var clean = config
         clean.name = clean.name.trimmingCharacters(in: .whitespacesAndNewlines)
         clean.baseURL = clean.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -583,7 +584,7 @@ final class AIProviderStore {
         persist()
     }
 
-    func updateProvider(_ config: AIProviderConfig, apiKey: String?) throws {
+    public func updateProvider(_ config: AIProviderConfig, apiKey: String?) throws {
         guard let index = providers.firstIndex(where: { $0.id == config.id }) else { return }
         var clean = config
         clean.name = clean.name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -605,7 +606,7 @@ final class AIProviderStore {
         persist()
     }
 
-    func deleteProvider(id: String) {
+    public func deleteProvider(id: String) {
         providers.removeAll { $0.id == id }
         try? keychain.remove(id)
         if activeSelection == .custom(providerId: id) {
@@ -614,12 +615,12 @@ final class AIProviderStore {
         persist()
     }
 
-    func selectActive(_ selection: AIActiveSelection) {
+    public func selectActive(_ selection: AIActiveSelection) {
         activeSelection = selection
         persist()
     }
 
-    func setModel(_ model: String, for providerId: String) {
+    public func setModel(_ model: String, for providerId: String) {
         guard let index = providers.firstIndex(where: { $0.id == providerId }) else { return }
         let trimmed = model.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -630,7 +631,7 @@ final class AIProviderStore {
         persist()
     }
 
-    func importFromBackup(
+    public func importFromBackup(
         providers imported: [AIProviderConfig],
         apiKeys: [String: String],
         activeSelection importedSelection: AIActiveSelection?,
@@ -671,9 +672,7 @@ final class AIProviderStore {
         persist()
     }
 
-    // MARK: - Model Discovery & Connection Test
-
-    func fetchModels(for config: AIProviderConfig, apiKeyOverride: String? = nil) async throws -> [String] {
+    public func fetchModels(for config: AIProviderConfig, apiKeyOverride: String? = nil) async throws -> [String] {
         let effectiveKey = (apiKeyOverride ?? apiKey(for: config.id))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -707,7 +706,7 @@ final class AIProviderStore {
         return models
     }
 
-    func testConnection(for config: AIProviderConfig, apiKeyOverride: String? = nil) async -> AIProviderTestResult {
+    public func testConnection(for config: AIProviderConfig, apiKeyOverride: String? = nil) async -> AIProviderTestResult {
         let start = ContinuousClock.now
         let effectiveKey = (apiKeyOverride ?? apiKey(for: config.id))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -729,7 +728,6 @@ final class AIProviderStore {
                 : String(localized: "Connected · \(models.count) models available")
             return AIProviderTestResult(succeeded: true, latencyMs: ms, message: msg, discoveredModels: models)
         } catch {
-            // Some Anthropic-compatible relays omit /models; fall back to a minimal Messages ping.
             if config.kind.wireFormat == .anthropicMessages {
                 do {
                     try await pingAnthropicEndpoint(config: config, apiKey: effectiveKey)
@@ -813,7 +811,7 @@ final class AIProviderStore {
         }
     }
 
-    nonisolated static func parseModelIDs(from data: Data) -> [String] {
+    public nonisolated static func parseModelIDs(from data: Data) -> [String] {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return []
         }
@@ -826,7 +824,7 @@ final class AIProviderStore {
         return []
     }
 
-    nonisolated static func extractErrorMessage(from body: String) -> String {
+    public nonisolated static func extractErrorMessage(from body: String) -> String {
         if let data = body.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         {
@@ -842,8 +840,6 @@ final class AIProviderStore {
         let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.count > 240 ? String(trimmed.prefix(240)) + "…" : trimmed
     }
-
-    // MARK: - Persistence
 
     private func loadFromDisk() {
         if let data = defaults.data(forKey: Self.providersStorageKey),

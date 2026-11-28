@@ -87,7 +87,7 @@ struct TerminalFloatingBar: View {
                     }
                     if let onToggleLock {
                         Button(action: onToggleLock) {
-                            Label(isLocked ? "Unlock Tab" : "Lock Tab", systemImage: isLocked ? "lock.open" : "lock.fill")
+                            Label(isLocked ? String(localized: "Unlock Tab") : String(localized: "Lock Tab"), systemImage: isLocked ? "lock.open" : "lock.fill")
                         }
                     }
                     if UIDevice.current.userInterfaceIdiom == .pad {

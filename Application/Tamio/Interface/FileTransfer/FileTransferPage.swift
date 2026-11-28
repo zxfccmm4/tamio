@@ -1080,7 +1080,7 @@ private struct TransferBar: View {
             if let current = queue.jobs.first(where: { $0.state == .running }) {
                 TransferProgressLine(job: current)
             } else {
-                Text(queue.jobs.contains { $0.state == .failed } ? "Some transfers failed" : "All done")
+                Text(queue.jobs.contains { $0.state == .failed } ? String(localized: "Some transfers failed") : String(localized: "All done"))
                     .font(.rxBody)
                     .foregroundStyle(.rxInkSecondary)
                 Spacer()

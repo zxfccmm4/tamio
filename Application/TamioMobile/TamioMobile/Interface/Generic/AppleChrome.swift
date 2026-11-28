@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import TamioDesign
 import UIKit
 
 extension View {
@@ -59,42 +60,34 @@ extension View {
         }
     }
 
-    /// Marks an individual card or row as the source of an iOS 18+ Zoom transition.
+    /// Marks an individual card or thumbnail as the source of an iOS 18+ Zoom transition.
     /// Safely falls back to a no-op on iOS 17.
-    @ViewBuilder
     func appleZoomSource<ID: Hashable>(
         id: ID,
         in namespace: Namespace.ID,
         cornerRadius: CGFloat = 16,
         appliesCardSurface: Bool = true
     ) -> some View {
-        if #available(iOS 18.0, *) {
-            if appliesCardSurface {
-                matchedTransitionSource(id: id, in: namespace) { configuration in
-                    configuration
-                        .background(Color(uiColor: .secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                }
-            } else {
-                matchedTransitionSource(id: id, in: namespace)
-            }
-        } else {
-            self
-        }
+        zoomTransitionSource(
+            id: id,
+            in: namespace,
+            cornerRadius: cornerRadius,
+            appliesCardSurface: appliesCardSurface
+        )
     }
 
     /// Applies the native iOS 18+ Zoom navigation transition on a destination view.
-    /// Safely falls back to the system default transition on iOS 17.
-    @ViewBuilder
+    /// Safely falls back to the system default transition on iOS 17 or when disabled.
     func appleZoomDestination<ID: Hashable>(
         sourceID: ID,
-        in namespace: Namespace.ID
+        in namespace: Namespace.ID,
+        isEnabled: Bool = true
     ) -> some View {
-        if #available(iOS 18.0, *) {
-            navigationTransition(.zoom(sourceID: sourceID, in: namespace))
-        } else {
-            self
-        }
+        zoomTransitionDestination(
+            sourceID: sourceID,
+            in: namespace,
+            isEnabled: isEnabled
+        )
     }
 }
 

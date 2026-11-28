@@ -331,7 +331,7 @@ struct IdentityForm: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: RX.Space.s4) {
                 RXField("Name") {
-                    TextField(draft.method == .password ? "Office password" : "Deploy key", text: $draft.name)
+                    TextField(draft.method == .password ? String(localized: "Office password") : String(localized: "Deploy key"), text: $draft.name)
                         .textFieldStyle(.rx)
                         .disableAutocorrection(true)
                 }
@@ -456,7 +456,7 @@ struct IdentityForm: View {
             Button {
                 showsSecret.toggle()
             } label: {
-                Label(showsSecret ? "Hide" : "Show", rx: showsSecret ? "eye.slash" : "eye")
+                Label(showsSecret ? String(localized: "Hide") : String(localized: "Show"), rx: showsSecret ? "eye.slash" : "eye")
             }
             .buttonStyle(.rx(.plain, iconOnly: true))
             .help(showsSecret ? String(localized: "Hide") : String(localized: "Show"))

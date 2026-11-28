@@ -1,10 +1,10 @@
 //
 //  RemoteLLMClient.swift
-//  TamioMobile
+//  TamioAssistant
 //
 //  Streaming SSE client supporting OpenAI Chat Completions and Anthropic
-//  Messages APIs with full multi-round JSON Schema tool calling and
-//  reasoning/thinking stream separation.
+//  Messages APIs with multi-round JSON Schema tool calling, reasoning/thinking
+//  stream separation, image/text attachments, and resilient retries.
 //
 
 import Foundation
@@ -12,7 +12,7 @@ import TamioModule
 
 // MARK: - Errors
 
-nonisolated enum RemoteLLMError: LocalizedError, Sendable {
+public nonisolated enum RemoteLLMError: LocalizedError, Sendable {
     case invalidURL(String)
     case missingAPIKey(String)
     case missingModel
@@ -20,7 +20,7 @@ nonisolated enum RemoteLLMError: LocalizedError, Sendable {
     case httpError(statusCode: Int, message: String)
     case decodingError(String)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .invalidURL(let url):
             return String(localized: "Invalid provider URL: \(url)")
@@ -41,69 +41,40 @@ nonisolated enum RemoteLLMError: LocalizedError, Sendable {
     }
 }
 
-// MARK: - Wire Types
+// MARK: - Wire Conversation Turns
 
-nonisolated struct LLMToolCall: Equatable, Hashable, Codable, Sendable {
-    let id: String
-    let name: String
-    let argumentsJSON: String
+public nonisolated struct LLMImageAttachment: Equatable, Hashable, Sendable {
+    public let data: Data
+    public let mimeType: String
 
-    func decodedJSONValue() -> JSONValue {
-        guard let data = argumentsJSON.data(using: .utf8),
-              let value = try? JSONDecoder().decode(JSONValue.self, from: data)
-        else {
-            return [:]
-        }
-        return value
-    }
-
-    func decodedDictionary() -> [String: Any] {
-        guard let data = argumentsJSON.data(using: .utf8),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
-            return [:]
-        }
-        return dict
+    public init(data: Data, mimeType: String = "image/png") {
+        self.data = data
+        self.mimeType = mimeType
     }
 }
 
-/// JSON Schema tool definition convertible directly from Tamio's MCP `JSONValue` definitions.
-nonisolated struct LLMToolSchema: Sendable {
-    let name: String
-    let description: String
-    /// Raw JSON bytes of the `inputSchema` object so nested schemas (like `targets`) pass through verbatim.
-    let inputSchemaJSON: Data
-
-    init(name: String, description: String, inputSchema: JSONValue) {
-        self.name = name
-        self.description = description
-        self.inputSchemaJSON = (try? JSONEncoder().encode(inputSchema)) ?? Data("{\"type\":\"object\",\"properties\":{}}".utf8)
-    }
-
-    func inputSchemaObject() -> [String: Any] {
-        (try? JSONSerialization.jsonObject(with: inputSchemaJSON) as? [String: Any])
-            ?? ["type": "object", "properties": [:]]
-    }
-}
-
-nonisolated enum LLMConversationTurn: Sendable {
-    case user(String)
-    case assistant(text: String, toolCalls: [LLMToolCall])
+public nonisolated enum LLMConversationTurn: Equatable, Sendable {
+    case user(text: String, images: [LLMImageAttachment] = [])
+    case assistant(text: String, reasoning: String = "", toolCalls: [LLMToolCall] = [])
     case toolResult(toolCallId: String, name: String, content: String)
 }
 
-nonisolated struct LLMResponseTurn: Sendable {
-    let text: String
-    let reasoning: String
-    let toolCalls: [LLMToolCall]
+public nonisolated struct LLMResponseTurn: Sendable {
+    public let text: String
+    public let reasoning: String
+    public let toolCalls: [LLMToolCall]
+
+    public init(text: String, reasoning: String, toolCalls: [LLMToolCall]) {
+        self.text = text
+        self.reasoning = reasoning
+        self.toolCalls = toolCalls
+    }
 }
 
 // MARK: - Streaming Client
 
-nonisolated struct RemoteLLMClient: Sendable {
-    /// Dedicated streaming session that tolerates slow thinking models and brief
-    /// Wi-Fi/cellular transitions instead of aborting on URLSession.shared's defaults.
-    static let streamingSession: URLSession = {
+public nonisolated struct RemoteLLMClient: Sendable {
+    public static let streamingSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 300
         config.timeoutIntervalForResource = 900
@@ -116,11 +87,11 @@ nonisolated struct RemoteLLMClient: Sendable {
 
     private let session: URLSession
 
-    init(session: URLSession = RemoteLLMClient.streamingSession) {
+    public init(session: URLSession = RemoteLLMClient.streamingSession) {
         self.session = session
     }
 
-    static func isRetryableError(_ error: Error) -> Bool {
+    public static func isRetryableError(_ error: Error) -> Bool {
         if error is CancellationError { return false }
         if let llmError = error as? RemoteLLMError {
             switch llmError {
@@ -151,7 +122,7 @@ nonisolated struct RemoteLLMClient: Sendable {
         return false
     }
 
-    func streamCompletion(
+    public func streamCompletion(
         config: AIProviderConfig,
         apiKey: String?,
         systemPrompt: String,
@@ -197,8 +168,8 @@ nonisolated struct RemoteLLMClient: Sendable {
         }
     }
 
-    /// Lightweight helper for background tasks (auto-titling, conversation summary).
-    func completeText(
+    /// Lightweight helper for background tasks (auto-titling, summaries).
+    public func completeText(
         config: AIProviderConfig,
         apiKey: String?,
         systemPrompt: String,
@@ -209,7 +180,7 @@ nonisolated struct RemoteLLMClient: Sendable {
             config: config,
             apiKey: apiKey,
             systemPrompt: systemPrompt,
-            messages: [.user(userPrompt)],
+            messages: [.user(text: userPrompt)],
             tools: [],
             maxTokens: maxTokens,
             onReasoningDelta: nil,
@@ -239,14 +210,33 @@ nonisolated struct RemoteLLMClient: Sendable {
             throw RemoteLLMError.invalidURL(config.baseURL)
         }
 
-        var wireMessages: [[String: Any]] = [
-            ["role": "system", "content": systemPrompt],
-        ]
+        var wireMessages: [[String: Any]] = []
+        let trimmedSystem = systemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedSystem.isEmpty {
+            wireMessages.append(["role": "system", "content": trimmedSystem])
+        }
+
         for turn in messages {
             switch turn {
-            case .user(let text):
-                wireMessages.append(["role": "user", "content": text])
-            case .assistant(let text, let toolCalls):
+            case .user(let text, let images):
+                if images.isEmpty {
+                    wireMessages.append(["role": "user", "content": text])
+                } else {
+                    var parts: [[String: Any]] = []
+                    if !text.isEmpty {
+                        parts.append(["type": "text", "text": text])
+                    }
+                    for img in images {
+                        let dataURL = "data:\(img.mimeType);base64,\(img.data.base64EncodedString())"
+                        parts.append([
+                            "type": "image_url",
+                            "image_url": ["url": dataURL],
+                        ])
+                    }
+                    wireMessages.append(["role": "user", "content": parts])
+                }
+
+            case .assistant(let text, _, let toolCalls):
                 var dict: [String: Any] = ["role": "assistant"]
                 if !text.isEmpty {
                     dict["content"] = text
@@ -266,6 +256,7 @@ nonisolated struct RemoteLLMClient: Sendable {
                     }
                 }
                 wireMessages.append(dict)
+
             case .toolResult(let toolCallId, let name, let content):
                 wireMessages.append([
                     "role": "tool",
@@ -417,10 +408,29 @@ nonisolated struct RemoteLLMClient: Sendable {
 
         for turn in messages {
             switch turn {
-            case .user(let text):
+            case .user(let text, let images):
                 flushToolResults()
-                wireMessages.append(["role": "user", "content": text])
-            case .assistant(let text, let toolCalls):
+                if images.isEmpty {
+                    wireMessages.append(["role": "user", "content": text])
+                } else {
+                    var blocks: [[String: Any]] = []
+                    for img in images {
+                        blocks.append([
+                            "type": "image",
+                            "source": [
+                                "type": "base64",
+                                "media_type": img.mimeType,
+                                "data": img.data.base64EncodedString(),
+                            ],
+                        ])
+                    }
+                    if !text.isEmpty {
+                        blocks.append(["type": "text", "text": text])
+                    }
+                    wireMessages.append(["role": "user", "content": blocks])
+                }
+
+            case .assistant(let text, _, let toolCalls):
                 flushToolResults()
                 var blocks: [[String: Any]] = []
                 if !text.isEmpty {
@@ -437,6 +447,7 @@ nonisolated struct RemoteLLMClient: Sendable {
                 if !blocks.isEmpty {
                     wireMessages.append(["role": "assistant", "content": blocks])
                 }
+
             case .toolResult(let toolCallId, _, let content):
                 pendingToolResults.append([
                     "type": "tool_result",
@@ -449,7 +460,7 @@ nonisolated struct RemoteLLMClient: Sendable {
 
         var payload: [String: Any] = [
             "model": model,
-            "max_tokens": maxTokens ?? 4096,
+            "max_tokens": maxTokens ?? 8192,
             "system": systemPrompt,
             "messages": wireMessages,
             "stream": true,

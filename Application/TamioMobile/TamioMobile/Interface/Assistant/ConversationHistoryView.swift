@@ -11,6 +11,8 @@
 //
 
 import SwiftUI
+import TamioAssistant
+import TamioAssistantUI
 import TamioModule
 
 struct ConversationHistoryView: View {
@@ -241,7 +243,7 @@ struct ConversationHistoryView: View {
             Button {
                 assistant.togglePin(conv.id)
             } label: {
-                Label(conv.isPinned ? "Unpin" : "Pin", systemImage: conv.isPinned ? "pin.slash" : "pin")
+                Label(conv.isPinned ? String(localized: "Unpin") : String(localized: "Pin"), systemImage: conv.isPinned ? "pin.slash" : "pin")
             }
             .tint(.orange)
         }
@@ -254,7 +256,7 @@ struct ConversationHistoryView: View {
             Button {
                 assistant.togglePin(conv.id)
             } label: {
-                Label(conv.isPinned ? "Unpin" : "Pin", systemImage: conv.isPinned ? "pin.slash" : "pin")
+                Label(conv.isPinned ? String(localized: "Unpin") : String(localized: "Pin"), systemImage: conv.isPinned ? "pin.slash" : "pin")
             }
 
             Button {

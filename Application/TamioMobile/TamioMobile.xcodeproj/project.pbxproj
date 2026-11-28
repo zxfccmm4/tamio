@@ -13,16 +13,14 @@
 		08BB76C8D795EBF5D6F339C9 /* MonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19F73F2B60E3EBA5985DCA5E /* MonitorView.swift */; };
 		09512C95CD7911831D74EC67 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 2A06FC87D7D06DA8FDCB9E46 /* LICENSE */; };
 		0AC95813C4E43F073B5BEDAC /* TamioSessionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9584CB384EE3A519BFF9CFD /* TamioSessionAttributes.swift */; };
+		0B4115671162FADD55944DF1 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 398915597856C6A1AAB60A1E /* Localizable.xcstrings */; };
 		0B9CB44989100B557CFDF751 /* TamioSessionAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9584CB384EE3A519BFF9CFD /* TamioSessionAttributes.swift */; };
 		106E708FE7849CEBD71CFDBE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3ECD267FE035490B7295B47E /* PrivacyInfo.xcprivacy */; };
-		15E643D84D1EF6BB7292C03F /* RemoteLLMClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE788769E801382E3EE0BA96 /* RemoteLLMClient.swift */; };
-		19985D85210097B98B082879 /* ServerAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCC8DE0662E1FE7BE858F105 /* ServerAssistant.swift */; };
 		1E8EE0A8F4DC6EBCD0BD4374 /* AIProviderIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B203397BE2C3534F271516D2 /* AIProviderIconView.swift */; };
 		1EB33FAF0DDFDD7297F5F5B6 /* MobileTerminalLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52791215A5F671E1C506E88 /* MobileTerminalLifecycle.swift */; };
 		1EEB7608ADC85ECC88C6E96B /* TamioModule in Frameworks */ = {isa = PBXBuildFile; productRef = 7A536B2A48BE6C8ABA95009F /* TamioModule */; };
-		20B59378FFA0989450D0EAFD /* TamioTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = 1AC88C642DBA287EED9FDBF8 /* TamioTerminal */; };
-		29E125DA41413236A4478919 /* MachineStatus in Frameworks */ = {isa = PBXBuildFile; productRef = A12EF76A7107F9DCCAF0F04C /* MachineStatus */; };
-		2DDAAE84514919CE09530E74 /* AssistantConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7D58718E0E633E859A7DD84 /* AssistantConversationStore.swift */; };
+		20B59378FFA0989450D0EAFD /* TamioAssistant in Frameworks */ = {isa = PBXBuildFile; productRef = 2CA6F3F86519DC5DB04922A3 /* TamioAssistant */; };
+		29E125DA41413236A4478919 /* TamioTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = 1AC88C642DBA287EED9FDBF8 /* TamioTerminal */; };
 		2E9E77CD312392010EB73993 /* KeyboardBarStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 751C43259E0CCA342D3EFAB4 /* KeyboardBarStore.swift */; };
 		2F6327B957E22B5124DA9A17 /* SnippetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38D84A870D616452FBFA85B4 /* SnippetView.swift */; };
 		34158DDE28B52C4EAB1B79BC /* TerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC856C5FF2A8CCA46A1DE701 /* TerminalView.swift */; };
@@ -30,15 +28,15 @@
 		3CDC5599B14331975E4092C5 /* LogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5F08768B5026EA427A42663 /* LogView.swift */; };
 		4269D297D5CEC7AD3FB7B5ED /* EditSnippetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA961615BD8D9E15934F350C /* EditSnippetView.swift */; };
 		4A5EAFA56B1FA0F1E6A4F23B /* EULA in Resources */ = {isa = PBXBuildFile; fileRef = 17422EF7A536531F729316F0 /* EULA */; };
-		52F0AE4A215AFE795AC11C4B /* CodeEditorUI in Frameworks */ = {isa = PBXBuildFile; productRef = F6EF80BF86C8201D470E4968 /* CodeEditorUI */; };
+		525193105F02282CA20A5FAC /* NSRemoteShell in Frameworks */ = {isa = PBXBuildFile; productRef = 411BC3A2BB24DF47B70E4BF7 /* NSRemoteShell */; };
+		52F0AE4A215AFE795AC11C4B /* Keychain in Frameworks */ = {isa = PBXBuildFile; productRef = 5E2D3161DA2CE68EC13944D1 /* Keychain */; };
 		5894577045DBDA04D7F4CA1A /* SyncedSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 111AB15CD85F7C4049F4DD6B /* SyncedSettings.swift */; };
 		5ABC620DC4DB29867B27B934 /* Util.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2AB4A3856F88507F341E5BE /* Util.swift */; };
-		5C65DF59D87A2BFDA5BCC1D4 /* SymbolPicker in Frameworks */ = {isa = PBXBuildFile; productRef = 49626C328E61CE9EBF9A0B29 /* SymbolPicker */; };
+		5C65DF59D87A2BFDA5BCC1D4 /* MachineStatus in Frameworks */ = {isa = PBXBuildFile; productRef = A12EF76A7107F9DCCAF0F04C /* MachineStatus */; };
 		5C72BA1944BB1599F00107F8 /* TamioMobileWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A72EDCC74FF7D1D776352828 /* TamioMobileWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		5D3AE46ACA192DD57161112E /* PortForwardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33BBA3AA7B81EEB3459864B /* PortForwardView.swift */; };
-		651B3A1B5B61C9F0AFA04BDA /* ServerOpsSkills.swift in Sources */ = {isa = PBXBuildFile; fileRef = 666844E39584E45983C73097 /* ServerOpsSkills.swift */; };
 		668950E0B967C8A9FD240654 /* GhostRemoteEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC5742F679F85BB165475D90 /* GhostRemoteEngine.swift */; };
-		689CD0D7E31E57D01EA71974 /* Keychain in Frameworks */ = {isa = PBXBuildFile; productRef = 5E2D3161DA2CE68EC13944D1 /* Keychain */; };
+		689CD0D7E31E57D01EA71974 /* StripedTextTable in Frameworks */ = {isa = PBXBuildFile; productRef = CB77060D4839D3A007573BAA /* StripedTextTable */; };
 		69AEFDE45760BC24532EB60A /* EditPortForwardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D803B8EA093421DB0A805ED1 /* EditPortForwardView.swift */; };
 		6B22B325D7FE78B6DA5BFF3B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E10E1DF8074D5FDC5F2A403 /* Assets.xcassets */; };
 		6BF6FEEC507B4E0B23662044 /* TerminalAICopilotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC8F16A25D2C25DAB283864 /* TerminalAICopilotSheet.swift */; };
@@ -47,11 +45,11 @@
 		708ADFDE878FF809811ED19F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AB61E60BFB0A594CA2A312 /* ContentView.swift */; };
 		7389E46B31EA042FB01EAB58 /* GlassStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42119825202958FD07542C3A /* GlassStyle.swift */; };
 		768BFE4157ED6BECBF0A80D3 /* Tamio.icon in Resources */ = {isa = PBXBuildFile; fileRef = DFB9091DE12F1E34169C64BA /* Tamio.icon */; };
-		7846B52A805FF7AF463609F7 /* StripedTextTable in Frameworks */ = {isa = PBXBuildFile; productRef = CB77060D4839D3A007573BAA /* StripedTextTable */; };
-		79B8175EADEA28E17E474681 /* MachineStatusView in Frameworks */ = {isa = PBXBuildFile; productRef = 13A44191F1ED363C3559D973 /* MachineStatusView */; };
+		7846B52A805FF7AF463609F7 /* SymbolPicker in Frameworks */ = {isa = PBXBuildFile; productRef = 49626C328E61CE9EBF9A0B29 /* SymbolPicker */; };
+		79B8175EADEA28E17E474681 /* TamioDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 8391A07FC642E77C52BE98FD /* TamioDesign */; };
 		7C292DDC378AE4045DB76E6F /* AppLockManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EA6621401C7CF9830819274 /* AppLockManager.swift */; };
 		81B9A3DAA9F80C5DE1A53C2B /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 1303CB2609E0DDEAA3532A47 /* Localizable.xcstrings */; };
-		828442C7558370D7114C5B2C /* TamioDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 8391A07FC642E77C52BE98FD /* TamioDesign */; };
+		828442C7558370D7114C5B2C /* TamioAssistantUI in Frameworks */ = {isa = PBXBuildFile; productRef = D7A0FF7CBA60A7E58EF27AE7 /* TamioAssistantUI */; };
 		842E732BF7B57279E90B1990 /* ServerChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE461F27A19746A1692E6F4 /* ServerChartsView.swift */; };
 		8995E1A76012B8FF2E58F3FF /* SnippetExecuteContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = F741E31C791A2296DB4FA2BB /* SnippetExecuteContext.swift */; };
 		93CE883F33F50443E8608047 /* PresentError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B98B1401E52674F538FBBD43 /* PresentError.swift */; };
@@ -65,21 +63,21 @@
 		A46D0647DF9A515E7EA987FA /* TerminalTabSwitcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F0D7FA9C733EAF7F8338152 /* TerminalTabSwitcher.swift */; };
 		A486639AF0E74A568B7C6812 /* UIViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF4241321F7FA054A06E996 /* UIViewController.swift */; };
 		A685A139E69615E15B5C3FEE /* LogRedirect.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5730A2E7A605BD59C14B9BCA /* LogRedirect.swift */; };
-		AC693AEAE939A6099C8601C7 /* AssistantProviders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09D3F99295DA05C792A7839D /* AssistantProviders.swift */; };
 		B44A2F68C27AA3EE84468421 /* ConversationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1718F9FF7F677CDF904E10 /* ConversationHistoryView.swift */; };
 		B658AC1C776AC0D10C86EB43 /* AppleChrome.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA04D6102BBF2D1161E9A113 /* AppleChrome.swift */; };
 		B6C23629C6E9B7D721229132 /* AgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00376C3726FC4B078A5AE552 /* AgreementView.swift */; };
 		B7282B0E3151157DB54AD938 /* UIBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A33D992BB95370CEDCE26A26 /* UIBridge.swift */; };
-		B752CD28EB5B131877BB73B4 /* NSRemoteShell in Frameworks */ = {isa = PBXBuildFile; productRef = 411BC3A2BB24DF47B70E4BF7 /* NSRemoteShell */; };
+		B752CD28EB5B131877BB73B4 /* TamioEditor in Frameworks */ = {isa = PBXBuildFile; productRef = D0386B9EADA560E42377058B /* TamioEditor */; };
 		B7ED363D470AA0C5022B133A /* PickIdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2918D5016A37AE2B40721F /* PickIdentityView.swift */; };
-		BC089F63CFD0695942A7C217 /* SPIndicator in Frameworks */ = {isa = PBXBuildFile; productRef = B2CFE1459787C90C92362B8C /* SPIndicator */; };
+		BC089F63CFD0695942A7C217 /* MachineStatusView in Frameworks */ = {isa = PBXBuildFile; productRef = 13A44191F1ED363C3559D973 /* MachineStatusView */; };
 		C4CC95BE14F45B04F2B9B483 /* RemoteFileEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74CC753C58839D6AB0F22D3B /* RemoteFileEditorView.swift */; };
 		C4FD22A0A48D3904F0D387DD /* GhostRemoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDFF52A85234E6E90CB1FE3 /* GhostRemoteView.swift */; };
 		C619743DE128004014076F1B /* IdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 884CE4D9FCBBCD88294B2CA4 /* IdentityView.swift */; };
 		C69440513B06913D97205142 /* FileTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46432AC20FA196DC2ADE8721 /* FileTransferView.swift */; };
 		C76A2C040E7D902E6FB1FCF5 /* TerminalFindBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EDCF36782302AB01A6B0A72 /* TerminalFindBar.swift */; };
+		CA70DC6EB23669071D8226CE /* CodeEditorUI in Frameworks */ = {isa = PBXBuildFile; productRef = F6EF80BF86C8201D470E4968 /* CodeEditorUI */; };
 		D410400E096FF0711EE9FFBB /* GhostRemoteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DBB1563B7F82F775BD41A94 /* GhostRemoteModels.swift */; };
-		DA08E3EF36794BC5B829376D /* TamioEditor in Frameworks */ = {isa = PBXBuildFile; productRef = D0386B9EADA560E42377058B /* TamioEditor */; };
+		DA08E3EF36794BC5B829376D /* SPIndicator in Frameworks */ = {isa = PBXBuildFile; productRef = B2CFE1459787C90C92362B8C /* SPIndicator */; };
 		DBCC1BCFB1FD07CB437AA9E8 /* BackupTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C00036F09BA97EE1B0B11AEE /* BackupTransferView.swift */; };
 		E085E73BEB74C177AF533C94 /* AssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 796B44E3EFE681F0589A5DCA /* AssistantView.swift */; };
 		E7C3CBFE62E9D5323B3AF86C /* EditMachineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 071D0337FEAAF8FF2BB36CA8 /* EditMachineView.swift */; };
@@ -124,7 +122,6 @@
 		057D1C5B12F3BE304A325D94 /* CodeMirrorUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CodeMirrorUI; path = ../../External/CodeMirrorUI; sourceTree = SOURCE_ROOT; };
 		071D0337FEAAF8FF2BB36CA8 /* EditMachineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditMachineView.swift; sourceTree = "<group>"; };
 		08D0CD5E14237D0579D4FD65 /* TamioTerminal */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TamioTerminal; path = ../../Foundation/TamioTerminal; sourceTree = SOURCE_ROOT; };
-		09D3F99295DA05C792A7839D /* AssistantProviders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantProviders.swift; sourceTree = "<group>"; };
 		0DBB1563B7F82F775BD41A94 /* GhostRemoteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostRemoteModels.swift; sourceTree = "<group>"; };
 		0EDCF36782302AB01A6B0A72 /* TerminalFindBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalFindBar.swift; sourceTree = "<group>"; };
 		111AB15CD85F7C4049F4DD6B /* SyncedSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedSettings.swift; sourceTree = "<group>"; };
@@ -138,6 +135,7 @@
 		2EA6621401C7CF9830819274 /* AppLockManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockManager.swift; sourceTree = "<group>"; };
 		31D13A01158679F48CE0129B /* SnippetExecuteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetExecuteView.swift; sourceTree = "<group>"; };
 		38D84A870D616452FBFA85B4 /* SnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnippetView.swift; sourceTree = "<group>"; };
+		398915597856C6A1AAB60A1E /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		3E10E1DF8074D5FDC5F2A403 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		3ECD267FE035490B7295B47E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		41BA6368FDE84EDA3C212815 /* AIProviderSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIProviderSettingsView.swift; sourceTree = "<group>"; };
@@ -150,7 +148,6 @@
 		5730A2E7A605BD59C14B9BCA /* LogRedirect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogRedirect.swift; sourceTree = "<group>"; };
 		6094102DDA369188B7AB4E64 /* TerminalSnippetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSnippetSheet.swift; sourceTree = "<group>"; };
 		65075A1779401EEEF376382D /* PickMachineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickMachineView.swift; sourceTree = "<group>"; };
-		666844E39584E45983C73097 /* ServerOpsSkills.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerOpsSkills.swift; sourceTree = "<group>"; };
 		6AF598C2E281C9697868C5C6 /* TamioMobile.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = TamioMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6EF4241321F7FA054A06E996 /* UIViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewController.swift; sourceTree = "<group>"; };
 		7349BE7DEA492FCB587BE49E /* TamioModule */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TamioModule; path = ../../Foundation/TamioModule; sourceTree = SOURCE_ROOT; };
@@ -169,10 +166,10 @@
 		9CE74EA8DF18B0981E2B4A18 /* FilePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilePicker.swift; sourceTree = "<group>"; };
 		9EDFF52A85234E6E90CB1FE3 /* GhostRemoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostRemoteView.swift; sourceTree = "<group>"; };
 		9F0D7FA9C733EAF7F8338152 /* TerminalTabSwitcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalTabSwitcher.swift; sourceTree = "<group>"; };
+		A135ADDF95EF4A7BD1F7D6CE /* TamioAssistant */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TamioAssistant; path = ../../Foundation/TamioAssistant; sourceTree = SOURCE_ROOT; };
 		A33D992BB95370CEDCE26A26 /* UIBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIBridge.swift; sourceTree = "<group>"; };
 		A5F08768B5026EA427A42663 /* LogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogView.swift; sourceTree = "<group>"; };
 		A72EDCC74FF7D1D776352828 /* TamioMobileWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = TamioMobileWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		A7D58718E0E633E859A7DD84 /* AssistantConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantConversationStore.swift; sourceTree = "<group>"; };
 		A98C36BCACEDDA8CBE54BCB0 /* MachineStatus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MachineStatus; path = ../../Foundation/MachineStatus; sourceTree = SOURCE_ROOT; };
 		A9BA9F4A07B488AAF6598395 /* TerminalContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalContext.swift; sourceTree = "<group>"; };
 		AD1718F9FF7F677CDF904E10 /* ConversationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationHistoryView.swift; sourceTree = "<group>"; };
@@ -182,8 +179,6 @@
 		B98B1401E52674F538FBBD43 /* PresentError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentError.swift; sourceTree = "<group>"; };
 		BAE461F27A19746A1692E6F4 /* ServerChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerChartsView.swift; sourceTree = "<group>"; };
 		BBB5128FFF04D41BA4127D90 /* TamioMobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TamioMobile.entitlements; sourceTree = "<group>"; };
-		BCC8DE0662E1FE7BE858F105 /* ServerAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerAssistant.swift; sourceTree = "<group>"; };
-		BE788769E801382E3EE0BA96 /* RemoteLLMClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLLMClient.swift; sourceTree = "<group>"; };
 		C00036F09BA97EE1B0B11AEE /* BackupTransferView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupTransferView.swift; sourceTree = "<group>"; };
 		C33BBA3AA7B81EEB3459864B /* PortForwardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortForwardView.swift; sourceTree = "<group>"; };
 		CD7823A9F4D8659C2FF12A18 /* ServerDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerDetailView.swift; sourceTree = "<group>"; };
@@ -214,17 +209,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				1EEB7608ADC85ECC88C6E96B /* TamioModule in Frameworks */,
-				20B59378FFA0989450D0EAFD /* TamioTerminal in Frameworks */,
-				828442C7558370D7114C5B2C /* TamioDesign in Frameworks */,
-				29E125DA41413236A4478919 /* MachineStatus in Frameworks */,
-				79B8175EADEA28E17E474681 /* MachineStatusView in Frameworks */,
-				5C65DF59D87A2BFDA5BCC1D4 /* SymbolPicker in Frameworks */,
-				BC089F63CFD0695942A7C217 /* SPIndicator in Frameworks */,
-				7846B52A805FF7AF463609F7 /* StripedTextTable in Frameworks */,
-				DA08E3EF36794BC5B829376D /* TamioEditor in Frameworks */,
-				689CD0D7E31E57D01EA71974 /* Keychain in Frameworks */,
-				B752CD28EB5B131877BB73B4 /* NSRemoteShell in Frameworks */,
-				52F0AE4A215AFE795AC11C4B /* CodeEditorUI in Frameworks */,
+				20B59378FFA0989450D0EAFD /* TamioAssistant in Frameworks */,
+				828442C7558370D7114C5B2C /* TamioAssistantUI in Frameworks */,
+				29E125DA41413236A4478919 /* TamioTerminal in Frameworks */,
+				79B8175EADEA28E17E474681 /* TamioDesign in Frameworks */,
+				5C65DF59D87A2BFDA5BCC1D4 /* MachineStatus in Frameworks */,
+				BC089F63CFD0695942A7C217 /* MachineStatusView in Frameworks */,
+				7846B52A805FF7AF463609F7 /* SymbolPicker in Frameworks */,
+				DA08E3EF36794BC5B829376D /* SPIndicator in Frameworks */,
+				689CD0D7E31E57D01EA71974 /* StripedTextTable in Frameworks */,
+				B752CD28EB5B131877BB73B4 /* TamioEditor in Frameworks */,
+				52F0AE4A215AFE795AC11C4B /* Keychain in Frameworks */,
+				525193105F02282CA20A5FAC /* NSRemoteShell in Frameworks */,
+				CA70DC6EB23669071D8226CE /* CodeEditorUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -285,6 +282,7 @@
 		46666F066891C9E317F16AB9 /* TamioMobileWidgets */ = {
 			isa = PBXGroup;
 			children = (
+				398915597856C6A1AAB60A1E /* Localizable.xcstrings */,
 				4D14EAFB815940E54499D0A1 /* TamioMobileWidgets.swift */,
 			);
 			path = TamioMobileWidgets;
@@ -301,6 +299,7 @@
 				20FAF14052D52D7E046C5CF0 /* SPIndicator */,
 				4AE9E9BD07E130BBBA5E95BB /* StripedTextTable */,
 				45762E74B695C2F52867420B /* SymbolPicker */,
+				A135ADDF95EF4A7BD1F7D6CE /* TamioAssistant */,
 				91FE8D365CBFB87FAFB918A0 /* TamioDesign */,
 				9135E8AE6ACA0014F87AF748 /* TamioEditor */,
 				7349BE7DEA492FCB587BE49E /* TamioModule */,
@@ -335,13 +334,8 @@
 			children = (
 				B203397BE2C3534F271516D2 /* AIProviderIconView.swift */,
 				41BA6368FDE84EDA3C212815 /* AIProviderSettingsView.swift */,
-				A7D58718E0E633E859A7DD84 /* AssistantConversationStore.swift */,
-				09D3F99295DA05C792A7839D /* AssistantProviders.swift */,
 				796B44E3EFE681F0589A5DCA /* AssistantView.swift */,
 				AD1718F9FF7F677CDF904E10 /* ConversationHistoryView.swift */,
-				BE788769E801382E3EE0BA96 /* RemoteLLMClient.swift */,
-				BCC8DE0662E1FE7BE858F105 /* ServerAssistant.swift */,
-				666844E39584E45983C73097 /* ServerOpsSkills.swift */,
 			);
 			path = Assistant;
 			sourceTree = "<group>";
@@ -525,6 +519,7 @@
 			buildConfigurationList = 80CAC7C1375E6FF6171F6565 /* Build configuration list for PBXNativeTarget "TamioMobileWidgets" */;
 			buildPhases = (
 				05547743D38AF10A7428F2DD /* Sources */,
+				4A20A20E328984415AAB25AB /* Resources */,
 			);
 			buildRules = (
 			);
@@ -554,6 +549,8 @@
 			name = TamioMobile;
 			packageProductDependencies = (
 				7A536B2A48BE6C8ABA95009F /* TamioModule */,
+				2CA6F3F86519DC5DB04922A3 /* TamioAssistant */,
+				D7A0FF7CBA60A7E58EF27AE7 /* TamioAssistantUI */,
 				1AC88C642DBA287EED9FDBF8 /* TamioTerminal */,
 				8391A07FC642E77C52BE98FD /* TamioDesign */,
 				A12EF76A7107F9DCCAF0F04C /* MachineStatus */,
@@ -611,6 +608,7 @@
 				C0269E2E762B6996E4164439 /* XCLocalSwiftPackageReference "../../Foundation/SPIndicator" */,
 				8278E56712C6BCB7AB207965 /* XCLocalSwiftPackageReference "../../Foundation/StripedTextTable" */,
 				FB5A19FEFF79D7241A1FAC2A /* XCLocalSwiftPackageReference "../../Foundation/SymbolPicker" */,
+				B9663A286A027D0D76E1059D /* XCLocalSwiftPackageReference "../../Foundation/TamioAssistant" */,
 				E72AE4C796A032DE457A50E0 /* XCLocalSwiftPackageReference "../../Foundation/TamioDesign" */,
 				748FF24E4F10614CF0BAEE30 /* XCLocalSwiftPackageReference "../../Foundation/TamioEditor" */,
 				8AAC4750746EAD293E792A37 /* XCLocalSwiftPackageReference "../../Foundation/TamioModule" */,
@@ -628,6 +626,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		4A20A20E328984415AAB25AB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B4115671162FADD55944DF1 /* Localizable.xcstrings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BD033E3BC58E63AA766ECE96 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -663,8 +669,6 @@
 				B6C23629C6E9B7D721229132 /* AgreementView.swift in Sources */,
 				7C292DDC378AE4045DB76E6F /* AppLockManager.swift in Sources */,
 				B658AC1C776AC0D10C86EB43 /* AppleChrome.swift in Sources */,
-				2DDAAE84514919CE09530E74 /* AssistantConversationStore.swift in Sources */,
-				AC693AEAE939A6099C8601C7 /* AssistantProviders.swift in Sources */,
 				E085E73BEB74C177AF533C94 /* AssistantView.swift in Sources */,
 				DBCC1BCFB1FD07CB437AA9E8 /* BackupTransferView.swift in Sources */,
 				708ADFDE878FF809811ED19F /* ContentView.swift in Sources */,
@@ -693,11 +697,8 @@
 				5D3AE46ACA192DD57161112E /* PortForwardView.swift in Sources */,
 				93CE883F33F50443E8608047 /* PresentError.swift in Sources */,
 				C4CC95BE14F45B04F2B9B483 /* RemoteFileEditorView.swift in Sources */,
-				15E643D84D1EF6BB7292C03F /* RemoteLLMClient.swift in Sources */,
-				19985D85210097B98B082879 /* ServerAssistant.swift in Sources */,
 				842E732BF7B57279E90B1990 /* ServerChartsView.swift in Sources */,
 				98F5CAD201971FBBE929F623 /* ServerDetailView.swift in Sources */,
-				651B3A1B5B61C9F0AFA04BDA /* ServerOpsSkills.swift in Sources */,
 				FF3BEC3E97F98421AB2956A2 /* ServersView.swift in Sources */,
 				6FC5E8A328C093CE3A767F49 /* SessionActivityController.swift in Sources */,
 				FCCFE916C0AF74EA86BCACD7 /* SettingView.swift in Sources */,
@@ -789,6 +790,7 @@
 				SKIP_INSTALL = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -972,6 +974,7 @@
 				SKIP_INSTALL = YES;
 				SUPPORTS_MACCATALYST = NO;
 				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1045,6 +1048,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../External/CodeMirrorUI;
 		};
+		B9663A286A027D0D76E1059D /* XCLocalSwiftPackageReference "../../Foundation/TamioAssistant" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../Foundation/TamioAssistant;
+		};
 		C0269E2E762B6996E4164439 /* XCLocalSwiftPackageReference "../../Foundation/SPIndicator" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../Foundation/SPIndicator;
@@ -1067,6 +1074,10 @@
 		1AC88C642DBA287EED9FDBF8 /* TamioTerminal */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TamioTerminal;
+		};
+		2CA6F3F86519DC5DB04922A3 /* TamioAssistant */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TamioAssistant;
 		};
 		411BC3A2BB24DF47B70E4BF7 /* NSRemoteShell */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1103,6 +1114,10 @@
 		D0386B9EADA560E42377058B /* TamioEditor */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TamioEditor;
+		};
+		D7A0FF7CBA60A7E58EF27AE7 /* TamioAssistantUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TamioAssistantUI;
 		};
 		F6EF80BF86C8201D470E4968 /* CodeEditorUI */ = {
 			isa = XCSwiftPackageProductDependency;

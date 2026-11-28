@@ -18,7 +18,6 @@ struct IdentityView: View {
     @State private var selection: RDIdentity.ID?
     @State private var creating = false
     @State private var pageWidth: CGFloat = 0
-    @Namespace private var zoomNamespace
 
     private var sideBySide: Bool { sizeClass == .regular && pageWidth >= 720 }
 
@@ -109,7 +108,6 @@ struct IdentityView: View {
         )) { selected in
             EditIdentityView(requestIdentity: selected.id)
                 .appleGroupedBackground()
-                .appleZoomDestination(sourceID: selected.id, in: zoomNamespace)
         }
         .onAppear {
             if sideBySide, selection == nil {
@@ -129,7 +127,6 @@ struct IdentityView: View {
                             identityRow(identity)
                         }
                         .buttonStyle(.plain)
-                        .appleZoomSource(id: identity.id, in: zoomNamespace, cornerRadius: 12, appliesCardSurface: false)
                         .listRowBackground(
                             sideBySide && selection == identity.id
                                 ? Color.accentColor.opacity(0.12)

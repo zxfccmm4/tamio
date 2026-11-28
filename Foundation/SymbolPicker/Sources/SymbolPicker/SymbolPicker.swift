@@ -217,7 +217,7 @@ public struct SymbolPicker: View {
 }
 
 private func LocalizedString(_ key: String) -> String {
-    NSLocalizedString(key, bundle: .module, comment: "")
+    String(localized: String.LocalizationValue(key), bundle: .module)
 }
 
 struct SymbolPicker_Previews: PreviewProvider {

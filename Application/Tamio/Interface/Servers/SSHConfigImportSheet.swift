@@ -317,7 +317,7 @@ private struct SSHConfigImportRow: View {
     private var status: LocalizedStringKey {
         switch candidate.status {
         case .ready: "Ready"
-        case .needsCredentials: choice.credential == "none" ? "Needs credentials" : "Needs review"
+        case .needsCredentials: choice.credential == "none" ? LocalizedStringKey("Needs credentials") : LocalizedStringKey("Needs review")
         case .needsReview: "Needs review"
         case .alreadyExists: "Already exists"
         case .unsupported: "Unsupported"

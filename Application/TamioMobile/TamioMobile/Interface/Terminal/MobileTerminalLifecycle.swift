@@ -12,6 +12,7 @@
 
 import Foundation
 import Network
+import TamioAssistant
 import UIKit
 
 enum MobileTerminalPreferences {

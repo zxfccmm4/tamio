@@ -37,7 +37,7 @@ struct ConfigThemePicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: RX.Space.s3) {
             HStack(spacing: RX.Space.s3) {
-                Toggle("Separate light and dark themes", isOn: Binding(get: { dual }, set: { enabled in
+                Toggle(ConfigLayout.tr("toggle.separate_light_dark_themes", default: "Separate light and dark themes"), isOn: Binding(get: { dual }, set: { enabled in
                     if enabled {
                         value = "light:\(value),dark:\(value)"
                     } else if selected.isEmpty {

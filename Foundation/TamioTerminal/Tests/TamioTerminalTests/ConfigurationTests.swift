@@ -20,23 +20,27 @@ final class ConfigurationTests: XCTestCase {
         }
         XCTAssertEqual(ConfigLayout.categories.map(\.id).count, Set(ConfigLayout.categories.map(\.id)).count)
     }
-    func testShortcutsReadAsKeyCaps() {
+    func testShortcutsReadAsKeyCaps() throws {
+        let enPath = try XCTUnwrap(Bundle.module.path(forResource: "en", ofType: "lproj"))
+        let enBundle = try XCTUnwrap(Bundle(path: enPath))
         XCTAssertEqual(KeybindingNames.step("super+shift+k"), "⇧⌘K")
         XCTAssertEqual(KeybindingNames.step("super+physical:four"), "⌘4")
         XCTAssertEqual(KeybindingNames.step("ctrl+alt+arrow_left"), "⌃⌥←")
         XCTAssertEqual(KeybindingNames.step("super+equal"), "⌘=")
-        XCTAssertEqual(KeybindingNames.summary(ConfigKeybinding("super+equal=increase_font_size:1")), "Make Text Bigger (1 pt)")
-        XCTAssertEqual(KeybindingNames.summary(ConfigKeybinding("super+backspace=text:\\x15")), "Delete to Start of Line")
-        XCTAssertEqual(KeybindingNames.summary(ConfigKeybinding("alt+arrow_left=esc:b")), "Move Back a Word")
+        XCTAssertEqual(KeybindingNames.summary(ConfigKeybinding("super+equal=increase_font_size:1"), bundle: enBundle), "Make Text Bigger (1 pt)")
+        XCTAssertEqual(KeybindingNames.summary(ConfigKeybinding("super+backspace=text:\\x15"), bundle: enBundle), "Delete to Start of Line")
+        XCTAssertEqual(KeybindingNames.summary(ConfigKeybinding("alt+arrow_left=esc:b"), bundle: enBundle), "Move Back a Word")
         XCTAssertFalse(KeybindingNames.applies(ConfigKeybinding("super+t=new_tab")))
         XCTAssertTrue(KeybindingNames.applies(ConfigKeybinding("super+k=clear_screen")))
     }
-    func testCodepointMappingRoundTrip() {
+    func testCodepointMappingRoundTrip() throws {
+        let enPath = try XCTUnwrap(Bundle.module.path(forResource: "en", ofType: "lproj"))
+        let enBundle = try XCTUnwrap(Bundle(path: enPath))
         let mapping = CodepointMapping("U+E000-U+F8FF,U+F0000-U+FFFFD=Symbols Nerd Font")
         XCTAssertEqual(mapping?.family, "Symbols Nerd Font")
-        XCTAssertEqual(CodepointRangeSet.describe(mapping?.ranges ?? ""), "Nerd Font icons")
+        XCTAssertEqual(CodepointRangeSet.describe(mapping?.ranges ?? "", bundle: enBundle), "Nerd Font icons")
         XCTAssertEqual(mapping?.rendered, "U+E000-U+F8FF,U+F0000-U+FFFFD=Symbols Nerd Font")
-        XCTAssertEqual(CodepointRangeSet.describe("U+1234"), "U+1234")
+        XCTAssertEqual(CodepointRangeSet.describe("U+1234", bundle: enBundle), "U+1234")
     }
     @MainActor func testInstalledFontsComeFromCoreText() {
         XCTAssertTrue(FontLibrary.isMonospaced("Menlo"))

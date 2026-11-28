@@ -13,7 +13,7 @@ import UIKit
 @MainActor
 enum UIBridge {
     static func sendPasteboard(str: String) {
-        presentSuccess(with: "Pasteboard Sent")
+        presentSuccess(with: String(localized: "Pasteboard Sent"))
         UIPasteboard.general.string = str
     }
 
@@ -39,9 +39,9 @@ enum UIBridge {
             textField.placeholder = placeholder
         }
         if canCancel {
-            alert.addAction(.init(title: "Cancel", style: .cancel, handler: nil))
+            alert.addAction(.init(title: String(localized: "Cancel"), style: .cancel, handler: nil))
         }
-        alert.addAction(.init(title: "OK", style: .default, handler: { [weak alert] _ in
+        alert.addAction(.init(title: String(localized: "OK"), style: .default, handler: { [weak alert] _ in
             guard let str = alert?.textFields?.first?.text else {
                 return
             }
@@ -64,7 +64,7 @@ enum UIBridge {
         if UIApplication.shared.canOpenURL(url) {
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         } else {
-            UIBridge.presentError(with: "File.app not installed")
+            UIBridge.presentError(with: String(localized: "File.app not installed"))
         }
     }
 }

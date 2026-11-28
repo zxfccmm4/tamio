@@ -12,6 +12,7 @@ import CryptoKit
 import Foundation
 import Security
 import SwiftUI
+import TamioAssistant
 import TamioModule
 import UniformTypeIdentifiers
 

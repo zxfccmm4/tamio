@@ -36,7 +36,7 @@ struct AgentServerSettings: View {
                     Circle()
                         .fill(bridge.isRunning ? Color.rxSuccess : Color.rxInkTertiary)
                         .frame(width: 7, height: 7)
-                    Text(bridge.isRunning ? "Running" : "Off")
+                    Text(bridge.isRunning ? String(localized: "Running") : String(localized: "Off"))
                         .font(.rxBody)
                         .foregroundStyle(.rxInkSecondary)
                 }

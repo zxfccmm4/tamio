@@ -45,7 +45,7 @@ struct SnippetExecuteView: View {
             }
             context.beginBootstrap()
         }
-        .navigationTitle("Snippet - " + context.snippet.name)
+        .navigationTitle(String(localized: "Snippet - \(context.snippet.name)"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             Button {
@@ -54,7 +54,7 @@ struct SnippetExecuteView: View {
                     return
                 } else {
                     UIBridge.requiresConfirmation(
-                        message: "Process in progress, terminate them all?"
+                        message: String(localized: "Process in progress, terminate them all?")
                     ) { yes in
                         if yes {
                             for machine in context.machineGroup {
@@ -107,7 +107,7 @@ struct SnippetExecuteView: View {
                     runningItems
                 }
                 ProgressView(
-                    context.running.isEmpty ? "Execution Complete" : "Execution In Progress",
+                    context.running.isEmpty ? String(localized: "Execution Complete") : String(localized: "Execution In Progress"),
                     value: context.completedProgress,
                     total: context.totalProgress
                 )

@@ -46,4 +46,7 @@
    <FileRef
       location = "group:Foundation/TamioEditor">
    </FileRef>
+   <FileRef
+      location = "group:Foundation/TamioAssistant">
+   </FileRef>
 </Workspace>

@@ -9,6 +9,7 @@
 import CoreHaptics
 import MachineStatusView
 import SwiftUI
+import TamioAssistant
 import TamioDesign
 import TamioModule
 import TamioTerminal
@@ -308,6 +309,13 @@ struct SettingView: View {
                     set: { ServerAssistant.shared.crossSessionMemoryEnabled = $0 }
                 )) {
                     settingLabel("Cross-Session Memory", icon: "brain.head.profile", tint: .pink)
+                }
+
+                Toggle(isOn: Binding(
+                    get: { ServerAssistant.shared.inlineActivityStepsEnabled },
+                    set: { ServerAssistant.shared.inlineActivityStepsEnabled = $0 }
+                )) {
+                    settingLabel("Inline Activity Steps", icon: "list.bullet.indent", tint: .teal)
                 }
             } header: {
                 Text("AI Assistant")

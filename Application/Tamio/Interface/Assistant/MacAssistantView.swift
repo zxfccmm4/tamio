@@ -2,21 +2,23 @@
 //  MacAssistantView.swift
 //  Tamio (macOS)
 //
-//  Native macOS AI Fleet Assistant with full iOS feature parity:
-//  - FlowDown-style multi-session sidebar with pin, rename, duplicate, compress,
-//    export Markdown, search, and per-conversation execution badges
-//  - Target Server Scope bar (All Servers / Group / Selected Hosts popover)
-//    & Pinned Ops Skills strip
-//  - Per-conversation Provider + Model switcher
-//  - Shimmering Thinking disclosure, MCP tool cards, inline approval cards,
-//    per-message Copy / Regenerate / Edit & Resend / Fork Here / Delete
-//  - FlowDown unified composer + morphing Send/Stop button
-//  - Full AI Providers manager (Test Connection, Fetch Models, Edit/Add, PCC toggle)
-//  - Full Ops Skills manager (Category filter, Pin, Run, Import SKILL.md File/URL)
+//  Native macOS AI Fleet Assistant built on `TamioAssistant` & `TamioAssistantUI`:
+//  - FlowDown time-bucketed multi-session sidebar with debounced full-text
+//    search, pin, rename, duplicate, compress, export Markdown, and live
+//    running / pending-approval badges
+//  - Document-first transcript powered by `Lakr233/MarkdownView`, folded
+//    `ActivitySummaryRow` + live `TraceSheetView`, Rewrite presets, View Raw,
+//    Redo-in-Composer, and smart sticky-bottom scrolling
+//  - Unified FlowDown composer with file/image attachments (picker + drag-drop),
+//    tool capability group toggles, Ask/Agent switch, floating cache hint,
+//    and in-place spring-morphed `ToolApprovalCardView`
+//  - Full AI Providers & Ops Skills managers
 //
 
 import AppKit
 import SwiftUI
+import TamioAssistant
+import TamioAssistantUI
 import TamioDesign
 import TamioModule
 import UniformTypeIdentifiers
@@ -26,39 +28,43 @@ struct MacAssistantView: View {
     @State private var assistant = ServerAssistant.shared
     @State private var providerStore = AIProviderStore.shared
     @State private var skillStore = ServerOpsSkillStore.shared
-    @State private var bridge = MobileAgentBridge.shared
+    @State private var bridge = AssistantAgentBridge.shared
 
     @State private var inputText = ""
+    @State private var pendingAttachments: [AssistantAttachment] = []
     @State private var showHistorySidebar = true
     @State private var showProvidersSheet = false
     @State private var showSkillsSheet = false
     @State private var showHostScopePopover = false
     @State private var historySearch = ""
+    @State private var matchedSearchIDs: Set<UUID>?
+    @State private var toastMessage: String?
 
     // Dialog states
     @State private var renamingConversation: AssistantConversation?
     @State private var renameTitle = ""
     @State private var renameEmoji = ""
-    @State private var editingMessage: AssistantChatMessage?
-    @State private var editMessageText = ""
 
     private var appleReady: Bool { AppleIntelligenceStatus.current == .available }
     private var pccReady: Bool { providerStore.privateCloudComputeEnabled && ApplePrivateCloudComputeStatus.current == .available }
     private var activeConversation: AssistantConversation { assistant.activeConversation }
     private var activeSession: ConversationSession { assistant.activeSession }
     private var effectiveSelection: AIActiveSelection { assistant.effectiveSelection(for: activeConversation.id) }
-    private var activeApprovals: [MobileAgentBridge.PendingApproval] { bridge.pendingApprovals(for: activeConversation.id) }
 
     private var hasContent: Bool {
-        activeSession.messages.contains(where: \.hasVisibleContent) || !activeApprovals.isEmpty || activeSession.isStreaming
+        activeSession.messages.contains(where: \.hasVisibleContent)
+            || activeSession.approvalGate.hasPendingRequest
+            || activeSession.isStreaming
     }
 
-    private var filteredConversations: [AssistantConversation] {
-        let q = historySearch.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !q.isEmpty else { return assistant.conversations }
-        return assistant.conversations.filter {
-            $0.title.lowercased().contains(q) || $0.lastMessagePreview.lowercased().contains(q)
-        }
+    private var visibleConversations: [AssistantConversation] {
+        let q = historySearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty, let matchedSearchIDs else { return assistant.conversations }
+        return assistant.conversations.filter { matchedSearchIDs.contains($0.id) }
+    }
+
+    private var historySections: [AssistantHistorySection] {
+        AssistantHistoryGrouping.sections(from: visibleConversations)
     }
 
     private var allGroups: [String] {
@@ -70,16 +76,47 @@ struct MacAssistantView: View {
         return skillStore.enabledSkills.filter { ids.contains($0.id) }
     }
 
+    private var scopedCountLabel: String {
+        let count = assistant.resolvedScopedMachines(for: activeConversation.id).count
+        switch assistant.targetScope {
+        case .all: return String(localized: "All (\(count))")
+        case .group(let group): return "\(group) (\(count))"
+        case .hosts: return String(localized: "\(count) Hosts")
+        }
+    }
+
     var body: some View {
         HStack(spacing: 0) {
             if showHistorySidebar {
                 conversationSidebar
-                    .frame(width: 240)
+                    .frame(width: 244)
                 Divider()
             }
 
             mainChatColumn
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .overlay(alignment: .top) {
+            if let toastMessage {
+                Text(toastMessage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.accentColor, in: Capsule())
+                    .padding(.top, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .task(id: historySearch) {
+            let query = historySearch.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !query.isEmpty else {
+                matchedSearchIDs = nil
+                return
+            }
+            try? await Task.sleep(for: .milliseconds(160))
+            guard !Task.isCancelled else { return }
+            matchedSearchIDs = await assistant.searchConversationIDs(query: query)
         }
         .onAppear {
             bridge.install()
@@ -92,6 +129,7 @@ struct MacAssistantView: View {
         }
         .onChange(of: assistant.activeConversationID) { _, _ in
             inputText = assistant.draftText
+            pendingAttachments = []
         }
         .onChange(of: inputText) { _, next in
             if assistant.draftText != next { assistant.draftText = next }
@@ -131,35 +169,9 @@ struct MacAssistantView: View {
                 .disabled(renameTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
         }
-        .sheet(item: $editingMessage) { msg in
-            SheetScaffold("Edit & Resend") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Editing this message will replace all subsequent replies in this conversation.")
-                        .font(.rxHelp)
-                        .foregroundStyle(.rxInkSecondary)
-                    TextEditor(text: $editMessageText)
-                        .font(.body)
-                        .frame(minHeight: 110)
-                        .padding(6)
-                        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8))
-                }
-                .padding()
-                .frame(width: 460)
-            } footer: {
-                Spacer()
-                Button("Cancel") { editingMessage = nil }
-                    .buttonStyle(.rx)
-                Button("Resend") {
-                    activeSession.editAndResend(messageID: msg.id, newText: editMessageText)
-                    editingMessage = nil
-                }
-                .buttonStyle(.rxPrimary)
-                .disabled(editMessageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
     }
 
-    // MARK: - Conversation History Sidebar
+    // MARK: - Conversation History Sidebar (Time-Bucketed)
 
     private var conversationSidebar: some View {
         VStack(spacing: 0) {
@@ -181,7 +193,7 @@ struct MacAssistantView: View {
             .padding(.top, 14)
             .padding(.bottom, 8)
 
-            TextField("Search chats", text: $historySearch)
+            TextField("Search titles & messages", text: $historySearch)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.small)
                 .padding(.horizontal, 10)
@@ -190,53 +202,70 @@ struct MacAssistantView: View {
             Divider()
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 3) {
-                    ForEach(filteredConversations) { conv in
-                        let isSelected = conv.id == assistant.activeConversationID
-                        Button {
-                            assistant.selectConversation(conv.id)
-                        } label: {
-                            HStack(spacing: 7) {
-                                if conv.isPinned {
-                                    Image(systemName: "pin.fill")
-                                        .font(.system(size: 9))
-                                        .foregroundStyle(.orange)
-                                }
-                                if !conv.icon.isEmpty {
-                                    Text(conv.icon)
-                                        .font(.system(size: 12))
-                                }
-                                Text(conv.title)
-                                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
-                                    .foregroundStyle(isSelected ? .primary : .secondary)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                Spacer(minLength: 4)
-                                if assistant.executingConversationIDs.contains(conv.id) {
-                                    ProgressView().controlSize(.mini)
-                                }
-                                if bridge.hasPendingApproval(for: conv.id) {
-                                    Image(systemName: "checkmark.shield.fill")
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(.orange)
-                                }
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    ForEach(historySections) { section in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(section.title)
+                                .font(.rxSectionLabel)
+                                .foregroundStyle(.rxInkTertiary)
+                                .padding(.horizontal, 10)
+                                .padding(.top, 2)
+
+                            ForEach(section.conversations) { conv in
+                                sidebarConversationRow(conv)
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 7)
-                            .background(
-                                isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
-                                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            )
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            conversationContextMenuItems(for: conv)
                         }
                     }
                 }
                 .padding(8)
             }
+        }
+    }
+
+    private func sidebarConversationRow(_ conv: AssistantConversation) -> some View {
+        let isSelected = conv.id == assistant.activeConversationID
+        let isRunning = assistant.executingConversationIDs.contains(conv.id)
+        let needsApproval = bridge.hasPendingApproval(for: conv.id)
+
+        return Button {
+            assistant.selectConversation(conv.id)
+        } label: {
+            HStack(spacing: 7) {
+                if conv.isPinned {
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(.orange)
+                }
+                if !conv.icon.isEmpty {
+                    Text(conv.icon)
+                        .font(.system(size: 12))
+                }
+                Text(conv.title)
+                    .font(.system(size: 12.5, weight: isSelected ? .semibold : .regular))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 4)
+                if isRunning {
+                    ProgressView().controlSize(.mini)
+                }
+                if needsApproval {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(
+                isSelected ? Color.accentColor.opacity(0.14) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            conversationContextMenuItems(for: conv)
         }
     }
 
@@ -253,7 +282,7 @@ struct MacAssistantView: View {
         Button {
             assistant.togglePin(conv.id)
         } label: {
-            Label(conv.isPinned ? "Unpin" : "Pin", systemImage: conv.isPinned ? "pin.slash" : "pin")
+            Label(conv.isPinned ? String(localized: "Unpin") : String(localized: "Pin"), systemImage: conv.isPinned ? "pin.slash" : "pin")
         }
 
         Button {
@@ -314,12 +343,47 @@ struct MacAssistantView: View {
             } else if !hasContent {
                 emptyChatView
             } else {
-                transcriptScrollView
+                AssistantTranscriptView(
+                    assistant: assistant,
+                    session: activeSession,
+                    compact: false,
+                    maxReadingWidth: 820,
+                    horizontalPadding: 22,
+                    bottomPadding: 20,
+                    codeActions: AssistantMarkdownCodeActions(
+                        onSaveSnippet: { code, lang in
+                            saveSnippet(code: code, language: lang)
+                        }
+                    ),
+                    onRefillComposer: { text, attachments in
+                        inputText = text
+                        assistant.draftText = text
+                        pendingAttachments = attachments
+                    }
+                )
             }
 
             if assistant.isReadyToChat {
-                Divider()
-                flowDownComposer
+                UnifiedComposerView(
+                    assistant: assistant,
+                    session: activeSession,
+                    text: $inputText,
+                    attachments: $pendingAttachments,
+                    compact: false,
+                    scopeLabel: store.machineGroup.machines.isEmpty ? nil : scopedCountLabel,
+                    isScopeFiltered: assistant.targetScope.isFiltered,
+                    onTapScope: store.machineGroup.machines.isEmpty ? nil : { showHostScopePopover.toggle() },
+                    onTapSkills: { showSkillsSheet = true },
+                    onAttachFile: { openFileAttachmentPicker() },
+                    onSend: { text, attachments in
+                        assistant.draftText = ""
+                        activeSession.send(text, attachments: attachments)
+                    }
+                )
+                .frame(maxWidth: 820)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 14)
             }
         }
     }
@@ -444,7 +508,6 @@ struct MacAssistantView: View {
     private var scopeAndSkillsBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                // All Servers pill
                 scopePill(
                     title: String(localized: "All Servers (\(store.machineGroup.machines.count))"),
                     icon: "server.rack",
@@ -453,7 +516,6 @@ struct MacAssistantView: View {
                     assistant.targetScope = .all
                 }
 
-                // Group pills
                 ForEach(allGroups, id: \.self) { group in
                     let count = store.machineGroup.machines.filter { $0.group == group }.count
                     scopePill(
@@ -465,7 +527,6 @@ struct MacAssistantView: View {
                     }
                 }
 
-                // Custom Hosts popover pill
                 let selectedHostCount: Int = {
                     if case .hosts(let ids) = assistant.targetScope { return ids.count }
                     return 0
@@ -618,228 +679,43 @@ struct MacAssistantView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Transcript
+    // MARK: - Attachments & Snippets
 
-    private var transcriptScrollView: some View {
-        let session = activeSession
-        let visibleMessages = session.messages.filter(\.hasVisibleContent)
-        let lastAssistantID = visibleMessages.last(where: { $0.role == .assistant })?.id
-        return ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(visibleMessages) { msg in
-                        MacChatMessageRow(
-                            message: msg,
-                            canMutate: !session.isStreaming,
-                            isLastAssistant: msg.id == lastAssistantID,
-                            onRetry: { session.retryAfterError() },
-                            onRegenerate: { session.regenerateLastReply() },
-                            onEdit: {
-                                editMessageText = msg.text
-                                editingMessage = msg
-                            },
-                            onFork: {
-                                _ = assistant.duplicateConversation(activeConversation.id, upToMessageID: msg.id)
-                            },
-                            onDelete: {
-                                session.deleteMessage(msg.id)
-                            }
-                        )
-                        .id(msg.id)
-                    }
-
-                    if session.isStreaming {
-                        macStreamingBubble(session)
-                            .id("streaming-anchor")
-                    }
-
-                    if !activeApprovals.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Label("Approval Required", systemImage: "checkmark.shield.fill")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.orange)
-                            ForEach(activeApprovals) { approval in
-                                macApprovalCard(approval)
-                            }
-                        }
-                        .id("approval-anchor")
-                    }
-
-                    Color.clear
-                        .frame(height: 20)
-                        .id("bottom-anchor")
-                }
-                .padding(18)
-                .frame(maxWidth: 820)
-                .frame(maxWidth: .infinity)
+    private func openFileAttachmentPicker() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.allowedContentTypes = [.plainText, .sourceCode, .json, .yaml, .log, .image]
+        guard panel.runModal() == .OK else { return }
+        for url in panel.urls {
+            if let item = AssistantAttachmentLoader.load(from: url) {
+                pendingAttachments.append(item)
             }
-            .onChange(of: session.messages.count) { _, _ in scrollToBottom(proxy) }
-            .onChange(of: session.streamText.count) { _, _ in if session.isStreaming { scrollToBottom(proxy) } }
-            .onChange(of: activeApprovals.count) { _, _ in scrollToBottom(proxy) }
         }
     }
 
-    private func scrollToBottom(_ proxy: ScrollViewProxy) {
+    private func saveSnippet(code: String, language: String?) {
+        let firstLine = code.components(separatedBy: .newlines).first(where: { !$0.trimmingCharacters(in: .whitespaces).isEmpty }) ?? "AI Snippet"
+        let cleanName = String(firstLine.trimmingCharacters(in: .whitespaces).prefix(48))
+        var snippet = RDSnippet()
+        snippet.name = cleanName.isEmpty ? "AI Snippet" : cleanName
+        snippet.group = "AI Assistant"
+        snippet.code = code
+        if let language, !language.isEmpty {
+            snippet.comment = "Saved from Tamio AI (\(language))"
+        }
+        store.snippetGroup.insert(snippet)
+        flashToast(String(localized: "Saved to Snippets"))
+    }
+
+    private func flashToast(_ message: String) {
+        withAnimation(.snappy) { toastMessage = message }
         Task { @MainActor in
-            await Task.yield()
-            proxy.scrollTo("bottom-anchor", anchor: .bottom)
-        }
-    }
-
-    private func macStreamingBubble(_ session: ConversationSession) -> some View {
-        let streamText = session.streamText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let streamReasoning = session.streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
-        let isThinking = streamText.isEmpty
-        return VStack(alignment: .leading, spacing: 8) {
-            if let toolStatus = session.activeToolStatus {
-                HStack(spacing: 6) {
-                    ProgressView().controlSize(.mini)
-                    MacShimmerThinkingText(text: toolStatus, isThinking: true)
-                }
-            }
-            if !streamReasoning.isEmpty {
-                MacReasoningBox(text: streamReasoning, defaultExpanded: isThinking, isThinking: isThinking)
-            }
-            if streamText.isEmpty {
-                if session.activeToolStatus == nil && streamReasoning.isEmpty {
-                    HStack(spacing: 7) {
-                        Image(systemName: "sparkles").foregroundStyle(Color.accentColor)
-                        MacShimmerThinkingText(text: String(localized: "Thinking…"), isThinking: true)
-                    }
-                }
-            } else {
-                Text(LocalizedStringKey(streamText))
-                    .textSelection(.enabled)
-                    .lineSpacing(3)
+            try? await Task.sleep(for: .seconds(1.8))
+            withAnimation(.snappy) {
+                if toastMessage == message { toastMessage = nil }
             }
         }
-        .padding(14)
-        .rxCard()
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func macApprovalCard(_ approval: MobileAgentBridge.PendingApproval) -> some View {
-        let risk = approval.risk
-        let tint: Color = switch risk.level {
-        case .readOnly: .green
-        case .modify: .orange
-        case .destructive: .red
-        }
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Text(approval.request.title)
-                    .font(.rxBodyStrong)
-                Spacer(minLength: 4)
-                Text(risk.level.localizedLabel)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(tint)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(tint.opacity(0.14), in: Capsule())
-            }
-            if !risk.reasons.isEmpty {
-                Text(risk.reasons.joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(tint)
-            }
-            if !approval.request.hosts.isEmpty {
-                Text(approval.request.hosts.joined(separator: ", "))
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.rxInkSecondary)
-            }
-            if !approval.request.detail.isEmpty {
-                Text(approval.request.detail)
-                    .font(.caption.monospaced())
-                    .padding(8)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
-            }
-            HStack(spacing: 8) {
-                Button("Approve") { bridge.resolve(approval.id, approved: true) }
-                    .buttonStyle(.rxPrimary)
-                if !approval.isDestructive {
-                    Button("Allow 1 Hour") { bridge.resolve(approval.id, approved: true, allowForOneHour: true) }
-                        .buttonStyle(.rx)
-                }
-                Button("Deny", role: .destructive) { bridge.resolve(approval.id, approved: false) }
-                    .buttonStyle(.rx)
-            }
-        }
-        .padding(12)
-        .rxCard()
-    }
-
-    // MARK: - FlowDown Unified Composer
-
-    private var flowDownComposer: some View {
-        let session = activeSession
-        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let canSend = !session.isStreaming && !trimmed.isEmpty
-
-        return VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                TextField("Ask to check metrics, run batch commands, or manage servers…", text: $inputText, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .font(.body)
-                    .lineLimit(1 ... 6)
-                    .onSubmit { sendCurrentInput() }
-                    .padding(.horizontal, 14)
-                    .padding(.top, 11)
-
-                HStack(spacing: 8) {
-                    Text(String(localized: "\(assistant.resolvedScopedMachines(for: activeConversation.id).count) servers in scope"))
-                        .font(.caption)
-                        .foregroundStyle(.rxInkSecondary)
-
-                    if session.didPruneContext {
-                        Text("· Context trimmed")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        if session.isStreaming {
-                            session.stopGenerating()
-                        } else if canSend {
-                            sendCurrentInput()
-                        }
-                    } label: {
-                        ZStack {
-                            Circle()
-                                .fill(session.isStreaming ? Color.red : (canSend ? Color.accentColor : Color.primary.opacity(0.08)))
-                                .frame(width: 30, height: 30)
-                            if session.isStreaming {
-                                RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-                                    .fill(Color.white)
-                                    .frame(width: 10, height: 10)
-                            } else {
-                                Image(systemName: "arrow.up")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(canSend ? Color.white : Color.secondary)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!session.isStreaming && !canSend)
-                }
-                .padding(.horizontal, 12)
-                .padding(.bottom, 10)
-            }
-            .rxCard()
-            .frame(maxWidth: 820)
-        }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 12)
-    }
-
-    private func sendCurrentInput() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !activeSession.isStreaming else { return }
-        inputText = ""
-        assistant.draftText = ""
-        activeSession.send(trimmed)
     }
 }
 
@@ -913,285 +789,7 @@ private struct MacHostScopePopover: View {
     }
 }
 
-// MARK: - Message Row
-
-private struct MacChatMessageRow: View {
-    let message: AssistantChatMessage
-    let canMutate: Bool
-    let isLastAssistant: Bool
-    let onRetry: () -> Void
-    let onRegenerate: () -> Void
-    let onEdit: () -> Void
-    let onFork: () -> Void
-    let onDelete: () -> Void
-
-    @State private var isHovered = false
-
-    var body: some View {
-        switch message.role {
-        case .user:
-            HStack {
-                Spacer(minLength: 60)
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text(message.text)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 9)
-                        .background(Color.accentColor.opacity(0.16), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .textSelection(.enabled)
-                        .contextMenu {
-                            userContextMenu
-                        }
-
-                    if isHovered && canMutate {
-                        HStack(spacing: 6) {
-                            miniActionButton("doc.on.doc", help: "Copy") { copyText(message.text) }
-                            miniActionButton("pencil", help: "Edit & Resend", action: onEdit)
-                            miniActionButton("tuningfork", help: "Fork Conversation Here", action: onFork)
-                            miniActionButton("trash", help: "Delete", action: onDelete)
-                        }
-                        .transition(.opacity)
-                    }
-                }
-            }
-            .onHover { isHovered = $0 }
-
-        case .assistant:
-            let text = message.trimmedText
-            let reasoning = message.trimmedReasoning
-            let copyable = text.isEmpty ? reasoning : text
-            VStack(alignment: .leading, spacing: 8) {
-                if !reasoning.isEmpty {
-                    MacReasoningBox(text: reasoning, defaultExpanded: false, isThinking: false)
-                }
-                if !text.isEmpty {
-                    Text(LocalizedStringKey(text))
-                        .textSelection(.enabled)
-                        .lineSpacing(3)
-                }
-
-                HStack(spacing: 8) {
-                    if let label = message.modelLabel {
-                        Text(label)
-                            .font(.caption2)
-                            .foregroundStyle(.rxInkTertiary)
-                    }
-                    Spacer()
-                    if isHovered && canMutate {
-                        HStack(spacing: 6) {
-                            miniActionButton("doc.on.doc", help: "Copy") { copyText(copyable) }
-                            if isLastAssistant {
-                                miniActionButton("arrow.clockwise", help: "Regenerate", action: onRegenerate)
-                            }
-                            miniActionButton("tuningfork", help: "Fork Conversation Here", action: onFork)
-                            miniActionButton("trash", help: "Delete", action: onDelete)
-                        }
-                        .transition(.opacity)
-                    }
-                }
-            }
-            .padding(14)
-            .rxCard()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .onHover { isHovered = $0 }
-            .contextMenu {
-                Button { copyText(copyable) } label: { Label("Copy", systemImage: "doc.on.doc") }
-                if canMutate && isLastAssistant {
-                    Button(action: onRegenerate) { Label("Regenerate", systemImage: "arrow.clockwise") }
-                }
-                if canMutate {
-                    Button(action: onFork) { Label("Fork Conversation Here", systemImage: "tuningfork") }
-                    Divider()
-                    Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
-                }
-            }
-
-        case .toolCall:
-            if let exec = message.toolExecution {
-                DisclosureGroup {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if !exec.targetHosts.isEmpty {
-                            Text("Targets: \(exec.targetHosts.joined(separator: ", "))")
-                                .font(.caption2)
-                                .foregroundStyle(.rxInkSecondary)
-                        }
-                        Text(exec.output)
-                            .font(.caption.monospaced())
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.top, 4)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: exec.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
-                            .foregroundStyle(exec.isError ? .red : .green)
-                        Text(message.text).font(.caption.weight(.medium))
-                        if !exec.targetHosts.isEmpty {
-                            Text("· \(exec.targetHosts.joined(separator: ", "))")
-                                .font(.caption2)
-                                .foregroundStyle(.rxInkSecondary)
-                        }
-                        Spacer()
-                        Text("\(exec.durationMs) ms")
-                            .font(.caption2.monospacedDigit())
-                            .foregroundStyle(.rxInkTertiary)
-                    }
-                }
-                .padding(10)
-                .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
-            }
-
-        case .notice:
-            VStack(spacing: 6) {
-                Text(message.text)
-                    .font(.caption)
-                    .foregroundStyle(.rxInkSecondary)
-                if canMutate,
-                   ServerAssistant.shared.activeSession.canContinueAfterToolLimit,
-                   ServerAssistant.shared.activeSession.messages.last?.id == message.id
-                {
-                    Button {
-                        ServerAssistant.shared.activeSession.continueExecution()
-                    } label: {
-                        Label("Continue", systemImage: "play.fill")
-                    }
-                    .buttonStyle(.rx)
-                }
-            }
-            .frame(maxWidth: .infinity)
-
-        case .error:
-            VStack(alignment: .leading, spacing: 8) {
-                Label(message.text, systemImage: "exclamationmark.triangle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.red)
-                if canMutate {
-                    HStack(spacing: 8) {
-                        Button("Retry", action: onRetry)
-                            .buttonStyle(.rx)
-                        Button("Delete", role: .destructive, action: onDelete)
-                            .buttonStyle(.rx)
-                    }
-                }
-            }
-            .padding(12)
-            .background(Color.red.opacity(0.09), in: RoundedRectangle(cornerRadius: 12))
-        }
-    }
-
-    @ViewBuilder
-    private var userContextMenu: some View {
-        Button { copyText(message.text) } label: { Label("Copy", systemImage: "doc.on.doc") }
-        if canMutate {
-            Button(action: onEdit) { Label("Edit & Resend…", systemImage: "pencil") }
-            Button(action: onFork) { Label("Fork Conversation Here", systemImage: "tuningfork") }
-            Divider()
-            Button(role: .destructive, action: onDelete) { Label("Delete", systemImage: "trash") }
-        }
-    }
-
-    private func miniActionButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 22, height: 22)
-                .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
-        .help(help)
-    }
-
-    private func copyText(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-    }
-}
-
-// MARK: - Shimmer & Reasoning Box
-
-private struct MacShimmerThinkingText: View {
-    let text: String
-    let isThinking: Bool
-    @State private var offset: CGFloat = -0.6
-
-    var body: some View {
-        let base = Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(isThinking ? Color.primary.opacity(0.75) : Color.secondary)
-        if isThinking {
-            base.overlay {
-                GeometryReader { geo in
-                    LinearGradient(colors: [.clear, .white.opacity(0.85), .clear], startPoint: .leading, endPoint: .trailing)
-                        .frame(width: max(36, geo.size.width * 0.55))
-                        .offset(x: offset * (geo.size.width + 48))
-                }
-                .mask(base)
-            }
-            .onAppear {
-                withAnimation(.linear(duration: 1.45).repeatForever(autoreverses: false)) { offset = 1.2 }
-            }
-        } else {
-            base
-        }
-    }
-}
-
-struct MacReasoningBox: View {
-    let text: String
-    let isThinking: Bool
-    @State private var expanded: Bool
-    @State private var userToggled = false
-
-    init(text: String, defaultExpanded: Bool, isThinking: Bool) {
-        self.text = text
-        self.isThinking = isThinking
-        _expanded = State(initialValue: defaultExpanded)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button {
-                userToggled = true
-                withAnimation(.snappy(duration: 0.22)) { expanded.toggle() }
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isThinking ? "sparkles" : "brain")
-                        .font(.caption2)
-                        .foregroundStyle(isThinking ? Color.accentColor : .secondary)
-                    MacShimmerThinkingText(
-                        text: isThinking ? String(localized: "Thinking…") : String(localized: "Thinking Process"),
-                        isThinking: isThinking
-                    )
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .rotationEffect(.degrees(expanded ? 90 : 0))
-                }
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
-                HStack(alignment: .top, spacing: 8) {
-                    Capsule().fill(Color.accentColor.opacity(0.45)).frame(width: 2)
-                    Text(text)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .padding(10)
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
-        .onChange(of: isThinking) { _, thinking in
-            if !thinking && !userToggled {
-                withAnimation(.snappy(duration: 0.22)) { expanded = false }
-            }
-        }
-    }
-}
-
-// MARK: - AI Providers & Preferences Sheet (Full Parity)
+// MARK: - AI Providers & Preferences Sheet
 
 private struct MacAIProviderSettingsSheet: View {
     @Bindable var store: AIProviderStore
@@ -1230,7 +828,6 @@ private struct MacAIProviderSettingsSheet: View {
         SheetScaffold("AI Providers") {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // Apple Intelligence section
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Apple Intelligence").font(.rxBodyStrong)
                         HStack {
@@ -1239,7 +836,7 @@ private struct MacAIProviderSettingsSheet: View {
                                 Text(appleStatus.localizedDescription).font(.caption).foregroundStyle(.rxInkSecondary)
                             }
                             Spacer()
-                            Button(store.activeSelection == .appleIntelligence ? "Active" : "Use") {
+                            Button(store.activeSelection == .appleIntelligence ? String(localized: "Active") : String(localized: "Use")) {
                                 store.selectActive(.appleIntelligence)
                             }
                             .buttonStyle(.rx)
@@ -1255,7 +852,7 @@ private struct MacAIProviderSettingsSheet: View {
                             Toggle("", isOn: $store.privateCloudComputeEnabled)
                                 .labelsHidden()
                                 .toggleStyle(.switch)
-                            Button(store.activeSelection == .applePrivateCloudCompute ? "Active" : "Use") {
+                            Button(store.activeSelection == .applePrivateCloudCompute ? String(localized: "Active") : String(localized: "Use")) {
                                 store.selectActive(.applePrivateCloudCompute)
                             }
                             .buttonStyle(.rx)
@@ -1265,7 +862,6 @@ private struct MacAIProviderSettingsSheet: View {
                     .padding(12)
                     .rxCard()
 
-                    // Configured providers list
                     if !store.providers.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Configured Providers").font(.rxBodyStrong)
@@ -1312,10 +908,9 @@ private struct MacAIProviderSettingsSheet: View {
                         .rxCard()
                     }
 
-                    // Add / Edit Remote Provider form
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text(editingID == nil ? "Add Remote Provider" : "Edit Remote Provider")
+                            Text(editingID == nil ? String(localized: "Add Remote Provider") : String(localized: "Edit Remote Provider"))
                                 .font(.rxBodyStrong)
                             Spacer()
                             if editingID != nil {
@@ -1371,7 +966,7 @@ private struct MacAIProviderSettingsSheet: View {
                             .disabled(isFetchingModels)
                         }
 
-                        SecureField(kind.requiresAPIKey ? "API Key" : "API Key (Optional)", text: $apiKey)
+                        SecureField(kind.requiresAPIKey ? String(localized: "API Key") : String(localized: "API Key (Optional)"), text: $apiKey)
                             .textFieldStyle(.roundedBorder)
 
                         if let result = testResult {
@@ -1404,7 +999,7 @@ private struct MacAIProviderSettingsSheet: View {
 
                             Spacer()
 
-                            Button(editingID == nil ? "Add Provider" : "Save Changes") {
+                            Button(editingID == nil ? String(localized: "Add Provider") : String(localized: "Save Changes")) {
                                 saveProvider()
                             }
                             .buttonStyle(.rxPrimary)
@@ -1413,9 +1008,10 @@ private struct MacAIProviderSettingsSheet: View {
                     .padding(12)
                     .rxCard()
 
-                    // Memory & Context Budget preferences
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Assistant Preferences").font(.rxBodyStrong)
+                        Toggle("Show Activity Steps Inline (list thoughts & tool calls in chat)", isOn: $assistant.inlineActivityStepsEnabled)
+                            .font(.subheadline)
                         Toggle("Cross-Session Memory (inject recent chat summaries)", isOn: $assistant.crossSessionMemoryEnabled)
                             .font(.subheadline)
                         HStack {
@@ -1436,7 +1032,7 @@ private struct MacAIProviderSettingsSheet: View {
                 }
                 .padding()
             }
-            .frame(width: 580, height: 580)
+            .frame(width: 580, height: 600)
             .onAppear {
                 if baseURL.isEmpty {
                     name = kind.displayName
@@ -1524,7 +1120,7 @@ private struct MacAIProviderSettingsSheet: View {
     }
 }
 
-// MARK: - Ops Skills Sheet (Full Parity with File & URL Import)
+// MARK: - Ops Skills Sheet
 
 private struct MacOpsSkillsSheet: View {
     @Bindable var store: ServerOpsSkillStore
@@ -1550,7 +1146,6 @@ private struct MacOpsSkillsSheet: View {
     var body: some View {
         SheetScaffold("Ops Skills") {
             VStack(spacing: 0) {
-                // Import bar (File + URL)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         TextField("Import SKILL.md from GitHub or raw URL…", text: $importURL)
@@ -1639,7 +1234,7 @@ private struct MacOpsSkillsSheet: View {
                                         .foregroundStyle(isPinned ? .orange : .secondary)
                                 }
                                 .buttonStyle(.rx)
-                                .help(isPinned ? "Unpin from chat" : "Pin to current chat")
+                                .help(isPinned ? String(localized: "Unpin from chat") : String(localized: "Pin to current chat"))
 
                                 Button("Run") {
                                     assistant.activeSession.send(skill.effectiveRunPrompt)

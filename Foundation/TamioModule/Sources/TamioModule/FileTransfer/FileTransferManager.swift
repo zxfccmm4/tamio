@@ -37,7 +37,7 @@ public class FileTransferManager: ObservableObject {
         }
         let machine = TamioStore.shared.machineGroup[machineId]
         guard machine.isNotPlaceholder() else {
-            FileTransferInterface.uiHandler.presentError("Unknown Bad Data")
+            FileTransferInterface.uiHandler.presentError(String(localized: "Unknown Bad Data"))
             return
         }
         var get: RDIdentity?

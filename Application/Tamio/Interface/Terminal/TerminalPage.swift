@@ -72,7 +72,7 @@ struct TerminalPage: View {
         // Closing and duplicating are in the sidebar's menu.
         .pageToolbar(
             primary: context.closed
-                ? ToolbarAction(context.remoteType == .local ? "New Shell" : "Reconnect", systemImage: "arrow.clockwise", primary: true) { context.reconnect() }
+                ? ToolbarAction(context.remoteType == .local ? LocalizedStringKey("New Shell") : LocalizedStringKey("Reconnect"), systemImage: "arrow.clockwise", primary: true) { context.reconnect() }
                 : nil,
             trailingMetrics: .controlGroup
         ) {
@@ -180,7 +180,7 @@ struct TerminalPage: View {
 
     var disconnectedBanner: some View {
         HStack(spacing: RX.Space.s2) {
-            Text(context.remoteType == .local ? "Shell exited" : "Connection closed")
+            Text(context.remoteType == .local ? String(localized: "Shell exited") : String(localized: "Connection closed"))
                 .foregroundStyle(.rxInk)
             Spacer()
         }

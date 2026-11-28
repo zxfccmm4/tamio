@@ -317,7 +317,7 @@ struct ConfigPageActions: View {
                         Text("\(count)")
                             .font(.system(size: 11).monospacedDigit())
                             .foregroundStyle(.rxAccent)
-                            .help("\(count) changed from the default")
+                            .help(String(format: ConfigLayout.tr("help.changed_from_default", default: "%d changed from the default"), count))
                     }
                 }
                 .padding(.horizontal, RX.Space.s3)
@@ -416,7 +416,7 @@ struct ConfigErrorBar: View {
                 ConfigCategoryContent(category: category, hostSections: hostSections, model: model, state: state)
                     .id(category.id)
             } else {
-                EmptyStateView("Choose a category", systemImage: "slider.horizontal.3")
+                EmptyStateView(ConfigLayout.tr("empty.choose_category", default: "Choose a category"), systemImage: "slider.horizontal.3")
                     .frame(maxHeight: .infinity)
             }
         }

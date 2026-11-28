@@ -16,6 +16,7 @@ options:
   groupSortPosition: top
 packages:
   TamioModule: { path: ../../Foundation/TamioModule }
+  TamioAssistant: { path: ../../Foundation/TamioAssistant }
   TamioTerminal: { path: ../../Foundation/TamioTerminal }
   MachineStatus: { path: ../../Foundation/MachineStatus }
   MachineStatusView: { path: ../../Foundation/MachineStatusView }
@@ -83,6 +84,10 @@ targets:
         basedOnDependencyAnalysis: false
     dependencies:
       - package: TamioModule
+      - package: TamioAssistant
+        product: TamioAssistant
+      - package: TamioAssistant
+        product: TamioAssistantUI
       - package: TamioTerminal
       - package: MachineStatus
       - package: MachineStatusView

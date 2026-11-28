@@ -187,16 +187,16 @@ final class GhostRemoteSession: ObservableObject, Identifiable {
                 switch connState {
                 case .ready:
                     self.state = .connected
-                    self.termInterface.write("[Ghost Remote] TLS-PSK tunnel established.\r\n")
+                    self.termInterface.write(String(localized: "[Ghost Remote] TLS-PSK tunnel established.") + "\r\n")
                     GhostRemoteSessionManager.shared.notifyStateChange()
                     self.receiveLoop(conn)
                 case let .waiting(error):
                     self.state = .failed(error.localizedDescription)
-                    self.termInterface.write("\r\n[Ghost Remote] Waiting: \(error.localizedDescription)\r\n")
+                    self.termInterface.write("\r\n" + String(localized: "[Ghost Remote] Waiting: \(error.localizedDescription)") + "\r\n")
                     GhostRemoteSessionManager.shared.notifyStateChange()
                 case let .failed(error):
                     self.state = .failed(error.localizedDescription)
-                    self.termInterface.write("\r\n[Ghost Remote] Connection failed: \(error.localizedDescription)\r\n")
+                    self.termInterface.write("\r\n" + String(localized: "[Ghost Remote] Connection failed: \(error.localizedDescription)") + "\r\n")
                     GhostRemoteSessionManager.shared.notifyStateChange()
                 case .cancelled:
                     self.state = .closed
@@ -232,11 +232,11 @@ final class GhostRemoteSession: ObservableObject, Identifiable {
                 }
                 if let error {
                     self.state = .failed(error.localizedDescription)
-                    self.termInterface.write("\r\n[Ghost Remote] Closed: \(error.localizedDescription)\r\n")
+                    self.termInterface.write("\r\n" + String(localized: "[Ghost Remote] Closed: \(error.localizedDescription)") + "\r\n")
                     GhostRemoteSessionManager.shared.notifyStateChange()
                 } else if isComplete {
                     self.state = .closed
-                    self.termInterface.write("\r\n[Ghost Remote] Session ended by remote host.\r\n")
+                    self.termInterface.write("\r\n" + String(localized: "[Ghost Remote] Session ended by remote host.") + "\r\n")
                     GhostRemoteSessionManager.shared.notifyStateChange()
                 } else {
                     self.receiveLoop(conn)

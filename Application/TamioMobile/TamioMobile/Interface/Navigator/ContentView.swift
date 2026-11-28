@@ -11,6 +11,7 @@
 
 import MachineStatusView
 import SwiftUI
+import TamioAssistant
 import TamioDesign
 import TamioModule
 
@@ -436,6 +437,15 @@ struct MoreView: View {
         case diagnostics
 
         var id: String { rawValue }
+
+        var isCardTile: Bool {
+            switch self {
+            case .snippets, .identities, .portForward, .ghostRemote:
+                true
+            case .aiProviders, .settings, .about, .diagnostics:
+                false
+            }
+        }
     }
 
     private var activeTunnelCount: Int {
@@ -577,7 +587,11 @@ struct MoreView: View {
         .navigationDestination(item: $pushed) { destination in
             destinationView(for: destination)
                 .appleGroupedBackground()
-                .appleZoomDestination(sourceID: destination, in: zoomNamespace)
+                .appleZoomDestination(
+                    sourceID: destination.id,
+                    in: zoomNamespace,
+                    isEnabled: destination.isCardTile
+                )
         }
         .onAppear {
             #if DEBUG
@@ -679,7 +693,7 @@ struct MoreView: View {
             .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
-        .appleZoomSource(id: destination, in: zoomNamespace, cornerRadius: 18)
+        .appleZoomSource(id: destination.id, in: zoomNamespace, cornerRadius: 18)
     }
 
     private func moreCardRow<Icon: View>(
@@ -711,7 +725,6 @@ struct MoreView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .appleZoomSource(id: destination, in: zoomNamespace, cornerRadius: 12, appliesCardSurface: false)
     }
 }
 

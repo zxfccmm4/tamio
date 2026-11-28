@@ -89,11 +89,11 @@ final class ConfigEditorModel: ObservableObject {
         do {
             if let data = defaults.data(forKey: Self.snapshotKey) {
                 let storage = try JSONDecoder().decode(Storage.self, from: data)
-                guard storage.version == 1 else { throw ConfigError.message("Unsupported configuration storage version") }
+                guard storage.version == 1 else { throw ConfigError.message(ConfigLayout.tr("error.unsupported_storage_version", default: "Unsupported configuration storage version")) }
                 document = storage.document
             } else if let source = defaults.string(forKey: Self.storageKey) { try document.merge(source) }
         } catch {
-            issue = "Saved configuration could not be read: \(error.localizedDescription). The original is retained until you explicitly save."
+            issue = String(format: ConfigLayout.tr("error.saved_config_unreadable", default: "Saved configuration could not be read: %@. The original is retained until you explicitly save."), error.localizedDescription)
             unreadable = true
         }
         self.document = document
@@ -357,7 +357,7 @@ enum TamioTerminalConfiguration {
     static func apply(_ document: ConfigDocument, to target: TerminalController? = nil) throws {
         for (key, values) in document.overrides where supportedKeys.contains(key) {
             if values.contains(where: { $0.contains("\n") || $0.contains("\r") }) {
-                throw ConfigError.message("\(key): use escaped characters instead of literal newlines")
+                throw ConfigError.message(String(format: ConfigLayout.tr("error.literal_newline", default: "%@: use escaped characters instead of literal newlines"), key))
             }
         }
         let isShared = target == nil
@@ -380,7 +380,7 @@ enum TamioTerminalConfiguration {
         }
         let theme = TerminalTheme(light: configuration(light), dark: configuration(dark))
         if target.theme != theme, !target.setTheme(theme) {
-            throw ConfigError.message(target.lastConfigurationIssue ?? "Unable to apply configuration")
+            throw ConfigError.message(target.lastConfigurationIssue ?? ConfigLayout.tr("error.unable_to_apply", default: "Unable to apply configuration"))
         }
         if isShared {
             appliedFontSize = document.overrides["font-size"]?.first.flatMap(Double.init)

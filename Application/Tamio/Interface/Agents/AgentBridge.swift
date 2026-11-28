@@ -186,7 +186,7 @@ final class AgentBridge: ObservableObject, AgentEnvironment {
 
     /// Copies the skill into Claude Code's skills folder; the error, if any.
     func installSkill() -> String? {
-        guard let source = Self.skillFolder else { return "The skill is missing from this copy of Tamio." }
+        guard let source = Self.skillFolder else { return String(localized: "The skill is missing from this copy of Tamio.") }
         let skills = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".claude/skills", isDirectory: true)
         let target = skills.appendingPathComponent("tamio", isDirectory: true)
         do {

@@ -64,7 +64,7 @@ struct TamioSessionLiveActivity: Widget {
                                 .frame(minWidth: 40, alignment: .trailing)
                         }
 
-                        Text(context.state.activeCount == 1 ? "SSH LIVE" : "\(context.state.activeCount) TABS")
+                        Text(context.state.activeCount == 1 ? String(localized: "SSH LIVE") : String(localized: "\(context.state.activeCount) TABS"))
                             .font(.system(size: 9.5, weight: .bold))
                             .tracking(0.4)
                             .foregroundStyle(sessionAccentColor(for: context.state))
@@ -165,7 +165,7 @@ private struct LockScreenLiveActivityView: View {
                             .foregroundStyle(.white)
                             .lineLimit(1)
 
-                        Text(context.state.isGhostRemote ? "REMOTE" : "SSH")
+                        Text(context.state.isGhostRemote ? String(localized: "REMOTE") : String(localized: "SSH"))
                             .font(.system(size: 9, weight: .bold))
                             .tracking(0.5)
                             .foregroundStyle(sessionAccentColor(for: context.state))
@@ -221,7 +221,7 @@ private struct LockScreenLiveActivityView: View {
                     Text("\(context.state.activeCount)")
                         .font(.caption2.weight(.bold).monospacedDigit())
                         .foregroundStyle(.white)
-                    Text(context.state.activeCount == 1 ? "session" : "sessions")
+                    Text(context.state.activeCount == 1 ? String(localized: "session") : String(localized: "sessions"))
                         .font(.caption2)
                         .foregroundStyle(.white.opacity(0.60))
                 }

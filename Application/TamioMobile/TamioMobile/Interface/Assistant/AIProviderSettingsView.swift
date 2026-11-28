@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import TamioAssistant
 
 // MARK: - AI Provider Management View
 
@@ -19,6 +20,7 @@ struct AIProviderSettingsView: View {
     private struct AddSheetContext: Identifiable {
         let id = UUID()
         let initialKind: AIProviderKind
+        let zoomSourceID: String?
     }
 
     @State private var addSheetContext: AddSheetContext?
@@ -56,7 +58,7 @@ struct AIProviderSettingsView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    addSheetContext = AddSheetContext(initialKind: .openAI)
+                    addSheetContext = AddSheetContext(initialKind: .openAI, zoomSourceID: nil)
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -73,14 +75,17 @@ struct AIProviderSettingsView: View {
                 AIProviderEditorView(store: store, existing: nil, initialKind: ctx.initialKind)
             }
             .appleGroupedBackground()
-            .appleZoomDestination(sourceID: ctx.initialKind.rawValue, in: zoomNamespace)
+            .appleZoomDestination(
+                sourceID: ctx.zoomSourceID ?? ctx.initialKind.id,
+                in: zoomNamespace,
+                isEnabled: ctx.zoomSourceID != nil
+            )
         }
         .sheet(item: $editingProvider) { provider in
             NavigationStack {
                 AIProviderEditorView(store: store, existing: provider)
             }
             .appleGroupedBackground()
-            .appleZoomDestination(sourceID: provider.id, in: zoomNamespace)
         }
         .alert(
             "Delete AI Provider?",
@@ -288,7 +293,6 @@ struct AIProviderSettingsView: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("Edit")
                 }
-                .appleZoomSource(id: provider.id, in: zoomNamespace, cornerRadius: 12, appliesCardSurface: false)
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Delete", role: .destructive) { providerPendingDelete = provider }
                     Button("Edit") { editingProvider = provider }.tint(.blue)
@@ -312,7 +316,7 @@ struct AIProviderSettingsView: View {
             ) {
                 ForEach(AIProviderKind.allCases) { kind in
                     Button {
-                        addSheetContext = AddSheetContext(initialKind: kind)
+                        addSheetContext = AddSheetContext(initialKind: kind, zoomSourceID: kind.id)
                     } label: {
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
@@ -347,7 +351,7 @@ struct AIProviderSettingsView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    .appleZoomSource(id: kind.rawValue, in: zoomNamespace, cornerRadius: 14)
+                    .appleZoomSource(id: kind.id, in: zoomNamespace, cornerRadius: 14)
                 }
             }
             .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
@@ -510,9 +514,9 @@ struct AIProviderEditorView: View {
                 HStack(spacing: 8) {
                     Group {
                         if showKey {
-                            TextField(kind.requiresAPIKey ? "API Key" : "API Key (Optional)", text: $apiKey)
+                            TextField(kind.requiresAPIKey ? String(localized: "API Key") : String(localized: "API Key (Optional)"), text: $apiKey)
                         } else {
-                            SecureField(kind.requiresAPIKey ? "API Key" : "API Key (Optional)", text: $apiKey)
+                            SecureField(kind.requiresAPIKey ? String(localized: "API Key") : String(localized: "API Key (Optional)"), text: $apiKey)
                         }
                     }
                     .textInputAutocapitalization(.never)
@@ -589,7 +593,7 @@ struct AIProviderEditorView: View {
                     .autocorrectionDisabled()
             }
         }
-        .navigationTitle(existing == nil ? "Add AI Provider" : "Edit AI Provider")
+        .navigationTitle(existing == nil ? String(localized: "Add AI Provider") : String(localized: "Edit AI Provider"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -1005,7 +1009,7 @@ struct ServerOpsSkillsView: View {
                                 assistant.togglePinnedSkill(skill.id)
                             } label: {
                                 Label(
-                                    assistant.pinnedSkillIDs.contains(skill.id) ? "Unpin" : "Pin",
+                                    assistant.pinnedSkillIDs.contains(skill.id) ? String(localized: "Unpin") : String(localized: "Pin"),
                                     systemImage: "pin"
                                 )
                             }

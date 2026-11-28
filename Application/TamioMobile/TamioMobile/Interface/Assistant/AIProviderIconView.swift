@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import TamioAssistant
 import UIKit
 
 // MARK: - Brand Asset Metadata
@@ -504,7 +505,7 @@ struct AIProviderIconPickerSheet: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(providerName.isEmpty ? providerKind.displayName : providerName)
                                 .font(.headline)
-                            Text(selectedKind == .brandAsset ? "Brand Vector Icon" : "SF Symbol Icon")
+                            Text(selectedKind == .brandAsset ? String(localized: "Brand Vector Icon") : String(localized: "SF Symbol Icon"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

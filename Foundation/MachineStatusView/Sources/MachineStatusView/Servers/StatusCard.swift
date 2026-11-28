@@ -134,7 +134,7 @@ public struct StatusCard<More: View, Context: View>: View {
         HStack(spacing: RX.Space.s3) {
             Image(rx: "key")
                 .foregroundStyle(.rxInkSecondary)
-            Text(live.isEnabled ? "Add a password or key to see live status." : "Live status is off in Settings.")
+            Text(live.isEnabled ? String(localized: "Add a password or key to see live status.") : String(localized: "Live status is off in Settings."))
                 .font(.rxBody)
                 .foregroundStyle(.rxInkSecondary)
             Spacer()

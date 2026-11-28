@@ -14,7 +14,7 @@ extension UIBridge {
     static func requiresConfirmation(
         message: String,
         informative: String? = nil,
-        confirmTitle: String = "Continue",
+        confirmTitle: String = String(localized: "Continue"),
         destructive: Bool = true,
         confirmation: @escaping (Bool) -> Void
     ) {
@@ -23,7 +23,7 @@ extension UIBridge {
             return
         }
         let alert = UIAlertController(title: message, message: informative, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: { _ in
+        alert.addAction(UIAlertAction(title: String(localized: "Cancel"), style: .cancel, handler: { _ in
             confirmation(false)
         }))
         alert.addAction(UIAlertAction(title: confirmTitle, style: destructive ? .destructive : .default, handler: { _ in

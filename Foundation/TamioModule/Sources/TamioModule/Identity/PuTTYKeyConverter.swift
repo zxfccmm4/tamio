@@ -93,11 +93,11 @@ public enum PuTTYKeyConverter {
                 let key = String(line[..<colon]).trimmingCharacters(in: .whitespaces)
                 let val = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
                 if key == "Public-Lines", let count = Int(val) {
-                    guard idx + count <= lines.count else { throw PuTTYKeyError.malformed("Public-Lines truncated") }
+                    guard idx + count <= lines.count else { throw PuTTYKeyError.malformed(String(localized: "Public-Lines truncated")) }
                     publicBase64 = lines[idx ..< (idx + count)].joined()
                     idx += count
                 } else if key == "Private-Lines", let count = Int(val) {
-                    guard idx + count <= lines.count else { throw PuTTYKeyError.malformed("Private-Lines truncated") }
+                    guard idx + count <= lines.count else { throw PuTTYKeyError.malformed(String(localized: "Private-Lines truncated")) }
                     privateBase64 = lines[idx ..< (idx + count)].joined()
                     idx += count
                 } else {
@@ -107,13 +107,13 @@ public enum PuTTYKeyConverter {
         }
 
         guard let encryption = headers["Encryption"] else {
-            throw PuTTYKeyError.malformed("Missing Encryption header")
+            throw PuTTYKeyError.malformed(String(localized: "Missing Encryption header"))
         }
         let comment = headers["Comment"] ?? ""
         guard let publicBlob = Data(base64Encoded: publicBase64),
               let rawPrivateBlob = Data(base64Encoded: privateBase64)
         else {
-            throw PuTTYKeyError.malformed("Invalid Base64 key body")
+            throw PuTTYKeyError.malformed(String(localized: "Invalid Base64 key body"))
         }
 
         let privateBlob: Data
@@ -141,7 +141,7 @@ public enum PuTTYKeyConverter {
                 case "Argon2id": variant = .argon2id
                 case "Argon2i": variant = .argon2i
                 case "Argon2d": variant = .argon2d
-                default: throw PuTTYKeyError.malformed("Unsupported Key-Derivation \(kdfName)")
+                default: throw PuTTYKeyError.malformed(String(localized: "Unsupported Key-Derivation \(kdfName)"))
                 }
                 guard let memoryKiB = Int(headers["Argon2-Memory"] ?? ""),
                       let passes = Int(headers["Argon2-Passes"] ?? ""),
@@ -149,7 +149,7 @@ public enum PuTTYKeyConverter {
                       let saltHex = headers["Argon2-Salt"],
                       let salt = Data(hexString: saltHex)
                 else {
-                    throw PuTTYKeyError.malformed("Missing Argon2 parameters")
+                    throw PuTTYKeyError.malformed(String(localized: "Missing Argon2 parameters"))
                 }
                 let derived = Argon2.derive(
                     variant: variant,
@@ -219,7 +219,7 @@ public enum PuTTYKeyConverter {
 
         let pubAlg = try pubReader.readStringUTF8()
         guard pubAlg == algorithm else {
-            throw PuTTYKeyError.malformed("Public key algorithm mismatch (\(pubAlg) != \(algorithm))")
+            throw PuTTYKeyError.malformed(String(localized: "Public key algorithm mismatch (\(pubAlg) != \(algorithm))"))
         }
 
         let check = UInt32.random(in: .min ... .max)
@@ -233,7 +233,7 @@ public enum PuTTYKeyConverter {
             let pubKey = try pubReader.readString()
             let seed = try privReader.readString()
             guard pubKey.count == 32, seed.count == 32 else {
-                throw PuTTYKeyError.malformed("Invalid Ed25519 key lengths")
+                throw PuTTYKeyError.malformed(String(localized: "Invalid Ed25519 key lengths"))
             }
             secret.appendSSHString(pubKey)
             secret.appendSSHString(seed + pubKey)
@@ -334,7 +334,7 @@ private struct SSHWireReader {
     init(_ data: Data) { self.data = data }
 
     mutating func readUInt32() throws -> UInt32 {
-        guard offset + 4 <= data.count else { throw PuTTYKeyError.malformed("Unexpected EOF") }
+        guard offset + 4 <= data.count else { throw PuTTYKeyError.malformed(String(localized: "Unexpected EOF")) }
         let b0 = UInt32(data[offset])
         let b1 = UInt32(data[offset + 1])
         let b2 = UInt32(data[offset + 2])
@@ -345,7 +345,7 @@ private struct SSHWireReader {
 
     mutating func readString() throws -> Data {
         let len = Int(try readUInt32())
-        guard len >= 0, offset + len <= data.count else { throw PuTTYKeyError.malformed("Invalid SSH string length") }
+        guard len >= 0, offset + len <= data.count else { throw PuTTYKeyError.malformed(String(localized: "Invalid SSH string length")) }
         let slice = data.subdata(in: offset ..< (offset + len))
         offset += len
         return slice
@@ -354,7 +354,7 @@ private struct SSHWireReader {
     mutating func readStringUTF8() throws -> String {
         let bytes = try readString()
         guard let str = String(data: bytes, encoding: .utf8) else {
-            throw PuTTYKeyError.malformed("Non-UTF8 SSH string")
+            throw PuTTYKeyError.malformed(String(localized: "Non-UTF8 SSH string"))
         }
         return str
     }

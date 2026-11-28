@@ -175,7 +175,7 @@ struct EditIdentityView: View {
             }
 
             Section {
-                TextField(draft.method == .password ? "Office password" : "Deploy key", text: $draft.name)
+                TextField(draft.method == .password ? String(localized: "Office password") : String(localized: "Deploy key"), text: $draft.name)
                     .disableAutocorrection(true)
                 HStack(spacing: RX.Space.s2) {
                     TextField("Group (optional)", text: $draft.group)
@@ -250,7 +250,7 @@ struct EditIdentityView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button(isNew ? "Add Key" : "Save") {
+                Button(isNew ? String(localized: "Add Key") : String(localized: "Save")) {
                     save()
                 }
                 .bold()

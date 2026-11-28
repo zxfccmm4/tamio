@@ -9,6 +9,7 @@ import CodeEditorUI
 import MachineStatusView
 import SPIndicator
 import SwiftUI
+import TamioAssistant
 import TamioModule
 import TamioTerminal
 
@@ -33,7 +34,24 @@ struct TamioMobileApp: App {
         CloudSync.shared.preferences = SyncedSettings.all
         CloudSync.shared.start()
         LiveStatusCenter.shared.start()
-        MobileAgentBridge.shared.install()
+        AssistantPlatformHooks.shared.onExecutingSessionsChanged = { _ in
+            BackgroundGraceController.noteSessionsChanged()
+        }
+        AssistantPlatformHooks.shared.fallbackApprove = { request in
+            await withCheckedContinuation { continuation in
+                let hosts = request.hosts.isEmpty ? "" : "\n\nServers: " + request.hosts.prefix(10).joined(separator: ", ")
+                let detail = request.detail.count > 800 ? String(request.detail.prefix(800)) + "…" : request.detail
+                UIBridge.requiresConfirmation(
+                    message: String(localized: "\(request.client) wants to: \(request.title)"),
+                    informative: detail + hosts,
+                    confirmTitle: String(localized: "Allow"),
+                    destructive: request.risk?.isDestructive ?? false
+                ) { confirmed in
+                    continuation.resume(returning: confirmed)
+                }
+            }
+        }
+        AssistantAgentBridge.shared.install()
         PortForwardBackend.shared.reportProblem = { UIBridge.presentError(with: $0) }
         NetworkPathWatcher.shared.start()
         BackgroundGraceController.install()

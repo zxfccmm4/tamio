@@ -61,7 +61,9 @@ final class ConfigurationRuntimeTests: XCTestCase {
         XCTAssertEqual(controller.renderedConfig, before)
     }
     func testCompoundDurationValidation() throws {
-        XCTAssertEqual(ConfigDuration.humanize(try ConfigDuration.parse("1h30m", allowEmpty: false)), "1 hour, 30 minutes")
+        let enPath = try XCTUnwrap(Bundle.module.path(forResource: "en", ofType: "lproj"))
+        let enBundle = try XCTUnwrap(Bundle(path: enPath))
+        XCTAssertEqual(ConfigDuration.humanize(try ConfigDuration.parse("1h30m", allowEmpty: false), bundle: enBundle), "1 hour, 30 minutes")
         XCTAssertEqual(try ConfigDuration.parse("4ms", allowEmpty: false).first?.1, "ms")
         XCTAssertThrowsError(try ConfigDuration.parse("1s2s", allowEmpty: false))
         XCTAssertThrowsError(try ConfigDuration.parse("-1m", allowEmpty: false))

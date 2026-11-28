@@ -128,7 +128,7 @@ enum AgentRunner {
                 result.truncated = truncated || scrubbed.utf8.count > outputCap
                 result.output = scrubbed.utf8.count > outputCap ? String(scrubbed.suffix(outputCap)) : scrubbed
                 if parsed.exitCode == nil {
-                    result.error = Date() >= deadline ? "Timed out after \(Int(timeout)) s." : "The command ended without an exit code."
+                    result.error = Date() >= deadline ? String(localized: "Timed out after \(Int(timeout)) s.") : String(localized: "The command ended without an exit code.")
                 }
                 result.seconds = Date().timeIntervalSince(started)
                 continuation.resume(returning: result)

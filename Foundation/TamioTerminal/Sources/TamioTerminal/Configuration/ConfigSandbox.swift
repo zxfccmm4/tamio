@@ -171,7 +171,7 @@ final class ConfigSandbox: ObservableObject {
             else { token.append(c); active = true }
             index += 1
         }
-        guard quote == nil, !escaped else { throw ConfigError.message("Unterminated quote or escape") }
+        guard quote == nil, !escaped else { throw ConfigError.message(ConfigLayout.tr("error.unterminated_quote", default: "Unterminated quote or escape")) }
         flush(); if !args.isEmpty { commands.append(args) }; return commands
     }
 }

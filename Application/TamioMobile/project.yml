@@ -18,6 +18,7 @@ options:
   groupSortPosition: top
 packages:
   TamioModule: { path: ../../Foundation/TamioModule }
+  TamioAssistant: { path: ../../Foundation/TamioAssistant }
   TamioTerminal: { path: ../../Foundation/TamioTerminal }
   TamioDesign: { path: ../../Foundation/TamioDesign }
   MachineStatus: { path: ../../Foundation/MachineStatus }
@@ -88,6 +89,10 @@ targets:
       - target: TamioMobileWidgets
         embed: true
       - package: TamioModule
+      - package: TamioAssistant
+        product: TamioAssistant
+      - package: TamioAssistant
+        product: TamioAssistantUI
       - package: TamioTerminal
       - package: TamioDesign
       - package: MachineStatus
@@ -116,6 +121,7 @@ targets:
         INFOPLIST_FILE: TamioMobileWidgets/Info.plist
         INFOPLIST_KEY_CFBundleDisplayName: Tamio Widgets
         SKIP_INSTALL: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
         SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO

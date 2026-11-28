@@ -84,7 +84,7 @@ struct MacProcessesTab: View {
                 Divider()
 
                 if displayed.isEmpty {
-                    Text(loading ? "Loading processes…" : "No processes")
+                    Text(loading ? String(localized: "Loading processes…") : String(localized: "No processes"))
                         .font(.subheadline)
                         .foregroundStyle(.rxInkSecondary)
                         .frame(maxWidth: .infinity)
@@ -209,7 +209,7 @@ struct MacContainersTab: View {
                 .padding(.vertical, 48)
                 .rxCard()
             } else if containers.isEmpty {
-                Text(loading ? "Loading containers…" : "No containers found")
+                Text(loading ? String(localized: "Loading containers…") : String(localized: "No containers found"))
                     .font(.subheadline)
                     .foregroundStyle(.rxInkSecondary)
                     .frame(maxWidth: .infinity)

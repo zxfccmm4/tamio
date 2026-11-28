@@ -104,7 +104,7 @@ struct SnippetEditorSheet: View {
             Button("Cancel", action: onClose)
                 .buttonStyle(.rx)
                 .keyboardShortcut(.cancelAction)
-            Button(isNew ? "Create" : "Save", action: save)
+            Button(isNew ? String(localized: "Create") : String(localized: "Save"), action: save)
                 .buttonStyle(.rxPrimary)
                 .keyboardShortcut("s", modifiers: .command)
                 .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)

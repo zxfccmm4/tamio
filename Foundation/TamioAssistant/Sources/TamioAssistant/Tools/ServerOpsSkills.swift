@@ -1,6 +1,6 @@
 //
 //  ServerOpsSkills.swift
-//  TamioMobile
+//  TamioAssistant
 //
 //  Built-in and custom server operations Skills (SKILL.md) with progressive
 //  disclosure into the AI system prompt and on-demand loading via `load_skill`.
@@ -11,7 +11,7 @@ import Observation
 
 // MARK: - Skill Category
 
-nonisolated enum ServerOpsSkillCategory: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
+public nonisolated enum ServerOpsSkillCategory: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case health
     case storage
     case containers
@@ -21,9 +21,9 @@ nonisolated enum ServerOpsSkillCategory: String, Codable, CaseIterable, Identifi
     case performance
     case maintenance
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
-    var displayName: String {
+    public var displayName: String {
         switch self {
         case .health: String(localized: "Fleet Health")
         case .storage: String(localized: "Disk & Logs")
@@ -36,7 +36,7 @@ nonisolated enum ServerOpsSkillCategory: String, Codable, CaseIterable, Identifi
         }
     }
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .health: "heart.text.square"
         case .storage: "internaldrive"
@@ -52,20 +52,20 @@ nonisolated enum ServerOpsSkillCategory: String, Codable, CaseIterable, Identifi
 
 // MARK: - Skill Model
 
-nonisolated struct ServerOpsSkill: Identifiable, Codable, Hashable, Sendable {
-    let id: String
-    var name: String
-    var description: String
-    var version: String
-    var category: ServerOpsSkillCategory
-    var instructions: String
-    var quickPrompt: String?
-    var isEnabled: Bool
-    var isBuiltIn: Bool
-    var sourceURL: String?
-    var updatedAt: Date
+public nonisolated struct ServerOpsSkill: Identifiable, Codable, Hashable, Sendable {
+    public let id: String
+    public var name: String
+    public var description: String
+    public var version: String
+    public var category: ServerOpsSkillCategory
+    public var instructions: String
+    public var quickPrompt: String?
+    public var isEnabled: Bool
+    public var isBuiltIn: Bool
+    public var sourceURL: String?
+    public var updatedAt: Date
 
-    init(
+    public init(
         id: String,
         name: String,
         description: String,
@@ -91,12 +91,12 @@ nonisolated struct ServerOpsSkill: Identifiable, Codable, Hashable, Sendable {
         self.updatedAt = updatedAt
     }
 
-    var effectiveRunPrompt: String {
+    public var effectiveRunPrompt: String {
         if let quickPrompt, !quickPrompt.isEmpty { return quickPrompt }
         return String(localized: "Use the \"\(name)\" ops skill to inspect my target servers and summarize findings.")
     }
 
-    var xmlSummaryElement: String {
+    public var xmlSummaryElement: String {
         let desc = description.count > 200 ? String(description.prefix(200)) + "…" : description
         return """
           <skill>
@@ -119,16 +119,16 @@ private extension String {
 
 // MARK: - SKILL.md Parser
 
-nonisolated enum ServerSkillMDParser {
-    struct Parsed: Sendable {
-        var name: String = "Untitled Skill"
-        var description: String = ""
-        var version: String = "1.0.0"
-        var category: ServerOpsSkillCategory = .maintenance
-        var body: String = ""
+public nonisolated enum ServerSkillMDParser {
+    public struct Parsed: Sendable {
+        public var name: String = "Untitled Skill"
+        public var description: String = ""
+        public var version: String = "1.0.0"
+        public var category: ServerOpsSkillCategory = .maintenance
+        public var body: String = ""
     }
 
-    static func parse(_ raw: String) -> Parsed {
+    public static func parse(_ raw: String) -> Parsed {
         var result = Parsed()
         var content = raw.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
         if content.first == "\u{FEFF}" { content.removeFirst() }
@@ -166,7 +166,7 @@ nonisolated enum ServerSkillMDParser {
         return result
     }
 
-    static func slugify(_ name: String) -> String {
+    public static func slugify(_ name: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-"))
         let slug = name.lowercased()
             .components(separatedBy: allowed.inverted)
@@ -175,7 +175,7 @@ nonisolated enum ServerSkillMDParser {
         return slug.isEmpty ? "skill-\(UUID().uuidString.prefix(8).lowercased())" : slug
     }
 
-    static func resolveRawURL(_ input: String) -> URL? {
+    public static func resolveRawURL(_ input: String) -> URL? {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalized = (trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://")) ? trimmed : "https://\(trimmed)"
         guard let url = URL(string: normalized), let host = url.host?.lowercased() else { return nil }
@@ -196,27 +196,27 @@ nonisolated enum ServerSkillMDParser {
 
 @MainActor
 @Observable
-final class ServerOpsSkillStore {
-    static let shared = ServerOpsSkillStore()
+public final class ServerOpsSkillStore {
+    public static let shared = ServerOpsSkillStore()
 
     private static let storageKey = "sb.moe.tamio.ai.skills.v1"
 
-    private(set) var skills: [ServerOpsSkill] = []
+    public private(set) var skills: [ServerOpsSkill] = []
 
     private let defaults: UserDefaults
     private let session: URLSession
 
-    init(defaults: UserDefaults = .standard, session: URLSession = .shared) {
+    public init(defaults: UserDefaults = .standard, session: URLSession = .shared) {
         self.defaults = defaults
         self.session = session
         loadOrSeed()
     }
 
-    var enabledSkills: [ServerOpsSkill] {
+    public var enabledSkills: [ServerOpsSkill] {
         skills.filter(\.isEnabled)
     }
 
-    func skill(idOrName query: String) -> ServerOpsSkill? {
+    public func skill(idOrName query: String) -> ServerOpsSkill? {
         let normalized = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if let exact = skills.first(where: { $0.id.lowercased() == normalized || $0.name.lowercased() == normalized }) {
             return exact
@@ -224,7 +224,7 @@ final class ServerOpsSkillStore {
         return skills.first { $0.id.lowercased().contains(normalized) || $0.name.lowercased().contains(normalized) }
     }
 
-    func addSkill(_ skill: ServerOpsSkill) {
+    public func addSkill(_ skill: ServerOpsSkill) {
         var candidate = skill
         if skills.contains(where: { $0.id == candidate.id }) {
             candidate = ServerOpsSkill(
@@ -244,7 +244,7 @@ final class ServerOpsSkillStore {
         persist()
     }
 
-    func updateSkill(_ skill: ServerOpsSkill) {
+    public func updateSkill(_ skill: ServerOpsSkill) {
         guard let idx = skills.firstIndex(where: { $0.id == skill.id }) else { return }
         var updated = skill
         updated.updatedAt = Date()
@@ -252,19 +252,19 @@ final class ServerOpsSkillStore {
         persist()
     }
 
-    func toggleEnabled(id: String) {
+    public func toggleEnabled(id: String) {
         guard let idx = skills.firstIndex(where: { $0.id == id }) else { return }
         skills[idx].isEnabled.toggle()
         skills[idx].updatedAt = Date()
         persist()
     }
 
-    func deleteSkill(id: String) {
+    public func deleteSkill(id: String) {
         skills.removeAll { $0.id == id && !$0.isBuiltIn }
         persist()
     }
 
-    func resetBuiltInSkill(id: String) {
+    public func resetBuiltInSkill(id: String) {
         guard let template = Self.builtInSkills.first(where: { $0.id == id }),
               let idx = skills.firstIndex(where: { $0.id == id })
         else { return }
@@ -272,7 +272,7 @@ final class ServerOpsSkillStore {
         persist()
     }
 
-    func importFromBackup(
+    public func importFromBackup(
         customSkills: [ServerOpsSkill],
         disabledBuiltInIDs: Set<String>,
         replaceExisting: Bool
@@ -298,7 +298,7 @@ final class ServerOpsSkillStore {
     }
 
     @discardableResult
-    func importFromMarkdown(_ raw: String, sourceURL: String? = nil) -> ServerOpsSkill {
+    public func importFromMarkdown(_ raw: String, sourceURL: String? = nil) -> ServerOpsSkill {
         let parsed = ServerSkillMDParser.parse(raw)
         let skill = ServerOpsSkill(
             id: ServerSkillMDParser.slugify(parsed.name),
@@ -316,7 +316,7 @@ final class ServerOpsSkillStore {
     }
 
     @discardableResult
-    func importFromURL(_ urlString: String) async throws -> ServerOpsSkill {
+    public func importFromURL(_ urlString: String) async throws -> ServerOpsSkill {
         guard let rawURL = ServerSkillMDParser.resolveRawURL(urlString) else {
             throw RemoteLLMError.invalidURL(urlString)
         }
@@ -328,12 +328,12 @@ final class ServerOpsSkillStore {
             throw RemoteLLMError.httpError(statusCode: code, message: String(localized: "Unable to download SKILL.md"))
         }
         guard let text = String(data: data, encoding: .utf8), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw RemoteLLMError.decodingError("Empty SKILL.md")
+            throw RemoteLLMError.decodingError(String(localized: "Empty SKILL.md"))
         }
         return importFromMarkdown(text, sourceURL: urlString.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    func buildSystemPromptFragment(pinnedSkillIDs: Set<String> = [], compactForOnDevice: Bool = false) -> String {
+    public func buildSystemPromptFragment(pinnedSkillIDs: Set<String> = [], compactForOnDevice: Bool = false) -> String {
         let enabled = enabledSkills
         guard !enabled.isEmpty else { return "" }
 
@@ -401,7 +401,7 @@ final class ServerOpsSkillStore {
 
     // MARK: - 14 Built-in Server Ops Skills
 
-    static let builtInSkills: [ServerOpsSkill] = [
+    public static let builtInSkills: [ServerOpsSkill] = [
         ServerOpsSkill(
             id: "fleet-health-check",
             name: String(localized: "Fleet Health Check"),

@@ -530,7 +530,7 @@ private struct MobileBrowserContent: View {
                 Button {
                     model.ascending.toggle()
                 } label: {
-                    Label(model.ascending ? "Ascending" : "Descending", rx: model.ascending ? "arrow.up" : "arrow.down")
+                    Label(model.ascending ? String(localized: "Ascending") : String(localized: "Descending"), rx: model.ascending ? "arrow.up" : "arrow.down")
                 }
                 Divider()
                 Button { askGoToPath() } label: {
@@ -615,7 +615,7 @@ private struct MobileBrowserContent: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if visibleEntries.isEmpty, !browser.isLoading {
             EmptyStateView(
-                model.filter.isEmpty ? "Empty folder" : "No matches",
+                model.filter.isEmpty ? String(localized: "Empty folder") : String(localized: "No matches"),
                 systemImage: model.filter.isEmpty ? "folder" : "magnifyingglass"
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -792,7 +792,7 @@ private struct MobileFileRow: View {
                     }
                 } else if browser.machine != nil {
                     Button(action: onEdit) {
-                        Label(tooLargeToEdit ? "Too Large to Edit" : "Edit", rx: "pencil")
+                        Label(tooLargeToEdit ? String(localized: "Too Large to Edit") : String(localized: "Edit"), rx: "pencil")
                     }
                     .disabled(tooLargeToEdit)
                 }

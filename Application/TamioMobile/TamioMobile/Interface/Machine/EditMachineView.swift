@@ -261,7 +261,7 @@ struct EditMachineView: View {
 
                 case .key:
                     Picker(selection: $draft.key) {
-                        Text(keyOptions.isEmpty ? "No keys yet" : "Choose a key").tag(RDIdentity.ID?.none)
+                        Text(keyOptions.isEmpty ? String(localized: "No keys yet") : String(localized: "Choose a key")).tag(RDIdentity.ID?.none)
                         ForEach(keyOptions) { option in
                             Text(option.title).tag(RDIdentity.ID?.some(option.id))
                         }

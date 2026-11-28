@@ -487,7 +487,7 @@ struct ServerEditorDialog: View {
             Button {
                 showsPassword.toggle()
             } label: {
-                Label(showsPassword ? "Hide" : "Show", rx: showsPassword ? "eye.slash" : "eye")
+                Label(showsPassword ? String(localized: "Hide") : String(localized: "Show"), rx: showsPassword ? "eye.slash" : "eye")
             }
             .buttonStyle(.rx(.plain, iconOnly: true))
             .help(showsPassword ? String(localized: "Hide") : String(localized: "Show"))

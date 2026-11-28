@@ -10,6 +10,7 @@ import AppKit
 import CryptoKit
 import Foundation
 import SwiftUI
+import TamioAssistant
 import TamioDesign
 import TamioModule
 import UniformTypeIdentifiers

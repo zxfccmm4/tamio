@@ -19,7 +19,7 @@ extension UIBridge {
     static func presentAlert(with message: String) {
         onMainThread {
             let alert = UIAlertController(title: "", message: message, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Done", style: .default, handler: nil))
+            alert.addAction(UIAlertAction(title: String(localized: "Done"), style: .default, handler: nil))
             UIWindow.shutUpKeyWindow?.topMostViewController?.present(alert, animated: true, completion: nil)
         }
     }
