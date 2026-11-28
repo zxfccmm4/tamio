@@ -36,15 +36,17 @@ struct EditPortForwardView: View {
     }
 
     private var portsValid: Bool {
-        parsedBindPort != nil && parsedTargetPort != nil && !targetHost.trimmingCharacters(in: .whitespaces).isEmpty
+        guard parsedBindPort != nil else { return false }
+        if forwardOrientation == .dynamicSocks5 { return true }
+        return parsedTargetPort != nil && !targetHost.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private var previewObject: RDPortForward {
         RDPortForward(
             forwardOrientation: forwardOrientation,
             bindPort: parsedBindPort ?? 0,
-            targetHost: targetHost.trimmingCharacters(in: .whitespaces),
-            targetPort: parsedTargetPort ?? 0,
+            targetHost: forwardOrientation == .dynamicSocks5 ? "" : targetHost.trimmingCharacters(in: .whitespaces),
+            targetPort: forwardOrientation == .dynamicSocks5 ? 0 : (parsedTargetPort ?? 0),
             usingMachine: usingMachine
         )
     }
@@ -53,34 +55,37 @@ struct EditPortForwardView: View {
         Form {
             Section("Direction") {
                 Picker("Direction", selection: $forwardOrientation) {
-                    Text("Local Forward (-L)").tag(RDPortForward.ForwardOrientation.listenLocal)
-                    Text("Remote Forward (-R)").tag(RDPortForward.ForwardOrientation.listenRemote)
+                    Text("Local (-L)").tag(RDPortForward.ForwardOrientation.listenLocal)
+                    Text("Remote (-R)").tag(RDPortForward.ForwardOrientation.listenRemote)
+                    Text("SOCKS5 (-D)").tag(RDPortForward.ForwardOrientation.dynamicSocks5)
                 }
                 .pickerStyle(.segmented)
             }
 
             Section("Bind Port") {
                 LabeledContent("Port") {
-                    TextField("3000", text: $bindPort)
+                    TextField(forwardOrientation == .dynamicSocks5 ? "1080" : "3000", text: $bindPort)
                         .multilineTextAlignment(.trailing)
                         .font(.body.monospaced())
                         .keyboardType(.numberPad)
                 }
             }
 
-            Section("Destination") {
-                LabeledContent("Host") {
-                    TextField("127.0.0.1", text: $targetHost)
-                        .multilineTextAlignment(.trailing)
-                        .font(.body.monospaced())
-                        .disableAutocorrection(true)
-                        .textInputAutocapitalization(.never)
-                }
-                LabeledContent("Port") {
-                    TextField("3000", text: $targetPort)
-                        .multilineTextAlignment(.trailing)
-                        .font(.body.monospaced())
-                        .keyboardType(.numberPad)
+            if forwardOrientation != .dynamicSocks5 {
+                Section("Destination") {
+                    LabeledContent("Host") {
+                        TextField("127.0.0.1", text: $targetHost)
+                            .multilineTextAlignment(.trailing)
+                            .font(.body.monospaced())
+                            .disableAutocorrection(true)
+                            .textInputAutocapitalization(.never)
+                    }
+                    LabeledContent("Port") {
+                        TextField("3000", text: $targetPort)
+                            .multilineTextAlignment(.trailing)
+                            .font(.body.monospaced())
+                            .keyboardType(.numberPad)
+                    }
                 }
             }
 

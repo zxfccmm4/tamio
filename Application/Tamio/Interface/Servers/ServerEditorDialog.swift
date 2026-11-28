@@ -41,7 +41,9 @@ struct ServerDraft: Equatable {
     var comment = ""
     /// A command the connection goes through, as in ssh_config's ProxyCommand.
     var proxyCommand = ""
+    var jumpHostID: RDMachine.ID?
     var shellIntegration = false
+    var agentAccess: RDMachine.AgentAccess = .full
     var renewalEnabled = false
     var renewalDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
     var renewalCycle: RDMachine.RenewalCycle = .monthly
@@ -335,6 +337,22 @@ struct ServerEditorDialog: View {
                     note {
                         HelpText("The connection goes through this command instead of directly to the address. %h is the address and %p the port. Leave empty to connect directly.")
                     }
+                    row("Jump host") {
+                        let candidates = store.machineGroup.machines
+                            .filter { $0.id != machine }
+                            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+                        Picker("Jump host", selection: $draft.jumpHostID) {
+                            Text("None (Direct)").tag(RDMachine.ID?.none)
+                            ForEach(candidates) { host in
+                                Text(verbatim: host.name).tag(RDMachine.ID?.some(host.id))
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: 220, alignment: .leading)
+                    }
+                    note {
+                        HelpText("Connect through another saved server (ProxyJump). Works natively on both macOS and iOS, verifying each hop's host key independently.")
+                    }
                     row("Shell integration") {
                         Toggle("Shell integration", isOn: $draft.shellIntegration)
                             .labelsHidden()
@@ -344,6 +362,18 @@ struct ServerEditorDialog: View {
                     }
                     note {
                         HelpText("Files follows the terminal's folder. Each new terminal types a line that has bash, zsh or fish tell Tamio its folder at every prompt; nothing is changed on the server.")
+                    }
+                    row("AI & MCP access") {
+                        Picker("AI & MCP access", selection: $draft.agentAccess) {
+                            ForEach(RDMachine.AgentAccess.allCases) { access in
+                                Text(access.localizedTitle).tag(access)
+                            }
+                        }
+                        .labelsHidden()
+                        .frame(maxWidth: 180, alignment: .leading)
+                    }
+                    note {
+                        HelpText("Read-Only lets agents inspect status and metrics without running commands; Disabled hides this server from MCP.")
                     }
                     if !isNew {
                         row("Last banner") {
@@ -519,7 +549,9 @@ struct ServerEditorDialog: View {
         draft.startFolder = read.startsInHomeFolder ? "" : read.fileTransferLoginPath
         draft.startupSnippet = read.startupSnippet
         draft.proxyCommand = read.proxyCommand
+        draft.jumpHostID = read.jumpHostIDs.first
         draft.shellIntegration = read.shellIntegration
+        draft.agentAccess = read.agentAccess
         draft.renewalEnabled = read.renewalEnabled
         if let date = read.renewalDate { draft.renewalDate = date }
         draft.renewalCycle = read.renewalCycle
@@ -527,7 +559,7 @@ struct ServerEditorDialog: View {
         draft.renewalPrice = read.renewalPrice
         draft.renewalRemindDays = read.renewalRemindDays
         banner = read.lastBanner
-        showsAdvanced = read.startupSnippet != nil || !read.startsInHomeFolder || !read.proxyCommand.isEmpty || read.shellIntegration
+        showsAdvanced = read.startupSnippet != nil || !read.startsInHomeFolder || !read.proxyCommand.isEmpty || !read.jumpHostIDs.isEmpty || read.shellIntegration || read.agentAccess != .full
         let identity = read.associatedIdentity.flatMap(UUID.init(uuidString:)).map { store.identityGroup[$0] }
         let user = read.loginUsername(with: identity)
         draft.username = user == RDMachine.defaultUsername && read.username.isEmpty ? "" : user
@@ -606,7 +638,9 @@ struct ServerEditorDialog: View {
         target.fileTransferLoginPath = draft.startFolder.trimmingCharacters(in: .whitespaces)
         target.startupSnippet = draft.startupSnippet
         target.proxyCommand = draft.proxyCommand
+        target.jumpHostIDs = draft.jumpHostID.map { [$0] } ?? []
         target.shellIntegration = draft.shellIntegration
+        target.agentAccess = draft.agentAccess
         target.renewalEnabled = draft.renewalEnabled
         target.renewalDate = draft.renewalEnabled ? draft.renewalDate : nil
         target.renewalCycle = draft.renewalCycle

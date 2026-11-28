@@ -143,20 +143,26 @@ struct PortForwardEditorSheet: View {
     }
 
     var body: some View {
-        SheetScaffold(
+        let lead: LocalizedStringKey = switch orientation {
+        case .listenLocal: "This Mac :port → server → target"
+        case .listenRemote: "Server :port → this Mac → target"
+        case .dynamicSocks5: "SOCKS5 proxy on localhost :port → server"
+        }
+        return SheetScaffold(
             forward == nil ? String(localized: "New Port Forward") : String(localized: "Edit Port Forward"),
-            lead: orientation == .listenLocal ? "This Mac :port → server → target" : "Server :port → this Mac → target"
+            lead: lead
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 RXField("Orientation") {
                     RXSegmented(selection: $orientation, options: [
-                        .init(.listenLocal, "Listen local"),
-                        .init(.listenRemote, "Listen remote"),
+                        .init(.listenLocal, "Local (-L)"),
+                        .init(.listenRemote, "Remote (-R)"),
+                        .init(.dynamicSocks5, "SOCKS5 (-D)"),
                     ], caps: false, fullWidth: true)
                 }
                 HStack(alignment: .top, spacing: RX.Space.s4) {
                     RXField("Bind port", error: bindPort.isEmpty || UInt16(bindPort) != nil ? nil : "1–65535") {
-                        TextField("5433", text: $bindPort)
+                        TextField(orientation == .dynamicSocks5 ? "1080" : "5433", text: $bindPort)
                             .textFieldStyle(.rxMono)
                     }
                     .frame(width: 120)
@@ -168,17 +174,19 @@ struct PortForwardEditorSheet: View {
                         )
                     }
                 }
-                HStack(alignment: .top, spacing: RX.Space.s4) {
-                    RXField("Target host") {
-                        TextField("127.0.0.1", text: $targetHost)
-                            .textFieldStyle(.rxMono)
-                            .disableAutocorrection(true)
+                if orientation != .dynamicSocks5 {
+                    HStack(alignment: .top, spacing: RX.Space.s4) {
+                        RXField("Target host") {
+                            TextField("127.0.0.1", text: $targetHost)
+                                .textFieldStyle(.rxMono)
+                                .disableAutocorrection(true)
+                        }
+                        RXField("Target port", error: targetPort.isEmpty || UInt16(targetPort) != nil ? nil : "1–65535") {
+                            TextField("5432", text: $targetPort)
+                                .textFieldStyle(.rxMono)
+                        }
+                        .frame(width: 120)
                     }
-                    RXField("Target port", error: targetPort.isEmpty || UInt16(targetPort) != nil ? nil : "1–65535") {
-                        TextField("5432", text: $targetPort)
-                            .textFieldStyle(.rxMono)
-                    }
-                    .frame(width: 120)
                 }
                 if let command = draft.getCommand(), draft.isValid() {
                     RXField("Equivalent command") {

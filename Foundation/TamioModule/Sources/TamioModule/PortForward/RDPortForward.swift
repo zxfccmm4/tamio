@@ -32,6 +32,7 @@ public struct RDPortForward: Codable, Identifiable, Equatable, Sendable {
     public enum ForwardOrientation: String, Codable, CaseIterable, Sendable {
         case listenLocal = "Local"
         case listenRemote = "Remote"
+        case dynamicSocks5 = "SOCKS5"
     }
 
     public var forwardOrientation: ForwardOrientation = .listenLocal
@@ -58,15 +59,16 @@ public struct RDPortForward: Codable, Identifiable, Equatable, Sendable {
     public var attachment: [String: String]
 
     public func isValid() -> Bool {
-        guard bindPort >= 0, bindPort <= 65535,
-              !targetHost.isEmpty,
-              targetPort >= 0, targetPort <= 65535,
+        guard bindPort > 0, bindPort <= 65535,
               let machine = usingMachine,
               TamioStore.shared.machineGroup[machine].isNotPlaceholder()
         else {
             return false
         }
-        return true
+        if forwardOrientation == .dynamicSocks5 {
+            return true
+        }
+        return !targetHost.isEmpty && targetPort >= 0 && targetPort <= 65535
     }
 
     public func getMachineName() -> String? {
@@ -89,6 +91,8 @@ public struct RDPortForward: Codable, Identifiable, Equatable, Sendable {
             return "localhost:\(bindPort) -\(getMachineName() ?? String(localized: "Unknown"))-> \(targetHost):\(targetPort)"
         case .listenRemote:
             return "\(getMachineName() ?? String(localized: "Unknown")):\(bindPort) -localhost-> \(targetHost):\(targetPort)"
+        case .dynamicSocks5:
+            return "SOCKS5 localhost:\(bindPort) → \(getMachineName() ?? String(localized: "Unknown"))"
         }
     }
 
@@ -102,6 +106,8 @@ public struct RDPortForward: Codable, Identifiable, Equatable, Sendable {
             return "ssh -L \(bindPort):\(targetHost):\(targetPort) \(machineCommand.getCommand(insertLeadingSSH: false))"
         case .listenRemote:
             return "ssh -R \(bindPort):\(targetHost):\(targetPort) \(machineCommand.getCommand(insertLeadingSSH: false))"
+        case .dynamicSocks5:
+            return "ssh -D \(bindPort) \(machineCommand.getCommand(insertLeadingSSH: false))"
         }
     }
 }

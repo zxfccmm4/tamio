@@ -158,7 +158,12 @@ private struct PortForwardRow<Context: View>: View {
     }
 
     var orientationTag: some View {
-        RXTag(forward.forwardOrientation == .listenLocal ? String(localized: "Listen local") : String(localized: "Listen remote"))
+        let label: String = switch forward.forwardOrientation {
+        case .listenLocal: String(localized: "Listen local")
+        case .listenRemote: String(localized: "Listen remote")
+        case .dynamicSocks5: String(localized: "SOCKS5 (-D)")
+        }
+        return RXTag(label)
     }
 
     var bindText: some View {
@@ -176,7 +181,10 @@ private struct PortForwardRow<Context: View>: View {
     }
 
     var targetText: some View {
-        Text(verbatim: forward.targetHost.isEmpty ? "—" : "\(forward.targetHost):\(forward.targetPort)")
+        let text: String = forward.forwardOrientation == .dynamicSocks5
+            ? "SOCKS5"
+            : (forward.targetHost.isEmpty ? "—" : "\(forward.targetHost):\(forward.targetPort)")
+        return Text(verbatim: text)
             .font(.rxCode)
             .foregroundStyle(.rxInk)
     }

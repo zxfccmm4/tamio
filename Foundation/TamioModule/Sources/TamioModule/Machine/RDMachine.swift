@@ -118,6 +118,63 @@ public struct RDMachine: Codable, Identifiable, Equatable, Sendable {
         }
     }
 
+    /// Ordered native jump-host IDs (`ProxyJump` equivalent), synced via `attachment`.
+    /// Works identically on macOS and iOS by tunneling each hop in-process over libssh2.
+    public var jumpHostIDs: [RDMachine.ID] {
+        get {
+            (attachment["jump.hosts"] ?? "")
+                .split(separator: ",")
+                .compactMap { UUID(uuidString: $0.trimmingCharacters(in: .whitespaces)) }
+        }
+        set {
+            var seen = Set<RDMachine.ID>()
+            let clean = newValue.filter { $0 != id && seen.insert($0).inserted }
+            let joined = clean.map(\.uuidString).joined(separator: ",")
+            attachment["jump.hosts"] = joined.isEmpty ? nil : joined
+        }
+    }
+
+    /// Resolves the ordered list of jump hosts to connect through before reaching `self`,
+    /// rejecting cycles and capping depth at 8 hops.
+    public func resolvedJumpChain(lookup: (RDMachine.ID) -> RDMachine?) throws -> [RDMachine] {
+        guard !jumpHostIDs.isEmpty else { return [] }
+        var visited: Set<RDMachine.ID> = [id]
+        var chain: [RDMachine] = []
+
+        func expand(_ hopIDs: [RDMachine.ID]) throws {
+            for hopID in hopIDs {
+                guard visited.insert(hopID).inserted else {
+                    throw NSError(
+                        domain: "sb.moe.tamio.jump",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: String(localized: "Jump host configuration contains a cycle.")]
+                    )
+                }
+                guard let hop = lookup(hopID), hop.isNotPlaceholder() else {
+                    throw NSError(
+                        domain: "sb.moe.tamio.jump",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: String(localized: "A configured jump host no longer exists.")]
+                    )
+                }
+                if !hop.jumpHostIDs.isEmpty {
+                    try expand(hop.jumpHostIDs)
+                }
+                chain.append(hop)
+                guard chain.count <= 8 else {
+                    throw NSError(
+                        domain: "sb.moe.tamio.jump",
+                        code: 3,
+                        userInfo: [NSLocalizedDescriptionKey: String(localized: "Jump host chain exceeds the maximum of 8 hops.")]
+                    )
+                }
+            }
+        }
+
+        try expand(jumpHostIDs)
+        return chain
+    }
+
     /// The terminal has the shell report its folder, so Files can follow
     /// it: see `ShellIntegration`. Off unless the user turns it on.
     public var shellIntegration: Bool {
@@ -131,6 +188,40 @@ public struct RDMachine: Codable, Identifiable, Equatable, Sendable {
     public var signsInWithoutCredentials: Bool {
         get { attachment["auth"] == "none" }
         set { attachment["auth"] = newValue ? "none" : nil }
+    }
+
+    /// How much access MCP clients and in-app AI tools have to this server.
+    public enum AgentAccess: String, Codable, CaseIterable, Identifiable, Sendable {
+        /// Visible to agents; commands, snippets and port forwards may run after approval.
+        case full
+        /// Visible to agents for status/metrics/history inspection only; execution and changes blocked.
+        case observe
+        /// Hidden from agent host lists and unreachable through MCP tools.
+        case disabled
+
+        public var id: String { rawValue }
+
+        public var localizedTitle: String {
+            switch self {
+            case .full: String(localized: "Full Access")
+            case .observe: String(localized: "Read-Only")
+            case .disabled: String(localized: "Disabled")
+            }
+        }
+    }
+
+    /// Per-host MCP / AI access policy, synced via `attachment`. Defaults to `.full`
+    /// so existing hosts keep working seamlessly after upgrading.
+    public var agentAccess: AgentAccess {
+        get {
+            guard let raw = attachment["agent.access"], let parsed = AgentAccess(rawValue: raw) else {
+                return .full
+            }
+            return parsed
+        }
+        set {
+            attachment["agent.access"] = newValue == .full ? nil : newValue.rawValue
+        }
     }
 
     // MARK: - Notes & VPS Renewal Reminder

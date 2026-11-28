@@ -131,22 +131,43 @@ private struct PortForwardListRow: View {
     let isRunning: Bool
     let onToggle: (Bool) -> Void
 
-    private var isLocal: Bool { forward.forwardOrientation == .listenLocal }
+    private var directionIcon: String {
+        switch forward.forwardOrientation {
+        case .listenLocal: "arrow.right"
+        case .listenRemote: "arrow.left"
+        case .dynamicSocks5: "network"
+        }
+    }
+
+    private var directionTitle: String {
+        switch forward.forwardOrientation {
+        case .listenLocal: String(localized: "Local")
+        case .listenRemote: String(localized: "Remote")
+        case .dynamicSocks5: String(localized: "SOCKS5")
+        }
+    }
+
+    private var endpointLabel: String {
+        if forward.forwardOrientation == .dynamicSocks5 {
+            return "localhost:\(forward.bindPort) (SOCKS5)"
+        }
+        return ":\(forward.bindPort) → \(forward.targetHost):\(forward.targetPort)"
+    }
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: isLocal ? "arrow.right" : "arrow.left")
+            Image(systemName: directionIcon)
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(isRunning ? .green : .secondary)
                 .frame(width: 22)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(":\(forward.bindPort) → \(forward.targetHost):\(forward.targetPort)")
+                Text(endpointLabel)
                     .font(.subheadline.weight(.medium).monospaced())
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 6) {
-                    Text(isLocal ? String(localized: "Local") : String(localized: "Remote"))
+                    Text(directionTitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text("·")

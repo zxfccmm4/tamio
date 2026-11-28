@@ -102,6 +102,76 @@ public extension NSRemoteShell {
         return isConnected && isAuthenticated
     }
 
+    /// Connects through `machine.jumpHostIDs` (if configured) using in-process
+    /// libssh2 direct-tcpip tunnels so multi-hop ProxyJump works identically on
+    /// macOS and iOS with independent host-key verification on every hop.
+    /// Returns an error description when a jump hop fails, or nil when ready to connect `self`.
+    func prepareJumpTunnelIfNeeded(
+        for machine: RDMachine,
+        timeout: NSNumber,
+        autoIdentities: [RDIdentity] = [],
+        hint: ((String) -> Void)? = nil
+    ) -> String? {
+        guard !machine.jumpHostIDs.isEmpty else { return nil }
+        let chain: [RDMachine]
+        do {
+            chain = try machine.resolvedJumpChain { id in
+                let candidate = TamioStore.shared.workerMachine(for: id)
+                return candidate.isNotPlaceholder() ? candidate : nil
+            }
+        } catch {
+            return error.localizedDescription
+        }
+        guard !chain.isEmpty else { return nil }
+
+        var parentShell: NSRemoteShell?
+        for (index, hop) in chain.enumerated() {
+            hint?("[i] connecting jump host \(hop.name) (\(index + 1)/\(chain.count))")
+            let hopShell = NSRemoteShell.configured(for: hop, timeout: timeout)
+            if let prev = parentShell {
+                let hopPort = NSNumber(value: Int(hop.remotePort) ?? 22)
+                let tunnelFD = prev.requestOpenDirectTunnelSocket(toHost: hop.remoteAddress, port: hopPort)
+                guard tunnelFD > 0 else {
+                    let msg = prev.getLastError() ?? String(localized: "Jump host \(prev.remoteHost) could not reach \(hop.name).")
+                    prev.requestDisconnectAndWait()
+                    prev.destroyPermanently()
+                    hopShell.destroyPermanently()
+                    return msg
+                }
+                hopShell.setupTunnelSocket(tunnelFD, ownedParentShell: prev)
+            }
+            KnownHosts.install()
+            hopShell.requestConnectAndWait()
+            guard hopShell.isConnected else {
+                let msg = hopShell.hostKeyRefusal ?? hopShell.getLastError()
+                    ?? String(localized: "Could not reach jump host \(hop.name).")
+                hopShell.requestDisconnectAndWait()
+                hopShell.destroyPermanently()
+                return msg
+            }
+            let hopIdentity = TamioStore.shared.workerAssociatedIdentity(for: hop)
+            guard hopShell.authenticate(for: hop, identity: hopIdentity, autoIdentities: autoIdentities, hint: hint) else {
+                let msg = String(localized: "Could not sign in to jump host \(hop.name) as \(hop.loginUsername(with: hopIdentity)).")
+                hopShell.requestDisconnectAndWait()
+                hopShell.destroyPermanently()
+                return msg
+            }
+            parentShell = hopShell
+        }
+
+        guard let lastJump = parentShell else { return nil }
+        let targetPort = NSNumber(value: Int(machine.remotePort) ?? 22)
+        let leafFD = lastJump.requestOpenDirectTunnelSocket(toHost: machine.remoteAddress, port: targetPort)
+        guard leafFD > 0 else {
+            let msg = lastJump.getLastError() ?? String(localized: "Jump host \(lastJump.remoteHost) could not reach \(machine.remoteAddress):\(targetPort).")
+            lastJump.requestDisconnectAndWait()
+            lastJump.destroyPermanently()
+            return msg
+        }
+        setupTunnelSocket(leafFD, ownedParentShell: lastJump)
+        return nil
+    }
+
     /// Connects (blocking), then signs in as `authenticate(for:identity:)`
     /// does. Shared by the terminal, file-transfer and monitor bootstraps.
     @discardableResult
@@ -112,6 +182,10 @@ public extension NSRemoteShell {
         hint: ((String) -> Void)? = nil
     ) -> ConnectAndAuthenticateResult {
         KnownHosts.install()
+        if let jumpFailure = prepareJumpTunnelIfNeeded(for: machine, timeout: operationTimeout, autoIdentities: autoIdentities, hint: hint) {
+            hint?("[!] \(jumpFailure)")
+            return .connectFailed
+        }
         requestConnectAndWait()
         guard isConnected else { return .connectFailed }
         return authenticate(for: machine, identity: identity, autoIdentities: autoIdentities, hint: hint)

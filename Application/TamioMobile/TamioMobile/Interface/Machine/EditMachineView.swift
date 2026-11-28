@@ -36,7 +36,9 @@ struct MobileServerDraft: Equatable {
     var startupSnippet: RDSnippet.ID?
     var comment = ""
     var proxyCommand = ""
+    var jumpHostID: RDMachine.ID?
     var shellIntegration = false
+    var agentAccess: RDMachine.AgentAccess = .full
     var renewalEnabled = false
     var renewalDate = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date()
     var renewalCycle: RDMachine.RenewalCycle = .monthly
@@ -445,6 +447,23 @@ struct EditMachineView: View {
                         .padding(.vertical, 2)
                     }
 
+                    Picker(selection: $draft.jumpHostID) {
+                        Text("None (Direct)").tag(RDMachine.ID?.none)
+                        ForEach(store.machineGroup.machines.filter { $0.id != inEditWith }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { host in
+                            Text(host.name).tag(RDMachine.ID?.some(host.id))
+                        }
+                    } label: {
+                        fieldLabel("Jump Host", icon: "point.topleft.down.to.point.bottomright.curvepath", tint: .orange)
+                    }
+
+                    Picker(selection: $draft.agentAccess) {
+                        ForEach(RDMachine.AgentAccess.allCases) { access in
+                            Text(access.localizedTitle).tag(access)
+                        }
+                    } label: {
+                        fieldLabel("AI & MCP Access", icon: "sparkles", tint: .purple)
+                    }
+
                     if !isNew, !banner.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Last Banner")
@@ -563,7 +582,9 @@ struct EditMachineView: View {
         draft.startFolder = read.startsInHomeFolder ? "" : read.fileTransferLoginPath
         draft.startupSnippet = read.startupSnippet
         draft.proxyCommand = read.proxyCommand
+        draft.jumpHostID = read.jumpHostIDs.first
         draft.shellIntegration = read.shellIntegration
+        draft.agentAccess = read.agentAccess
         draft.renewalEnabled = read.renewalEnabled
         if let date = read.renewalDate { draft.renewalDate = date }
         draft.renewalCycle = read.renewalCycle
@@ -574,7 +595,9 @@ struct EditMachineView: View {
         showsAdvanced = read.startupSnippet != nil
             || !read.startsInHomeFolder
             || !read.proxyCommand.isEmpty
+            || !read.jumpHostIDs.isEmpty
             || read.shellIntegration
+            || read.agentAccess != .full
 
         let identity = read.associatedIdentity.flatMap(UUID.init(uuidString:)).map { store.identityGroup[$0] }
         let user = read.loginUsername(with: identity)
@@ -658,7 +681,9 @@ struct EditMachineView: View {
         target.fileTransferLoginPath = draft.startFolder.trimmingCharacters(in: .whitespaces)
         target.startupSnippet = draft.startupSnippet
         target.proxyCommand = draft.proxyCommand
+        target.jumpHostIDs = draft.jumpHostID.map { [$0] } ?? []
         target.shellIntegration = draft.shellIntegration
+        target.agentAccess = draft.agentAccess
         target.renewalEnabled = draft.renewalEnabled
         target.renewalDate = draft.renewalEnabled ? draft.renewalDate : nil
         target.renewalCycle = draft.renewalCycle

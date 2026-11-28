@@ -113,9 +113,12 @@ public class PortForwardContext: ObservableObject, Identifiable {
         putLifecycle(.awaitingConnect)
         // The lifecycle thread reads the store's worker snapshot, never the
         // main-thread properties.
-        shell
-            .applyConnection(for: machine, timeout: TamioStore.shared.workerTimeoutNumber)
-            .requestConnectAndWait()
+        shell.applyConnection(for: machine, timeout: TamioStore.shared.workerTimeoutNumber)
+        if shell.prepareJumpTunnelIfNeeded(for: machine, timeout: TamioStore.shared.workerTimeoutNumber, autoIdentities: TamioStore.shared.workerIdentitiesForAutoAuth) != nil {
+            putLifecycle(.failedConnect)
+            return
+        }
+        shell.requestConnectAndWait()
         guard shell.isConnected else {
             putLifecycle(.failedConnect)
             return
@@ -151,6 +154,14 @@ public class PortForwardContext: ObservableObject, Identifiable {
                 self.putLifecycle(.forwardRunning)
             } withContinuationHandler: {
                 true // we are using shell.disconnect for shutdown
+            }
+        case .dynamicSocks5:
+            shell.createDynamicPortForward(
+                withLocalPort: NSNumber(value: info.bindPort)
+            ) {
+                self.putLifecycle(.forwardRunning)
+            } withContinuationHandler: {
+                true
             }
         }
         putLifecycle(.forwardStopped)
