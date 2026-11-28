@@ -27,6 +27,9 @@ struct MacTerminalAIPanel: View {
     @State private var attachScreenContext = true
 
     private var session: ConversationSession { assistant.activeSession }
+    private var visibleMessages: [AssistantChatMessage] {
+        session.messages.filter(\.hasVisibleContent)
+    }
     private var activeApprovals: [MobileAgentBridge.PendingApproval] {
         bridge.pendingApprovals(for: assistant.activeConversationID)
     }
@@ -84,20 +87,31 @@ struct MacTerminalAIPanel: View {
                 .padding(16)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // Context toggle row
+                // Context & mode toggle row
                 HStack(spacing: 6) {
                     Toggle("Attach terminal screen", isOn: $attachScreenContext)
                         .toggleStyle(.checkbox)
                         .font(.caption)
                         .foregroundStyle(.rxInkSecondary)
                     Spacer()
+                    Picker("Mode", selection: Binding(
+                        get: { assistant.interactionMode(for: assistant.activeConversationID) },
+                        set: { assistant.setInteractionMode($0, for: assistant.activeConversationID) }
+                    )) {
+                        Text(AssistantInteractionMode.ask.localizedTitle).tag(AssistantInteractionMode.ask)
+                        Text(AssistantInteractionMode.agent.localizedTitle).tag(AssistantInteractionMode.agent)
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                    .controlSize(.mini)
+                    .frame(width: 112)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
 
                 Hairline()
 
-                if session.messages.isEmpty && !session.isStreaming {
+                if visibleMessages.isEmpty && !session.isStreaming && activeApprovals.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         quickButton("Explain current screen & errors", "stethoscope",
                                     String(localized: "Analyze the current SSH terminal screen output, explain any errors or warnings, and give me the exact fix commands."))
@@ -112,12 +126,16 @@ struct MacTerminalAIPanel: View {
                     ScrollViewReader { proxy in
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 8) {
-                                ForEach(session.messages) { msg in
+                                ForEach(visibleMessages) { msg in
                                     messageView(msg)
                                         .id(msg.id)
                                 }
 
                                 if session.isStreaming {
+                                    let streamText = session.streamText.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    let streamReasoning = session.streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+                                    let isThinking = streamText.isEmpty
+
                                     VStack(alignment: .leading, spacing: 5) {
                                         if let tool = session.activeToolStatus {
                                             HStack(spacing: 5) {
@@ -125,13 +143,18 @@ struct MacTerminalAIPanel: View {
                                                 Text(tool).font(.caption).foregroundStyle(.rxInkSecondary)
                                             }
                                         }
-                                        if session.streamText.isEmpty {
-                                            HStack(spacing: 5) {
-                                                ProgressView().controlSize(.mini)
-                                                Text("Thinking…").font(.caption).foregroundStyle(.rxInkSecondary)
+                                        if !streamReasoning.isEmpty {
+                                            MacReasoningBox(text: streamReasoning, defaultExpanded: isThinking, isThinking: isThinking)
+                                        }
+                                        if streamText.isEmpty {
+                                            if session.activeToolStatus == nil && streamReasoning.isEmpty {
+                                                HStack(spacing: 5) {
+                                                    ProgressView().controlSize(.mini)
+                                                    Text("Thinking…").font(.caption).foregroundStyle(.rxInkSecondary)
+                                                }
                                             }
                                         } else {
-                                            Text(LocalizedStringKey(session.streamText))
+                                            Text(LocalizedStringKey(streamText))
                                                 .font(.caption)
                                                 .textSelection(.enabled)
                                         }
@@ -141,11 +164,51 @@ struct MacTerminalAIPanel: View {
                                     .background(Color.rxSurfaceSunken, in: RoundedRectangle(cornerRadius: 10))
                                 }
 
-                                ForEach(activeApprovals) { approval in
+                                if let reason = session.pendingAgentModeReason {
                                     VStack(alignment: .leading, spacing: 6) {
-                                        Label(approval.request.title, systemImage: "checkmark.shield.fill")
+                                        Label("Switch to Agent mode?", systemImage: "bolt.shield.fill")
                                             .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.orange)
+                                            .foregroundStyle(Color.accentColor)
+                                        Text(reason)
+                                            .font(.caption)
+                                            .foregroundStyle(.rxInkSecondary)
+                                        HStack(spacing: 6) {
+                                            Button("Switch & Retry") { session.switchToAgentModeAndRetry() }
+                                                .buttonStyle(.rxPrimary)
+                                            Button("Stay in Ask") { session.dismissAgentModePrompt() }
+                                                .buttonStyle(.rx)
+                                        }
+                                    }
+                                    .padding(10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.accentColor.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
+                                }
+
+                                ForEach(activeApprovals) { approval in
+                                    let risk = approval.risk
+                                    let tint: Color = switch risk.level {
+                                    case .readOnly: .green
+                                    case .modify: .orange
+                                    case .destructive: .red
+                                    }
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 6) {
+                                            Label(approval.request.title, systemImage: approval.isDestructive ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
+                                                .font(.caption.weight(.semibold))
+                                                .foregroundStyle(tint)
+                                            Spacer(minLength: 4)
+                                            Text(risk.level.localizedLabel)
+                                                .font(.caption2.weight(.semibold))
+                                                .foregroundStyle(tint)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(tint.opacity(0.14), in: Capsule())
+                                        }
+                                        if !risk.reasons.isEmpty {
+                                            Text(risk.reasons.joined(separator: " · "))
+                                                .font(.caption2)
+                                                .foregroundStyle(.rxInkSecondary)
+                                        }
                                         if !approval.request.detail.isEmpty {
                                             Text(approval.request.detail)
                                                 .font(.caption2.monospaced())
@@ -161,7 +224,7 @@ struct MacTerminalAIPanel: View {
                                         }
                                     }
                                     .padding(10)
-                                    .background(Color.orange.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
+                                    .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 10))
                                 }
 
                                 Color.clear.frame(height: 8).id("mac-copilot-bottom")
@@ -172,6 +235,12 @@ struct MacTerminalAIPanel: View {
                             proxy.scrollTo("mac-copilot-bottom", anchor: .bottom)
                         }
                         .onChange(of: session.streamText.count) { _, _ in
+                            if session.isStreaming { proxy.scrollTo("mac-copilot-bottom", anchor: .bottom) }
+                        }
+                        .onChange(of: session.streamReasoning.count) { _, _ in
+                            if session.isStreaming { proxy.scrollTo("mac-copilot-bottom", anchor: .bottom) }
+                        }
+                        .onChange(of: session.activeToolStatus) { _, _ in
                             if session.isStreaming { proxy.scrollTo("mac-copilot-bottom", anchor: .bottom) }
                         }
                     }
@@ -275,47 +344,57 @@ struct MacTerminalAIPanel: View {
                     .background(Color.accentColor.opacity(0.16), in: RoundedRectangle(cornerRadius: 10))
             }
         case .assistant:
-            VStack(alignment: .leading, spacing: 6) {
-                Text(LocalizedStringKey(msg.text))
-                    .font(.caption)
-                    .textSelection(.enabled)
+            let text = msg.trimmedText
+            let reasoning = msg.trimmedReasoning
+            if !text.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    if !reasoning.isEmpty {
+                        MacReasoningBox(text: reasoning, defaultExpanded: false, isThinking: false)
+                    }
 
-                let commands = MacShellCommandExtractor.extract(from: msg.text)
-                if !commands.isEmpty {
-                    ForEach(Array(commands.enumerated()), id: \.offset) { _, cmd in
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(cmd)
-                                .font(.caption2.monospaced())
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            HStack(spacing: 6) {
-                                Button("Insert") {
-                                    context.termInterface.sendInputText(cmd)
+                    Text(LocalizedStringKey(text))
+                        .font(.caption)
+                        .textSelection(.enabled)
+
+                    let commands = MacShellCommandExtractor.extract(from: text)
+                    if !commands.isEmpty {
+                        ForEach(Array(commands.enumerated()), id: \.offset) { _, cmd in
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(cmd)
+                                    .font(.caption2.monospaced())
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                HStack(spacing: 6) {
+                                    Button("Insert") {
+                                        context.termInterface.sendInputText(cmd)
+                                    }
+                                    .buttonStyle(.rx)
+                                    Button("Run in SSH") {
+                                        context.termInterface.sendInputText(cmd + "\n")
+                                    }
+                                    .buttonStyle(.rxPrimary)
+                                    Spacer()
+                                    Button {
+                                        NSPasteboard.general.clearContents()
+                                        NSPasteboard.general.setString(cmd, forType: .string)
+                                    } label: {
+                                        Image(systemName: "doc.on.doc")
+                                            .font(.caption2)
+                                    }
+                                    .buttonStyle(.rx)
                                 }
-                                .buttonStyle(.rx)
-                                Button("Run in SSH") {
-                                    context.termInterface.sendInputText(cmd + "\n")
-                                }
-                                .buttonStyle(.rxPrimary)
-                                Spacer()
-                                Button {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(cmd, forType: .string)
-                                } label: {
-                                    Image(systemName: "doc.on.doc")
-                                        .font(.caption2)
-                                }
-                                .buttonStyle(.rx)
                             }
+                            .padding(8)
+                            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
                         }
-                        .padding(8)
-                        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
                     }
                 }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.rxSurfaceSunken, in: RoundedRectangle(cornerRadius: 10))
+            } else if !reasoning.isEmpty {
+                MacReasoningBox(text: reasoning, defaultExpanded: false, isThinking: false)
             }
-            .padding(10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.rxSurfaceSunken, in: RoundedRectangle(cornerRadius: 10))
         case .toolCall:
             if let exec = msg.toolExecution {
                 HStack(spacing: 5) {
@@ -351,8 +430,10 @@ struct MacTerminalAIPanel: View {
             let screen = (context.termInterface.readViewportText() ?? context.termInterface.readTranscript())
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !screen.isEmpty {
-                let tail = String(screen.suffix(2400))
-                finalPrompt += "\n\n[Current SSH Terminal Output (\(context.displayName))]\n```\n\(tail)\n```"
+                let rawTail = String(screen.suffix(2400))
+                let redacted = SecretRedactor.redactIfEnabled(rawTail)
+                let note = redacted.didRedact ? " (redacted \(redacted.redactionCount) secret\(redacted.redactionCount == 1 ? "" : "s"))" : ""
+                finalPrompt += "\n\n[Current SSH Terminal Output (\(context.displayName))\(note)]\n```\n\(redacted.text)\n```"
             }
         }
         session.send(finalPrompt)

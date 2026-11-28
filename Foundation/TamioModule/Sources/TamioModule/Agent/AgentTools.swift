@@ -136,6 +136,12 @@ enum AgentTools {
         tool("export_ssh_config", "ssh_config Host blocks for servers (HostName, Port, User, ProxyCommand; no keys).", schema(["hosts": strings]), readOnly: true),
         tool("run_command", "Run a shell command on servers, signed in with Tamio's saved credentials. The user approves first. Returns each server's exit code and output.",
              schema(["targets": targets, "command": string, "sudo": describe(boolean, "Run with sudo -n"), "timeout": describe(integer, "Seconds per server, 300 by default"), "concurrency": describe(integer, "Servers at once, 8 by default")], required: ["targets", "command"]), readOnly: false),
+        tool("start_command", "Start a long-running shell command in the background on servers and return a job_id immediately. Use poll_command to read incremental output and stop_command to cancel it.",
+             schema(["targets": targets, "command": string, "sudo": describe(boolean, "Run with sudo -n"), "timeout": describe(integer, "Max seconds per server, 3600 by default"), "concurrency": describe(integer, "Servers at once, 8 by default")], required: ["targets", "command"]), readOnly: false),
+        tool("poll_command", "Read incremental output and status of a background job started with start_command.",
+             schema(["job_id": describe(string, "Job id returned by start_command"), "offset": describe(integer, "Byte offset to read from, 0 by default"), "max_bytes": describe(integer, "Max bytes per server, 65536 by default"), "wait_seconds": describe(integer, "Optional seconds to wait for new output (0-30)")], required: ["job_id"]), readOnly: true),
+        tool("stop_command", "Stop a running background command started with start_command.",
+             schema(["job_id": describe(string, "Job id returned by start_command"), "hosts": describe(strings, "Optional subset of host names/ids to stop; omit for all")], required: ["job_id"]), readOnly: false),
         tool("run_snippet", "Run a saved snippet on servers, like run_command.", schema(["targets": targets, "snippet": describe(string, "Snippet id or name"), "sudo": boolean, "timeout": integer], required: ["targets", "snippet"]), readOnly: false),
         tool("add_host", "Add a server. Sign-in is a key identity, a password kept with the server, or none (auth: \"none\") for a server that trusts the connection itself.", schema(hostFields, required: ["address"]), readOnly: false),
         tool("update_host", "Change a server; only the fields given change.", schema(hostFields.merging(["host": describe(string, "Id, name or address of the server")]) { $1 }, required: ["host"]), readOnly: false),
@@ -149,8 +155,8 @@ enum AgentTools {
         tool("update_snippet", "Change a snippet; only the fields given change.", schema(["snippet": string, "name": string, "code": string, "group": string, "comment": string], required: ["snippet"]), readOnly: false),
         tool("remove_snippet", "Remove a snippet.", schema(["snippet": string], required: ["snippet"]), readOnly: false),
         tool("list_port_forwards", "Port forwards and whether they run.", schema([:]), readOnly: true),
-        tool("add_port_forward", "Add a port forward through a server. direction local: a port on this Mac reaches target_host:target_port from the server; remote: a port on the server reaches it from this Mac.",
-             schema(["host": string, "direction": ["type": "string", "enum": ["local", "remote"]], "bind_port": integer, "target_host": string, "target_port": integer, "start": boolean], required: ["host", "bind_port", "target_host", "target_port"]), readOnly: false),
+        tool("add_port_forward", "Add a port forward through a server. direction local: a port on this Mac reaches target_host:target_port from the server; remote: a port on the server reaches it from this Mac; socks5: local SOCKS5 dynamic proxy (-D) on bind_port.",
+             schema(["host": string, "direction": ["type": "string", "enum": ["local", "remote", "socks5"]], "bind_port": integer, "target_host": string, "target_port": integer, "start": boolean], required: ["host", "bind_port"]), readOnly: false),
         tool("start_port_forward", "Start a port forward.", schema(["forward": describe(string, "Port forward id")], required: ["forward"]), readOnly: false),
         tool("stop_port_forward", "Stop a port forward.", schema(["forward": string], required: ["forward"]), readOnly: false),
         tool("remove_port_forward", "Remove a port forward.", schema(["forward": string], required: ["forward"]), readOnly: false),
@@ -180,7 +186,7 @@ enum AgentTools {
 
         case "get_metrics":
             let names = a["hosts"]?.strings ?? []
-            let machines = names.isEmpty ? store.machineGroup.machines : try names.map(server.machine(named:))
+            let machines = names.isEmpty ? server.visibleMachines : try names.map(server.machine(named:))
             server.environment?.prepareMetrics(for: machines.map(\.id))
             var pairs: [(String, JSONValue)] = []
             for machine in machines {
@@ -190,11 +196,12 @@ enum AgentTools {
 
         case "export_ssh_config":
             let names = a["hosts"]?.strings ?? []
-            let machines = names.isEmpty ? store.machineGroup.machines : try names.map(server.machine(named:))
+            let machines = names.isEmpty ? server.visibleMachines : try names.map(server.machine(named:))
             return .string(machines.map { AgentHost($0).sshConfigBlock }.joined(separator: "\n\n"))
 
         case "run_command", "run_snippet":
             let machines = try server.targets(a)
+            try server.requireFullAccess(for: machines)
             var command = a["command"]?.string ?? ""
             if name == "run_snippet" {
                 command = try snippet(named: a["snippet"]?.string ?? "").code
@@ -205,10 +212,12 @@ enum AgentTools {
             let title = count == 1
                 ? (sudo ? String(localized: "Run on 1 server with sudo") : String(localized: "Run on 1 server"))
                 : (sudo ? String(localized: "Run on \(count) servers with sudo") : String(localized: "Run on \(count) servers"))
+            let risk = CommandRiskClassifier.classify(command: command, sudo: sudo)
             try await server.requireApproval(AgentRequest(
                 client: client, tool: name,
                 title: title,
-                detail: command, hosts: machines.map(\.name), hostIDs: machines.map(\.id.uuidString)
+                detail: command, hosts: machines.map(\.name), hostIDs: machines.map(\.id.uuidString),
+                risk: risk
             ))
             let results = await AgentRunner.run(
                 command: command, on: machines, sudo: sudo,
@@ -216,8 +225,66 @@ enum AgentTools {
             )
             return .from(results)
 
+        case "start_command":
+            let machines = try server.targets(a)
+            try server.requireFullAccess(for: machines)
+            let command = a["command"]?.string ?? ""
+            guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AgentToolError("The command is empty.") }
+            let sudo = a["sudo"]?.bool ?? false
+            let count = machines.count
+            let title = count == 1
+                ? (sudo ? String(localized: "Start background job on 1 server with sudo") : String(localized: "Start background job on 1 server"))
+                : (sudo ? String(localized: "Start background job on \(count) servers with sudo") : String(localized: "Start background job on \(count) servers"))
+            let risk = CommandRiskClassifier.classify(command: command, sudo: sudo)
+            try await server.requireApproval(AgentRequest(
+                client: client, tool: name,
+                title: title,
+                detail: command, hosts: machines.map(\.name), hostIDs: machines.map(\.id.uuidString),
+                risk: risk
+            ))
+            let taskName = a["task"]?.string
+            let hostIDs = machines.map(\.id.uuidString)
+            let hostNames = machines.map(\.name)
+            let started = try AgentJobStore.shared.start(
+                command: command,
+                on: machines,
+                sudo: sudo,
+                timeout: Double(a["timeout"]?.int ?? 3600),
+                concurrency: a["concurrency"]?.int ?? 8,
+                onComplete: { results in
+                    let codes = Dictionary(grouping: results, by: { $0.exitCode.map { "exit \($0)" } ?? "failed" })
+                    let outcome = codes.map { "\($0.key) on \($0.value.count)" }.sorted().joined(separator: ", ")
+                    server.log.add(AgentActivity(
+                        device: AgentActivityLog.deviceName, client: client, tool: "run_background_finished",
+                        hosts: hostIDs, hostNames: hostNames,
+                        summary: title, detail: command, outcome: outcome, results: results
+                    ), task: taskName)
+                }
+            )
+            return .from(started)
+
+        case "poll_command":
+            guard let jobID = a["job_id"]?.string, !jobID.isEmpty else {
+                throw AgentToolError("job_id is needed.")
+            }
+            let polled = try await AgentJobStore.shared.poll(
+                jobID: jobID,
+                offset: a["offset"]?.int ?? 0,
+                maxBytes: a["max_bytes"]?.int ?? 65_536,
+                waitSeconds: Double(a["wait_seconds"]?.int ?? 0)
+            )
+            return .from(polled)
+
+        case "stop_command":
+            guard let jobID = a["job_id"]?.string, !jobID.isEmpty else {
+                throw AgentToolError("job_id is needed.")
+            }
+            let stopped = try AgentJobStore.shared.stop(jobID: jobID, hosts: a["hosts"]?.strings ?? [])
+            return .from(stopped)
+
         case "add_host", "update_host":
             let existing = name == "update_host" ? try server.machine(named: a["host"]?.string ?? "") : nil
+            if let existing { try server.requireFullAccess(for: [existing]) }
             var machine = existing ?? RDMachine(lastConnection: Date(timeIntervalSince1970: 0))
             if existing == nil {
                 guard let address = a["address"]?.string, !address.isEmpty else { throw AgentToolError("address is needed.") }
@@ -291,6 +358,7 @@ enum AgentTools {
 
         case "remove_host":
             let machine = try server.machine(named: a["host"]?.string ?? "")
+            try server.requireFullAccess(for: [machine])
             try await server.requireApproval(AgentRequest(client: client, tool: name, title: String(localized: "Remove server \(machine.name)"),
                                                           detail: "\(machine.remoteAddress):\(machine.remotePort)", hosts: [machine.name], hostIDs: [machine.id.uuidString]))
             if let identity = store.associatedIdentity(for: machine), identity.isPrivate {
@@ -369,22 +437,44 @@ enum AgentTools {
             return ["removed": .string(snippet.name)]
 
         case "list_port_forwards":
-            return .from(store.portForwardGroup.forwards.map { forward(for: $0, server: server) })
+            let forwards = store.portForwardGroup.forwards.filter { forward in
+                guard let mid = forward.usingMachine else { return true }
+                let machine = store.machineGroup[mid]
+                return !machine.isNotPlaceholder() || machine.agentAccess != .disabled
+            }
+            return .from(forwards.map { forward(for: $0, server: server) })
 
         case "add_port_forward":
             let machine = try server.machine(named: a["host"]?.string ?? "")
-            guard let bind = a["bind_port"]?.int, let target = a["target_host"]?.string, let targetPort = a["target_port"]?.int else {
-                throw AgentToolError("bind_port, target_host and target_port are needed.")
+            try server.requireFullAccess(for: [machine])
+            guard let bind = a["bind_port"]?.int else {
+                throw AgentToolError("bind_port is needed.")
+            }
+            let dirRaw = a["direction"]?.string ?? "local"
+            let orientation: RDPortForward.ForwardOrientation = switch dirRaw {
+            case "remote": .listenRemote
+            case "socks5": .dynamicSocks5
+            default: .listenLocal
+            }
+            let target = a["target_host"]?.string ?? ""
+            let targetPort = a["target_port"]?.int ?? 0
+            if orientation != .dynamicSocks5, target.isEmpty || targetPort <= 0 {
+                throw AgentToolError("target_host and target_port are needed for local/remote forwards.")
             }
             var forward = RDPortForward()
             forward.usingMachine = machine.id
-            forward.forwardOrientation = a["direction"]?.string == "remote" ? .listenRemote : .listenLocal
+            forward.forwardOrientation = orientation
             forward.bindPort = bind
-            forward.targetHost = target
-            forward.targetPort = targetPort
-            let detail = forward.forwardOrientation == .listenLocal
-                ? String(localized: "localhost:\(bind) → \(target):\(targetPort) (from the server)")
-                : String(localized: "server port \(bind) → \(target):\(targetPort) (from this Mac)")
+            forward.targetHost = orientation == .dynamicSocks5 ? "" : target
+            forward.targetPort = orientation == .dynamicSocks5 ? 0 : targetPort
+            let detail: String = switch orientation {
+            case .listenLocal:
+                String(localized: "localhost:\(bind) → \(target):\(targetPort) (from the server)")
+            case .listenRemote:
+                String(localized: "server port \(bind) → \(target):\(targetPort) (from this Mac)")
+            case .dynamicSocks5:
+                String(localized: "SOCKS5 proxy on localhost:\(bind) through \(machine.name)")
+            }
             try await server.requireApproval(AgentRequest(
                 client: client, tool: name, title: String(localized: "Add port forward through \(machine.name)"),
                 detail: detail,
@@ -396,6 +486,12 @@ enum AgentTools {
 
         case "start_port_forward", "stop_port_forward", "remove_port_forward":
             let forward = try self.forward(named: a["forward"]?.string ?? "")
+            if let mid = forward.usingMachine {
+                let machine = store.machineGroup[mid]
+                if machine.isNotPlaceholder() {
+                    try server.requireFullAccess(for: [machine])
+                }
+            }
             let host = forward.usingMachine.map { store.machineGroup[$0].name } ?? "?"
             let title: String
             switch name {
@@ -475,7 +571,13 @@ enum AgentTools {
         AgentForward(
             id: forward.id.uuidString,
             host: forward.usingMachine.map { TamioStore.shared.machineGroup[$0].name },
-            direction: forward.forwardOrientation == .listenLocal ? "local" : "remote",
+            direction: {
+                switch forward.forwardOrientation {
+                case .listenLocal: "local"
+                case .listenRemote: "remote"
+                case .dynamicSocks5: "socks5"
+                }
+            }(),
             bindPort: forward.bindPort,
             targetHost: forward.targetHost,
             targetPort: forward.targetPort,

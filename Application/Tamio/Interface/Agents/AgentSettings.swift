@@ -13,6 +13,8 @@ import TamioModule
 
 struct AgentServerSettings: View {
     @ObservedObject private var bridge = AgentBridge.shared
+    @EnvironmentObject private var store: TamioStore
+    @State private var redactSecrets = SecretRedactor.isEnabled
 
     var body: some View {
         RXDividedStack {
@@ -21,6 +23,14 @@ struct AgentServerSettings: View {
                 description: "Agents (Claude Code, Codex, any MCP client) can list your servers and their live status, and, when you approve, run commands and manage servers, keys, snippets and port forwards. They never get passwords or private keys.",
                 isOn: $bridge.isEnabled
             )
+            SwitchRow(
+                "Redact secrets before AI",
+                description: "Scrub private keys, tokens, URL passwords and secret assignments from terminal context and command output before sending text to an AI model.",
+                isOn: $redactSecrets
+            )
+            .onChange(of: redactSecrets) { _, newValue in
+                SecretRedactor.isEnabled = newValue
+            }
             RXFormRow("Status") {
                 HStack(spacing: 6) {
                     Circle()
@@ -31,13 +41,37 @@ struct AgentServerSettings: View {
                         .foregroundStyle(.rxInkSecondary)
                 }
             }
-            RXFormRow("Approvals", description: "Every command and change asks you first. “Allow for 1 Hour” lets that agent go on without asking until then; “Always Allow” lets it work on its own, while you are away, until you revoke it here.") {
+            RXFormRow("Approvals", description: "Every command and change asks you first. “Allow for 1 Hour” lets that agent go on without asking for non-destructive steps until then (high-risk commands still ask); “Always Allow” lets it work on its own until revoked here.") {
                 EmptyView()
             }
             ForEach(bridge.alwaysAllowed, id: \.self) { client in
                 RXFormRow(client, description: "Always allowed: runs commands and makes changes without asking.") {
                     Button("Revoke") { bridge.revokeAlways(client) }
                         .buttonStyle(.rx(size: .small))
+                }
+            }
+            if !store.machineGroup.machines.isEmpty {
+                RXFormRow("Server access", description: "Control which saved servers AI assistants and external MCP clients can see or run commands on.") {
+                    EmptyView()
+                }
+                ForEach(store.machineGroup.machines.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { machine in
+                    RXFormRow(LocalizedStringKey(machine.name), description: LocalizedStringKey("\(machine.remoteAddress):\(machine.remotePort)")) {
+                        Picker("Access", selection: Binding(
+                            get: { machine.agentAccess },
+                            set: { newAccess in
+                                var updated = store.machineGroup[machine.id]
+                                updated.agentAccess = newAccess
+                                store.machineGroup.insert(updated)
+                            }
+                        )) {
+                            ForEach(RDMachine.AgentAccess.allCases) { access in
+                                Text(access.localizedTitle).tag(access)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .fixedSize()
+                    }
                 }
             }
         }

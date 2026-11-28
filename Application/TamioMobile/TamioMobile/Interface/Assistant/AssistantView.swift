@@ -74,7 +74,7 @@ struct AssistantView: View {
     }
 
     private var hasContent: Bool {
-        !activeSession.messages.isEmpty || !activeApprovals.isEmpty || activeSession.isStreaming
+        activeSession.messages.contains(where: \.hasVisibleContent) || !activeApprovals.isEmpty || activeSession.isStreaming
     }
 
     private var groups: [String] {
@@ -429,7 +429,8 @@ struct AssistantView: View {
 
     private var chatContent: some View {
         let session = activeSession
-        let lastAssistantID = session.messages.last(where: { $0.role == .assistant })?.id
+        let visibleMessages = session.messages.filter(\.hasVisibleContent)
+        let lastAssistantID = visibleMessages.last(where: { $0.role == .assistant })?.id
 
         return VStack(spacing: 0) {
             if !store.machineGroup.machines.isEmpty {
@@ -465,7 +466,7 @@ struct AssistantView: View {
                                 .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                             }
 
-                            ForEach(session.messages) { message in
+                            ForEach(visibleMessages) { message in
                                 ChatMessageRow(
                                     message: message,
                                     canRegenerate: !session.isStreaming && message.id == lastAssistantID,
@@ -883,7 +884,9 @@ struct AssistantView: View {
     // MARK: - Streaming Bubble (FlowDown-Style Shimmering Thinking & Auto-Collapse)
 
     private func streamingBubble(_ session: ConversationSession) -> some View {
-        let isThinkingPhase = session.streamText.isEmpty
+        let streamText = session.streamText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let streamReasoning = session.streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isThinkingPhase = streamText.isEmpty
 
         return VStack(alignment: .leading, spacing: 8) {
             if let toolStatus = session.activeToolStatus {
@@ -896,16 +899,16 @@ struct AssistantView: View {
                 .background(Color.primary.opacity(0.05), in: Capsule())
             }
 
-            if !session.streamReasoning.isEmpty {
+            if !streamReasoning.isEmpty {
                 ReasoningDisclosureBox(
-                    text: session.streamReasoning,
+                    text: streamReasoning,
                     defaultExpanded: isThinkingPhase,
                     isThinking: isThinkingPhase
                 )
             }
 
-            if session.streamText.isEmpty {
-                if session.activeToolStatus == nil && session.streamReasoning.isEmpty {
+            if streamText.isEmpty {
+                if session.activeToolStatus == nil && streamReasoning.isEmpty {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
                             .font(.caption.weight(.semibold))
@@ -919,7 +922,7 @@ struct AssistantView: View {
                     .padding(.vertical, 2)
                 }
             } else {
-                AssistantMarkdownView(text: session.streamText)
+                AssistantMarkdownView(text: streamText)
             }
         }
         .padding(.horizontal, 15)
@@ -1282,12 +1285,14 @@ private struct ChatMessageRow: View {
                 }
 
         case .assistant:
+            let text = message.trimmedText
+            let reasoning = message.trimmedReasoning
             VStack(alignment: .leading, spacing: 8) {
-                if !message.reasoning.isEmpty {
-                    ReasoningDisclosureBox(text: message.reasoning, defaultExpanded: false)
+                if !reasoning.isEmpty {
+                    ReasoningDisclosureBox(text: reasoning, defaultExpanded: false)
                 }
-                if !message.text.isEmpty {
-                    AssistantMarkdownView(text: message.text)
+                if !text.isEmpty {
+                    AssistantMarkdownView(text: text)
                 }
             }
             .padding(.horizontal, 15)
@@ -1303,7 +1308,7 @@ private struct ChatMessageRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .contextMenu {
                 Button {
-                    UIPasteboard.general.string = message.text
+                    UIPasteboard.general.string = text.isEmpty ? reasoning : text
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
                 }
@@ -1513,7 +1518,7 @@ private struct ShimmeringThinkingLabel: View {
 
 // MARK: - FlowDown-Style Collapsible Reasoning Disclosure
 
-private struct ReasoningDisclosureBox: View {
+struct ReasoningDisclosureBox: View {
     let text: String
     let isThinking: Bool
     @State private var expanded: Bool
@@ -1713,7 +1718,12 @@ private struct InlineApprovalCard: View {
 
     var body: some View {
         let req = approval.request
-        let accent: Color = approval.isDestructive ? .red : .orange
+        let risk = approval.risk
+        let accent: Color = switch risk.level {
+        case .readOnly: .green
+        case .modify: .orange
+        case .destructive: .red
+        }
 
         VStack(alignment: .leading, spacing: 11) {
             HStack(alignment: .center, spacing: 9) {
@@ -1735,6 +1745,19 @@ private struct InlineApprovalCard: View {
                 }
 
                 Spacer(minLength: 4)
+
+                Text(risk.level.localizedLabel)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(accent.opacity(0.14), in: Capsule())
+            }
+
+            if !risk.reasons.isEmpty {
+                Text(risk.reasons.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(accent)
             }
 
             if !req.hosts.isEmpty {
@@ -1787,11 +1810,13 @@ private struct InlineApprovalCard: View {
                 .appleProminentButton()
                 .tint(approval.isDestructive ? .red : .accentColor)
 
-                Button(action: onApproveOneHour) {
-                    Text("1 Hour")
-                        .font(.subheadline.weight(.medium))
+                if !approval.isDestructive {
+                    Button(action: onApproveOneHour) {
+                        Text("1 Hour")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .appleGlassButton()
                 }
-                .appleGlassButton()
 
                 Button(role: .cancel, action: onDeny) {
                     Text("Deny")

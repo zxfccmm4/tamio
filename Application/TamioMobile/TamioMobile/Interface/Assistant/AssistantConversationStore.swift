@@ -92,9 +92,41 @@ nonisolated struct AssistantChatMessage: Identifiable, Codable, Equatable, Hasha
         self.timestamp = timestamp
         self.modelLabel = modelLabel
     }
+
+    var trimmedText: String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var trimmedReasoning: String {
+        reasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// True when the message carries visible content worth rendering as a chat row.
+    var hasVisibleContent: Bool {
+        switch role {
+        case .user, .notice, .error:
+            !trimmedText.isEmpty
+        case .assistant:
+            !trimmedText.isEmpty || !trimmedReasoning.isEmpty
+        case .toolCall:
+            toolExecution != nil
+        }
+    }
 }
 
 // MARK: - Conversation Metadata
+
+nonisolated enum AssistantInteractionMode: String, Codable, CaseIterable, Hashable, Sendable {
+    case agent
+    case ask
+
+    var localizedTitle: String {
+        switch self {
+        case .agent: String(localized: "Agent")
+        case .ask: String(localized: "Ask")
+        }
+    }
+}
 
 nonisolated struct AssistantConversation: Identifiable, Codable, Equatable, Hashable, Sendable {
     let id: UUID
@@ -113,6 +145,11 @@ nonisolated struct AssistantConversation: Identifiable, Codable, Equatable, Hash
     var draftText: String
     var summary: String?
     var summaryMessageCount: Int
+    var interactionMode: AssistantInteractionMode?
+
+    var effectiveMode: AssistantInteractionMode {
+        interactionMode ?? .agent
+    }
 
     init(
         id: UUID = UUID(),
@@ -130,7 +167,8 @@ nonisolated struct AssistantConversation: Identifiable, Codable, Equatable, Hash
         pinnedSkillIDs: Set<String> = [],
         draftText: String = "",
         summary: String? = nil,
-        summaryMessageCount: Int = 0
+        summaryMessageCount: Int = 0,
+        interactionMode: AssistantInteractionMode? = nil
     ) {
         self.id = id
         self.title = title
@@ -148,6 +186,7 @@ nonisolated struct AssistantConversation: Identifiable, Codable, Equatable, Hash
         self.draftText = draftText
         self.summary = summary
         self.summaryMessageCount = summaryMessageCount
+        self.interactionMode = interactionMode
     }
 }
 
@@ -436,13 +475,14 @@ nonisolated enum ConversationContextBuilder {
 
     /// Compact conversation history digest for on-device Apple Intelligence (4096-token window).
     static func buildOnDeviceHistoryDigest(from messages: [AssistantChatMessage], maxChars: Int = 1_800) -> String {
-        let relevant = messages.filter { $0.role == .user || $0.role == .assistant }.suffix(8)
+        let relevant = messages.filter { ($0.role == .user || $0.role == .assistant) && !$0.trimmedText.isEmpty }.suffix(8)
         guard !relevant.isEmpty else { return "" }
         var lines: [String] = []
         var used = 0
         for msg in relevant.reversed() {
             let prefix = msg.role == .user ? "User: " : "Assistant: "
-            let clipped = msg.text.count > 360 ? String(msg.text.prefix(360)) + "…" : msg.text
+            let text = msg.trimmedText
+            let clipped = text.count > 360 ? String(text.prefix(360)) + "…" : text
             let entry = prefix + clipped.replacingOccurrences(of: "\n", with: " ")
             if used + entry.count > maxChars { break }
             lines.insert(entry, at: 0)
@@ -507,10 +547,12 @@ nonisolated enum ConversationContextBuilder {
             case .user:
                 out.append("## User\n\n\(msg.text)\n")
             case .assistant:
-                if !msg.reasoning.isEmpty {
-                    out.append("<details><summary>Thinking</summary>\n\n\(msg.reasoning)\n\n</details>\n")
+                if !msg.trimmedReasoning.isEmpty {
+                    out.append("<details><summary>Thinking</summary>\n\n\(msg.trimmedReasoning)\n\n</details>\n")
                 }
-                out.append("## Assistant\n\n\(msg.text)\n")
+                if !msg.trimmedText.isEmpty {
+                    out.append("## Assistant\n\n\(msg.trimmedText)\n")
+                }
             case .toolCall:
                 if let exec = msg.toolExecution {
                     let hosts = exec.targetHosts.isEmpty ? "" : " (\(exec.targetHosts.joined(separator: ", ")))"

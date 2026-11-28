@@ -221,4 +221,73 @@ final class AgentServerTests: XCTestCase {
         XCTAssertEqual(env.requested, machines)
         XCTAssertTrue(reply.contains("12.5"))
     }
+
+    func testHostLevelAgentAccessIsolation() async {
+        let store = TamioStore.shared
+        var disabled = RDMachine(remoteAddress: "10.9.8.99", remotePort: "22", name: "agent-secret-prod")
+        disabled.agentAccess = .disabled
+        var observe = RDMachine(remoteAddress: "10.9.8.98", remotePort: "22", name: "agent-observe-only")
+        observe.agentAccess = .observe
+        store.machineGroup.insert(disabled)
+        store.machineGroup.insert(observe)
+        machines.append(contentsOf: [disabled.id, observe.id])
+
+        let listReply = await call("tools/call", ["name": "list_hosts", "arguments": [:]])
+        XCTAssertFalse(listReply.contains("agent-secret-prod"), "disabled hosts must be hidden")
+        XCTAssertTrue(listReply.contains("agent-observe-only"), "observe hosts remain visible")
+        XCTAssertTrue(listReply.contains("observe"))
+
+        let disabledLookup = await call("tools/call", ["name": "get_host", "arguments": ["host": "agent-secret-prod"]])
+        XCTAssertTrue(disabledLookup.contains("\"isError\":true"))
+
+        let runOnObserve = await call("tools/call", ["name": "run_command", "arguments": [
+            "targets": ["hosts": ["agent-observe-only"]],
+            "command": "uptime",
+        ]])
+        XCTAssertTrue(runOnObserve.contains("\"isError\":true"))
+        XCTAssertTrue(runOnObserve.contains("Access denied"))
+    }
+
+    func testDestructiveCommandPromptsAgainDuringOneHourAllowance() async {
+        final class CountingEnvironment: AgentEnvironment {
+            var asked: [AgentRequest] = []
+            var allow = true
+            func approve(_ request: AgentRequest) async -> Bool {
+                asked.append(request)
+                return allow
+            }
+            func prepareMetrics(for _: [RDMachine.ID]) {}
+            func metrics(for _: RDMachine.ID) async -> JSONValue? { nil }
+            func isForwarding(_: RDPortForward.ID) -> Bool { false }
+            func startForward(_: RDPortForward.ID) {}
+            func stopForward(_: RDPortForward.ID) {}
+        }
+
+        let server = AgentServer()
+        let env = CountingEnvironment()
+        env.allow = false
+        server.environment = env
+        server.allowForAnHour("test-client")
+
+        // Non-destructive request is covered by the 1-hour allowance.
+        try? await server.requireApproval(AgentRequest(
+            client: "test-client", tool: "run_command", title: "Run on 1 server",
+            detail: "uptime", hosts: ["agent-test-key"],
+            risk: CommandRiskClassifier.classify(command: "uptime")
+        ))
+        XCTAssertEqual(env.asked.count, 0)
+
+        // Destructive request must bypass the 1-hour allowance and ask explicitly.
+        do {
+            try await server.requireApproval(AgentRequest(
+                client: "test-client", tool: "run_command", title: "Run on 1 server",
+                detail: "rm -rf /var/tmp/old", hosts: ["agent-test-key"],
+                risk: CommandRiskClassifier.classify(command: "rm -rf /var/tmp/old")
+            ))
+            XCTFail("Expected destructive request to require explicit approval and throw when declined")
+        } catch {
+            XCTAssertEqual(env.asked.count, 1)
+            XCTAssertEqual(env.asked.first?.risk?.level, .destructive)
+        }
+    }
 }

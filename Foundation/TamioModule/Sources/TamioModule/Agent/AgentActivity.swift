@@ -68,7 +68,7 @@ public struct AgentActivity: Codable, Identifiable, Equatable, Sendable {
 
     /// One line per step: the command for a run, else what was done.
     public static func line(_ step: Step) -> String {
-        step.tool.hasPrefix("run_") && !step.detail.isEmpty
+        (step.tool.hasPrefix("run_") || step.tool == "start_command") && !step.detail.isEmpty
             ? step.detail.split(separator: "\n").map { "$ " + $0 }.joined(separator: "\n")
             : step.summary
     }

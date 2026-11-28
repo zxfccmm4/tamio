@@ -83,6 +83,10 @@ enum AgentRunner {
                     result.error = "This server has no password or key in Tamio."
                     return continuation.resume(returning: result)
                 }
+                if let jumpFailure = shell.prepareJumpTunnelIfNeeded(for: machine, timeout: connectTimeout) {
+                    result.error = jumpFailure
+                    return continuation.resume(returning: result)
+                }
                 shell.requestConnectAndWait()
                 guard shell.isConnected else {
                     result.error = shell.hostKeyRefusal ?? shell.getLastError() ?? "Could not reach \(machine.remoteAddress):\(machine.remotePort)."
@@ -120,8 +124,9 @@ enum AgentRunner {
                 lock.unlock()
                 let parsed = parse(raw)
                 result.exitCode = parsed.exitCode
-                result.truncated = truncated || parsed.output.utf8.count > outputCap
-                result.output = parsed.output.utf8.count > outputCap ? String(parsed.output.suffix(outputCap)) : parsed.output
+                let scrubbed = SecretRedactor.redactIfEnabled(parsed.output).text
+                result.truncated = truncated || scrubbed.utf8.count > outputCap
+                result.output = scrubbed.utf8.count > outputCap ? String(scrubbed.suffix(outputCap)) : scrubbed
                 if parsed.exitCode == nil {
                     result.error = Date() >= deadline ? "Timed out after \(Int(timeout)) s." : "The command ended without an exit code."
                 }

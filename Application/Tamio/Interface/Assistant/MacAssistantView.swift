@@ -50,7 +50,7 @@ struct MacAssistantView: View {
     private var activeApprovals: [MobileAgentBridge.PendingApproval] { bridge.pendingApprovals(for: activeConversation.id) }
 
     private var hasContent: Bool {
-        !activeSession.messages.isEmpty || !activeApprovals.isEmpty || activeSession.isStreaming
+        activeSession.messages.contains(where: \.hasVisibleContent) || !activeApprovals.isEmpty || activeSession.isStreaming
     }
 
     private var filteredConversations: [AssistantConversation] {
@@ -622,11 +622,12 @@ struct MacAssistantView: View {
 
     private var transcriptScrollView: some View {
         let session = activeSession
-        let lastAssistantID = session.messages.last(where: { $0.role == .assistant })?.id
+        let visibleMessages = session.messages.filter(\.hasVisibleContent)
+        let lastAssistantID = visibleMessages.last(where: { $0.role == .assistant })?.id
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(session.messages) { msg in
+                    ForEach(visibleMessages) { msg in
                         MacChatMessageRow(
                             message: msg,
                             canMutate: !session.isStreaming,
@@ -686,7 +687,9 @@ struct MacAssistantView: View {
     }
 
     private func macStreamingBubble(_ session: ConversationSession) -> some View {
-        let isThinking = session.streamText.isEmpty
+        let streamText = session.streamText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let streamReasoning = session.streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+        let isThinking = streamText.isEmpty
         return VStack(alignment: .leading, spacing: 8) {
             if let toolStatus = session.activeToolStatus {
                 HStack(spacing: 6) {
@@ -694,18 +697,18 @@ struct MacAssistantView: View {
                     MacShimmerThinkingText(text: toolStatus, isThinking: true)
                 }
             }
-            if !session.streamReasoning.isEmpty {
-                MacReasoningBox(text: session.streamReasoning, defaultExpanded: isThinking, isThinking: isThinking)
+            if !streamReasoning.isEmpty {
+                MacReasoningBox(text: streamReasoning, defaultExpanded: isThinking, isThinking: isThinking)
             }
-            if session.streamText.isEmpty {
-                if session.activeToolStatus == nil && session.streamReasoning.isEmpty {
+            if streamText.isEmpty {
+                if session.activeToolStatus == nil && streamReasoning.isEmpty {
                     HStack(spacing: 7) {
                         Image(systemName: "sparkles").foregroundStyle(Color.accentColor)
                         MacShimmerThinkingText(text: String(localized: "Thinking…"), isThinking: true)
                     }
                 }
             } else {
-                Text(LocalizedStringKey(session.streamText))
+                Text(LocalizedStringKey(streamText))
                     .textSelection(.enabled)
                     .lineSpacing(3)
             }
@@ -716,9 +719,29 @@ struct MacAssistantView: View {
     }
 
     private func macApprovalCard(_ approval: MobileAgentBridge.PendingApproval) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(approval.request.title)
-                .font(.rxBodyStrong)
+        let risk = approval.risk
+        let tint: Color = switch risk.level {
+        case .readOnly: .green
+        case .modify: .orange
+        case .destructive: .red
+        }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(approval.request.title)
+                    .font(.rxBodyStrong)
+                Spacer(minLength: 4)
+                Text(risk.level.localizedLabel)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(tint.opacity(0.14), in: Capsule())
+            }
+            if !risk.reasons.isEmpty {
+                Text(risk.reasons.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(tint)
+            }
             if !approval.request.hosts.isEmpty {
                 Text(approval.request.hosts.joined(separator: ", "))
                     .font(.caption.monospaced())
@@ -734,8 +757,10 @@ struct MacAssistantView: View {
             HStack(spacing: 8) {
                 Button("Approve") { bridge.resolve(approval.id, approved: true) }
                     .buttonStyle(.rxPrimary)
-                Button("Allow 1 Hour") { bridge.resolve(approval.id, approved: true, allowForOneHour: true) }
-                    .buttonStyle(.rx)
+                if !approval.isDestructive {
+                    Button("Allow 1 Hour") { bridge.resolve(approval.id, approved: true, allowForOneHour: true) }
+                        .buttonStyle(.rx)
+                }
                 Button("Deny", role: .destructive) { bridge.resolve(approval.id, approved: false) }
                     .buttonStyle(.rx)
             }
@@ -931,13 +956,18 @@ private struct MacChatMessageRow: View {
             .onHover { isHovered = $0 }
 
         case .assistant:
+            let text = message.trimmedText
+            let reasoning = message.trimmedReasoning
+            let copyable = text.isEmpty ? reasoning : text
             VStack(alignment: .leading, spacing: 8) {
-                if !message.reasoning.isEmpty {
-                    MacReasoningBox(text: message.reasoning, defaultExpanded: false, isThinking: false)
+                if !reasoning.isEmpty {
+                    MacReasoningBox(text: reasoning, defaultExpanded: false, isThinking: false)
                 }
-                Text(LocalizedStringKey(message.text))
-                    .textSelection(.enabled)
-                    .lineSpacing(3)
+                if !text.isEmpty {
+                    Text(LocalizedStringKey(text))
+                        .textSelection(.enabled)
+                        .lineSpacing(3)
+                }
 
                 HStack(spacing: 8) {
                     if let label = message.modelLabel {
@@ -948,7 +978,7 @@ private struct MacChatMessageRow: View {
                     Spacer()
                     if isHovered && canMutate {
                         HStack(spacing: 6) {
-                            miniActionButton("doc.on.doc", help: "Copy") { copyText(message.text) }
+                            miniActionButton("doc.on.doc", help: "Copy") { copyText(copyable) }
                             if isLastAssistant {
                                 miniActionButton("arrow.clockwise", help: "Regenerate", action: onRegenerate)
                             }
@@ -964,7 +994,7 @@ private struct MacChatMessageRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .onHover { isHovered = $0 }
             .contextMenu {
-                Button { copyText(message.text) } label: { Label("Copy", systemImage: "doc.on.doc") }
+                Button { copyText(copyable) } label: { Label("Copy", systemImage: "doc.on.doc") }
                 if canMutate && isLastAssistant {
                     Button(action: onRegenerate) { Label("Regenerate", systemImage: "arrow.clockwise") }
                 }
@@ -1106,7 +1136,7 @@ private struct MacShimmerThinkingText: View {
     }
 }
 
-private struct MacReasoningBox: View {
+struct MacReasoningBox: View {
     let text: String
     let isThinking: Bool
     @State private var expanded: Bool

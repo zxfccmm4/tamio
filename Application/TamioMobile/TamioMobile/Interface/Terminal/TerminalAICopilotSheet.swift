@@ -30,6 +30,9 @@ struct TerminalAICopilotSheet: View {
     @State private var injectedToast: String?
 
     private var session: ConversationSession { assistant.activeSession }
+    private var visibleMessages: [AssistantChatMessage] {
+        session.messages.filter(\.hasVisibleContent)
+    }
     private var activeApprovals: [MobileAgentBridge.PendingApproval] {
         bridge.pendingApprovals(for: assistant.activeConversationID)
     }
@@ -48,7 +51,7 @@ struct TerminalAICopilotSheet: View {
                     contextHeaderBar
                     Divider()
 
-                    if session.messages.isEmpty && !session.isStreaming {
+                    if visibleMessages.isEmpty && !session.isStreaming && activeApprovals.isEmpty {
                         emptyQuickActions
                     } else {
                         transcriptList
@@ -111,6 +114,18 @@ struct TerminalAICopilotSheet: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(Color.accentColor.opacity(0.12), in: Capsule())
+
+            Picker("Mode", selection: Binding(
+                get: { assistant.interactionMode(for: assistant.activeConversationID) },
+                set: { assistant.setInteractionMode($0, for: assistant.activeConversationID) }
+            )) {
+                Text(AssistantInteractionMode.ask.localizedTitle).tag(AssistantInteractionMode.ask)
+                Text(AssistantInteractionMode.agent.localizedTitle).tag(AssistantInteractionMode.agent)
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .controlSize(.mini)
+            .frame(maxWidth: 112)
 
             Spacer()
 
@@ -181,12 +196,16 @@ struct TerminalAICopilotSheet: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
-                    ForEach(session.messages) { msg in
+                    ForEach(visibleMessages) { msg in
                         copilotMessageRow(msg)
                             .id(msg.id)
                     }
 
                     if session.isStreaming {
+                        let streamText = session.streamText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let streamReasoning = session.streamReasoning.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let isThinkingPhase = streamText.isEmpty
+
                         VStack(alignment: .leading, spacing: 6) {
                             if let tool = session.activeToolStatus {
                                 HStack(spacing: 6) {
@@ -194,13 +213,22 @@ struct TerminalAICopilotSheet: View {
                                     Text(tool).font(.caption).foregroundStyle(.secondary)
                                 }
                             }
-                            if session.streamText.isEmpty {
-                                HStack(spacing: 6) {
-                                    ProgressView().controlSize(.mini)
-                                    Text("Thinking…").font(.caption).foregroundStyle(.secondary)
+                            if !streamReasoning.isEmpty {
+                                ReasoningDisclosureBox(
+                                    text: streamReasoning,
+                                    defaultExpanded: isThinkingPhase,
+                                    isThinking: isThinkingPhase
+                                )
+                            }
+                            if streamText.isEmpty {
+                                if session.activeToolStatus == nil && streamReasoning.isEmpty {
+                                    HStack(spacing: 6) {
+                                        ProgressView().controlSize(.mini)
+                                        Text("Thinking…").font(.caption).foregroundStyle(.secondary)
+                                    }
                                 }
                             } else {
-                                Text(LocalizedStringKey(session.streamText))
+                                Text(LocalizedStringKey(streamText))
                                     .font(.subheadline)
                                     .textSelection(.enabled)
                             }
@@ -210,11 +238,53 @@ struct TerminalAICopilotSheet: View {
                         .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
                     }
 
-                    ForEach(activeApprovals) { approval in
+                    if let reason = session.pendingAgentModeReason {
                         VStack(alignment: .leading, spacing: 8) {
-                            Label(approval.request.title, systemImage: "checkmark.shield.fill")
+                            Label("Switch to Agent mode?", systemImage: "bolt.shield.fill")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.orange)
+                                .foregroundStyle(Color.accentColor)
+                            Text(reason)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                Button("Switch & Retry") { session.switchToAgentModeAndRetry() }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.small)
+                                Button("Stay in Ask") { session.dismissAgentModePrompt() }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                            }
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    ForEach(activeApprovals) { approval in
+                        let risk = approval.risk
+                        let tint: Color = switch risk.level {
+                        case .readOnly: .green
+                        case .modify: .orange
+                        case .destructive: .red
+                        }
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Label(approval.request.title, systemImage: approval.isDestructive ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(tint)
+                                Spacer(minLength: 4)
+                                Text(risk.level.localizedLabel)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(tint)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 2)
+                                    .background(tint.opacity(0.14), in: Capsule())
+                            }
+                            if !risk.reasons.isEmpty {
+                                Text(risk.reasons.joined(separator: " · "))
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                             if !approval.request.detail.isEmpty {
                                 Text(approval.request.detail)
                                     .font(.caption2.monospaced())
@@ -223,16 +293,19 @@ struct TerminalAICopilotSheet: View {
                                     .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8))
                             }
                             HStack(spacing: 8) {
-                                Button("Approve") { bridge.resolve(approval.id, approved: true) }
-                                    .buttonStyle(.borderedProminent)
-                                    .controlSize(.small)
+                                Button("Approve", role: approval.isDestructive ? .destructive : nil) {
+                                    bridge.resolve(approval.id, approved: true)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(approval.isDestructive ? .red : .accentColor)
+                                .controlSize(.small)
                                 Button("Deny", role: .destructive) { bridge.resolve(approval.id, approved: false) }
                                     .buttonStyle(.bordered)
                                     .controlSize(.small)
                             }
                         }
                         .padding(12)
-                        .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
                     }
 
                     Color.clear.frame(height: 12).id("copilot-bottom")
@@ -243,6 +316,12 @@ struct TerminalAICopilotSheet: View {
                 proxy.scrollTo("copilot-bottom", anchor: .bottom)
             }
             .onChange(of: session.streamText.count) { _, _ in
+                if session.isStreaming { proxy.scrollTo("copilot-bottom", anchor: .bottom) }
+            }
+            .onChange(of: session.streamReasoning.count) { _, _ in
+                if session.isStreaming { proxy.scrollTo("copilot-bottom", anchor: .bottom) }
+            }
+            .onChange(of: session.activeToolStatus) { _, _ in
                 if session.isStreaming { proxy.scrollTo("copilot-bottom", anchor: .bottom) }
             }
         }
@@ -261,23 +340,33 @@ struct TerminalAICopilotSheet: View {
                     .background(Color.accentColor.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
             }
         case .assistant:
-            VStack(alignment: .leading, spacing: 8) {
-                Text(LocalizedStringKey(msg.text))
-                    .font(.subheadline)
-                    .textSelection(.enabled)
+            let text = msg.trimmedText
+            let reasoning = msg.trimmedReasoning
+            if !text.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    if !reasoning.isEmpty {
+                        ReasoningDisclosureBox(text: reasoning, defaultExpanded: false)
+                    }
 
-                let commands = ShellCommandExtractor.extract(from: msg.text)
-                if !commands.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        ForEach(Array(commands.enumerated()), id: \.offset) { _, cmd in
-                            commandInjectionCard(cmd)
+                    Text(LocalizedStringKey(text))
+                        .font(.subheadline)
+                        .textSelection(.enabled)
+
+                    let commands = ShellCommandExtractor.extract(from: text)
+                    if !commands.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(Array(commands.enumerated()), id: \.offset) { _, cmd in
+                                commandInjectionCard(cmd)
+                            }
                         }
                     }
                 }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+            } else if !reasoning.isEmpty {
+                ReasoningDisclosureBox(text: reasoning, defaultExpanded: false)
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
         case .toolCall:
             if let exec = msg.toolExecution {
                 HStack(spacing: 6) {
@@ -398,8 +487,12 @@ struct TerminalAICopilotSheet: View {
             let screen = (terminal.readViewportText() ?? terminal.readTranscript())
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !screen.isEmpty {
-                let tail = String(screen.suffix(2400))
-                finalPrompt += "\n\n[Current SSH Terminal Output (\(terminalTitle))]\n```\n\(tail)\n```"
+                let rawTail = String(screen.suffix(2400))
+                let redacted = SecretRedactor.redactIfEnabled(rawTail)
+                if redacted.didRedact {
+                    flashToast(String(localized: "Redacted \(redacted.redactionCount) secret(s) from terminal context"))
+                }
+                finalPrompt += "\n\n[Current SSH Terminal Output (\(terminalTitle))]\n```\n\(redacted.text)\n```"
             }
         }
         session.send(finalPrompt)

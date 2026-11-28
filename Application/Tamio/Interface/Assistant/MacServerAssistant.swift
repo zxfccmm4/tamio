@@ -44,8 +44,16 @@ final class MobileAgentBridge: AgentEnvironment {
         let createdAt = Date()
         fileprivate let continuation: CheckedContinuation<Bool, Never>
 
+        var risk: CommandRiskAssessment {
+            request.risk ?? CommandRiskClassifier.classifyTool(
+                request.tool,
+                detail: request.detail,
+                sudo: request.title.localizedCaseInsensitiveContains("sudo")
+            )
+        }
+
         var isDestructive: Bool {
-            request.tool.hasPrefix("remove_") || request.title.localizedCaseInsensitiveContains("sudo")
+            risk.isDestructive
         }
     }
 
@@ -318,6 +326,8 @@ final class ConversationSession {
     private(set) var activeToolStatus: String?
     private(set) var didPruneContext = false
     private(set) var canContinueAfterToolLimit = false
+    /// Set when the model in read-only Ask mode requests switching to Agent mode.
+    private(set) var pendingAgentModeReason: String?
 
     private static let maxRemoteToolRounds = 40
     private static let maxStoredToolOutputChars = 32_768
@@ -346,9 +356,21 @@ final class ConversationSession {
     func send(_ rawText: String) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isStreaming else { return }
+        pendingAgentModeReason = nil
         appendMessage(AssistantChatMessage(role: .user, text: text))
         applyImmediateFallbackTitleIfNeeded(from: text)
         startInference()
+    }
+
+    func switchToAgentModeAndRetry() {
+        guard !isStreaming else { return }
+        pendingAgentModeReason = nil
+        manager?.setInteractionMode(.agent, for: conversationID)
+        regenerateLastReply()
+    }
+
+    func dismissAgentModePrompt() {
+        pendingAgentModeReason = nil
     }
 
     func regenerateLastReply() {
@@ -544,7 +566,8 @@ final class ConversationSession {
         manager.markExecuting(conversationID, running: true)
 
         let apiKey = manager.providerStore.apiKey(for: config.id)
-        let tools = manager.remoteToolSchemas
+        let mode = manager.interactionMode(for: conversationID)
+        let tools = mode == .ask ? manager.askModeToolSchemas : manager.remoteToolSchemas
         let budget = manager.contextTokenBudget
 
         do {
@@ -602,8 +625,16 @@ final class ConversationSession {
                 streamText = ""
                 streamReasoning = ""
 
+                var requestedAgentUpgrade = false
                 for call in turn.toolCalls {
                     try Task.checkCancellation()
+                    if call.name == "request_agent_mode" {
+                        let args = call.decodedJSONValue()
+                        pendingAgentModeReason = args["reason"]?.string
+                            ?? String(localized: "This request needs to inspect live server state or run commands.")
+                        requestedAgentUpgrade = true
+                        break
+                    }
                     activeToolStatus = ServerAssistant.localizedToolActivity(for: call.name)
                     let execution = await executeTool(call)
                     appendMessage(
@@ -615,6 +646,7 @@ final class ConversationSession {
                     )
                 }
                 activeToolStatus = nil
+                if requestedAgentUpgrade { break }
 
                 if round == Self.maxRemoteToolRounds - 1 {
                     streamText = ""
@@ -975,9 +1007,9 @@ final class ConversationSession {
         // 1. Background LLM Auto-Title + Emoji on first completed exchange.
         if conv.shouldAutoRename {
             let sample = messages
-                .filter { $0.role == .user || $0.role == .assistant }
+                .filter { ($0.role == .user || $0.role == .assistant) && !$0.trimmedText.isEmpty }
                 .prefix(4)
-                .map { "\($0.role == .user ? "User" : "Assistant"): \(String($0.text.prefix(260)))" }
+                .map { "\($0.role == .user ? "User" : "Assistant"): \(String($0.trimmedText.prefix(260)))" }
                 .joined(separator: "\n")
 
             if !sample.isEmpty {
@@ -1025,9 +1057,9 @@ final class ConversationSession {
             let delta = messages.count - conv.summaryMessageCount
             if userCount >= 3, delta >= 2 {
                 let digest = messages
-                    .filter { $0.role == .user || $0.role == .assistant }
+                    .filter { ($0.role == .user || $0.role == .assistant) && !$0.trimmedText.isEmpty }
                     .suffix(12)
-                    .map { "\($0.role == .user ? "User" : "Assistant"): \(String($0.text.prefix(320)))" }
+                    .map { "\($0.role == .user ? "User" : "Assistant"): \(String($0.trimmedText.prefix(320)))" }
                     .joined(separator: "\n")
                 let msgCount = messages.count
                 let cid = conversationID
@@ -1565,6 +1597,32 @@ final class ServerAssistant {
         }
     }
 
+    func interactionMode(for conversationID: UUID) -> AssistantInteractionMode {
+        conversation(id: conversationID)?.effectiveMode ?? .agent
+    }
+
+    func setInteractionMode(_ mode: AssistantInteractionMode, for conversationID: UUID) {
+        updateMetadata(conversationID) { conv in
+            conv.interactionMode = mode
+        }
+    }
+
+    var askModeToolSchemas: [LLMToolSchema] {
+        [
+            LLMToolSchema(
+                name: "request_agent_mode",
+                description: "Ask the user for permission to switch from read-only Ask mode to Agent mode when running SSH commands or querying live server state is required.",
+                inputSchema: [
+                    "type": "object",
+                    "properties": [
+                        "reason": ["type": "string", "description": "Short explanation of what needs to be checked or run on the server"],
+                    ],
+                    "required": ["reason"],
+                ]
+            ),
+        ]
+    }
+
     var remoteToolSchemas: [LLMToolSchema] {
         var schemas: [LLMToolSchema] = AgentServer.toolDefinitions.compactMap { def in
             guard let name = def["name"]?.string,
@@ -1609,17 +1667,26 @@ final class ServerAssistant {
             scopeDescription = "Active target scope: selected \(scoped.count) server(s): \(names). Default batch operations to these exact hosts unless the user names different servers."
         }
 
-        var prompt = """
+        var prompt = conv.effectiveMode == .ask ? """
+        You are Tamio AI in read-only **Ask** mode inside Tamio.
+        \(scopeDescription)
+
+        Rules:
+        1. Reply in the same language the user writes in (e.g. Simplified Chinese if the user writes in Chinese).
+        2. Answer directly from the user's question and any attached terminal output without executing commands on servers. You may suggest shell commands in fenced ```sh blocks for the user to insert or run manually.
+        3. If answering accurately requires running a command or querying live server state, call `request_agent_mode` with a concise reason so the user can approve switching to Agent mode.
+        4. Keep answers crisp and scannable.
+        """ : """
         You are Tamio AI, the built-in SSH fleet management assistant inside Tamio.
-        You have direct access to Tamio's MCP tools (`list_hosts`, `get_host`, `get_metrics`, `run_command`, `run_snippet`, `add_host`, `update_host`, `remove_host`, `list_identities`, `add_identity`, `list_snippets`, `add_snippet`, `list_port_forwards`, `add_port_forward`, `start_port_forward`, `stop_port_forward`, `get_activity`, `export_ssh_config`, etc.).
+        You have direct access to Tamio's MCP tools (`list_hosts`, `get_host`, `get_metrics`, `run_command`, `start_command`, `poll_command`, `stop_command`, `run_snippet`, `add_host`, `update_host`, `remove_host`, `list_identities`, `add_identity`, `list_snippets`, `add_snippet`, `list_port_forwards`, `add_port_forward`, `start_port_forward`, `stop_port_forward`, `get_activity`, `export_ssh_config`, etc.).
 
         \(scopeDescription)
 
         Rules:
         1. Reply in the same language the user writes in (e.g. Simplified Chinese if the user writes in Chinese).
         2. Always query real data with tools before answering about servers, metrics, logs, services, or containers. Never fabricate hostnames, IP addresses, or command outputs.
-        3. For batch operations across multiple servers, prefer a single `run_command` call with `targets` (`{"all": true}`, `{"group": "..."}`, `{"tag": "..."}`, or `{"hosts": [...]}`): Tamio executes across servers concurrently and asks the user to confirm once.
-        4. Every write or command execution (`run_command`, `run_snippet`, `add_*`, `update_*`, `remove_*`) prompts the user for inline approval in the chat UI and is recorded in server activity history. Always pass a concise `task` label (e.g. "Check disk usage", "Restart nginx") so related steps stay grouped in history.
+        3. For batch operations across multiple servers, prefer a single `run_command` call with `targets` (`{"all": true}`, `{"group": "..."}`, `{"tag": "..."}`, or `{"hosts": [...]}`): Tamio executes across servers concurrently and asks the user to confirm once. For commands expected to take >30s, use `start_command` + `poll_command`.
+        4. Every write or command execution (`run_command`, `start_command`, `run_snippet`, `add_*`, `update_*`, `remove_*`) prompts the user for inline approval in the chat UI and is recorded in server activity history. Always pass a concise `task` label (e.g. "Check disk usage", "Restart nginx") so related steps stay grouped in history.
         5. Never ask for or expose passwords or private keys; Tamio authenticates automatically with its saved credentials.
         6. Keep answers crisp and scannable: lead with a 1-sentence conclusion, then use clean Markdown tables or bullet lists for per-server results, highlighting anomalies and actionable next steps.
         7. If the user declines an approval card, acknowledge it calmly and do not retry the declined action without being asked.
@@ -1666,12 +1733,11 @@ final class ServerAssistant {
     }
 
     private static func previewText(from messages: [AssistantChatMessage]) -> String {
-        guard let last = messages.last(where: { $0.role == .assistant || $0.role == .user }) else {
+        guard let last = messages.last(where: { ($0.role == .assistant || $0.role == .user) && !$0.trimmedText.isEmpty }) else {
             return ""
         }
-        let cleaned = last.text
+        let cleaned = last.trimmedText
             .replacingOccurrences(of: "\n", with: " ")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
         return cleaned.count > 120 ? String(cleaned.prefix(120)) + "…" : cleaned
     }
 
@@ -1682,6 +1748,9 @@ final class ServerAssistant {
         case "get_metrics": String(localized: "Reading live server metrics…")
         case "export_ssh_config": String(localized: "Exporting SSH config…")
         case "run_command": String(localized: "Running command on servers…")
+        case "start_command": String(localized: "Starting background command…")
+        case "poll_command": String(localized: "Checking background command…")
+        case "stop_command": String(localized: "Stopping background command…")
         case "run_snippet": String(localized: "Running saved snippet…")
         case "add_host": String(localized: "Adding server…")
         case "update_host": String(localized: "Updating server…")
@@ -1709,6 +1778,9 @@ final class ServerAssistant {
         case "get_metrics": String(localized: "Live Metrics")
         case "export_ssh_config": String(localized: "Export SSH Config")
         case "run_command": String(localized: "Run Command")
+        case "start_command": String(localized: "Start Background Command")
+        case "poll_command": String(localized: "Poll Background Command")
+        case "stop_command": String(localized: "Stop Background Command")
         case "run_snippet": String(localized: "Run Snippet")
         case "add_host": String(localized: "Add Server")
         case "update_host": String(localized: "Update Server")

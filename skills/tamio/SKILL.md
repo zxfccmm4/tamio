@@ -64,7 +64,8 @@ Tamio must be running with **Settings › MCP › MCP server** on (it is by defa
 | `get_host` | One server, with live status |
 | `get_metrics` | Live CPU, memory, disk, load, network, traffic, OS |
 | `export_ssh_config` | `Host` blocks, no keys |
-| `run_command` / `run_snippet` | Run on servers; exit code and output per server |
+| `run_command` / `run_snippet` | Run short commands on servers (`agentAccess: "full"`); exit code and output per server (secrets redacted by default) |
+| `start_command` / `poll_command` / `stop_command` | Start long-running commands in the background (builds, upgrades, log tails), stream output incrementally by byte `offset`, or cancel early |
 | `add_host` / `update_host` / `remove_host` | Manage servers (`password` is write-only; `"auth": "none"` signs in with no password or key; `proxy_command` sets an `ssh_config` `ProxyCommand`) |
 | `list_identities` / `add_identity` / `remove_identity` | SSH keys; public keys only |
 | `list_snippets` / `add_snippet` / `update_snippet` / `remove_snippet` | Saved commands |

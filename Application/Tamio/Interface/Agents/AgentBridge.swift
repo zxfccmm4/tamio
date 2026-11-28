@@ -73,10 +73,22 @@ final class AgentBridge: ObservableObject, AgentEnvironment {
         let hosts = request.hosts.isEmpty ? "" : "\n\n" + serversPrefix + request.hosts.prefix(12).joined(separator: ", ") + moreServers
         let detail = request.detail.count > 1200 ? String(request.detail.prefix(1200)) + "…" : request.detail
         let forTask = request.task.map { String(localized: "For: \($0)\n\n") } ?? ""
+        let riskLine: String = {
+            guard let risk = request.risk else { return "" }
+            let reasons = risk.reasons.isEmpty ? "" : " — " + risk.reasons.joined(separator: "; ")
+            switch risk.level {
+            case .destructive:
+                return String(localized: "⚠️ Risk: \(risk.level.localizedLabel)\(reasons)\n\n")
+            case .modify where !risk.reasons.isEmpty:
+                return String(localized: "Risk: \(risk.level.localizedLabel)\(reasons)\n\n")
+            default:
+                return ""
+            }
+        }()
         return await withCheckedContinuation { continuation in
             Mac.alert(
                 message: String(localized: "\(request.client) wants to: \(request.title)"),
-                informative: forTask + detail + hosts,
+                informative: riskLine + forTask + detail + hosts,
                 buttons: [
                     String(localized: "Allow"),
                     String(localized: "Allow for 1 Hour"),

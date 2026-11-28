@@ -39,6 +39,8 @@ public struct AgentRequest: Sendable {
     public var hostIDs: [String] = []
     /// The task the action serves, as the agent named it ("Install nginx").
     public var task: String?
+    /// Local risk classification so approval prompts highlight destructive commands.
+    public var risk: CommandRiskAssessment?
 }
 
 @MainActor
@@ -108,17 +110,19 @@ public final class AgentServer {
                 "capabilities": ["tools": ["listChanged": false], "resources": ["listChanged": false]],
                 "serverInfo": ["name": "tamio", "version": .string(Self.appVersion)],
                 "instructions": """
-                Tamio holds the user's SSH servers. Use list_hosts to see them, get_metrics for live load, \
-                run_command to run a shell command on one or more servers (the user approves it, and Tamio \
-                signs in with its own saved credentials), and the add_/update_/remove_ tools to manage servers, \
-                identities (SSH keys), snippets and port forwards. Passwords and private keys can be set but \
-                are never returned. Prefer generate: true in add_identity and give the user the public key.
-                Before working on a server, call get_activity for it to see what earlier agents did, on any \
-                of the user's Macs. Give every call that changes something a task: a short name for the \
-                goal it serves ("Install nginx"), the same for every step toward that goal, so the steps \
-                are kept as one entry in the server's history. Whenever you change a server by any other \
-                means (your own ssh, scp, a deploy tool), call log_activity for it with what you did and \
-                the commands you ran, and the same task, so the next agent knows.
+                Tamio holds the user's SSH servers. Use list_hosts to see authorized servers (each shows its \
+                agentAccess: "full" or "observe"; disabled servers are hidden), get_metrics for live load, \
+                run_command for short shell commands, or start_command + poll_command + stop_command for \
+                long-running jobs (builds, upgrades, log tails) so you never time out. The user approves \
+                changes and commands, and Tamio signs in with its own saved credentials and redacts secrets \
+                from command output by default. Passwords and private keys can be set but are never returned. \
+                Prefer generate: true in add_identity and give the user the public key. Before working on a \
+                server, call get_activity for it to see what earlier agents did, on any of the user's Macs. \
+                Give every call that changes something a task: a short name for the goal it serves ("Install \
+                nginx"), the same for every step toward that goal, so the steps are kept as one entry in the \
+                server's history. Whenever you change a server by any other means (your own ssh, scp, a deploy \
+                tool), call log_activity for it with what you did and the commands you ran, and the same task, \
+                so the next agent knows.
                 """,
             ])
         case "notifications/initialized", "notifications/cancelled":
@@ -208,7 +212,9 @@ public final class AgentServer {
         var summaryOutcome = outcome
         if let runs = output?.array, request.tool.hasPrefix("run_") {
             results = runs.map {
-                AgentActivity.Result(host: $0["host"]?.string ?? "", exitCode: $0["exitCode"]?.int, tail: String(($0["output"]?.string ?? "").suffix(2000)))
+                let rawTail = String(($0["output"]?.string ?? "").suffix(2000))
+                let cleanTail = SecretRedactor.redactIfEnabled(rawTail).text
+                return AgentActivity.Result(host: $0["host"]?.string ?? "", exitCode: $0["exitCode"]?.int, tail: cleanTail)
             }
             let codes = Dictionary(grouping: results, by: { $0.exitCode.map { "exit \($0)" } ?? "failed" })
             summaryOutcome = codes.map { "\($0.key) on \($0.value.count)" }.sorted().joined(separator: ", ")
@@ -221,6 +227,8 @@ public final class AgentServer {
     }
 
     /// Asks the user unless the client may act for now; throws when refused.
+    /// High-risk (destructive) requests always prompt again even during an
+    /// active "Allow for 1 Hour" window.
     func requireApproval(_ request: AgentRequest) async throws {
         var request = request
         if request.hostIDs.isEmpty {
@@ -229,9 +237,17 @@ public final class AgentServer {
             }
         }
         request.task = pendingTask
+        if request.risk == nil {
+            request.risk = CommandRiskClassifier.classifyTool(
+                request.tool,
+                detail: request.detail,
+                sudo: request.title.localizedCaseInsensitiveContains("sudo")
+            )
+        }
         pendingActivity = request
         if alwaysAllowed.contains(request.client) { return }
-        if let until = allowedUntil[request.client], until > Date() { return }
+        let isDestructive = request.risk?.isDestructive ?? false
+        if !isDestructive, let until = allowedUntil[request.client], until > Date() { return }
         guard let environment else { throw AgentToolError("Tamio is not ready to ask the user.") }
         guard await environment.approve(request) else {
             throw AgentToolError("declined by the user: \(request.title)")
@@ -240,9 +256,23 @@ public final class AgentServer {
 
     // MARK: - Hosts
 
-    /// Every server, or those a filter names: query, group, tag.
+    /// Servers visible to agents (excludes hosts with `agentAccess == .disabled`).
+    var visibleMachines: [RDMachine] {
+        TamioStore.shared.machineGroup.machines.filter { $0.agentAccess != .disabled }
+    }
+
+    /// Ensures every target server grants full agent access (not read-only `observe` or `disabled`).
+    func requireFullAccess(for machines: [RDMachine]) throws {
+        let blocked = machines.filter { $0.agentAccess != .full }
+        guard blocked.isEmpty else {
+            let names = blocked.map(\.name).joined(separator: ", ")
+            throw AgentToolError("Access denied: \(names) is set to read-only (observe) or disabled for AI/MCP. Change AI & MCP Access in Edit Server to allow execution or changes.")
+        }
+    }
+
+    /// Every authorized server, or those a filter names: query, group, tag.
     func hosts(matching arguments: JSONValue) -> [AgentHost] {
-        var machines = TamioStore.shared.machineGroup.machines
+        var machines = visibleMachines
         if let query = arguments["query"]?.string, !query.isEmpty {
             machines = machines.filter { $0.isQualifiedForSearch(text: query) }
         }
@@ -255,9 +285,9 @@ public final class AgentServer {
         return machines.map(AgentHost.init)
     }
 
-    /// A server by id, name or address.
+    /// An authorized server by id, name or address.
     func machine(named reference: String) throws -> RDMachine {
-        let machines = TamioStore.shared.machineGroup.machines
+        let machines = visibleMachines
         if let id = UUID(uuidString: reference), let machine = machines.first(where: { $0.id == id }) { return machine }
         let matches = machines.filter {
             $0.name.caseInsensitiveCompare(reference) == .orderedSame || $0.remoteAddress == reference
@@ -272,16 +302,16 @@ public final class AgentServer {
         let spec = arguments["targets"] ?? arguments
         var result: [RDMachine] = []
         if spec["all"]?.bool == true {
-            result = TamioStore.shared.machineGroup.machines
+            result = visibleMachines
         }
         for reference in (spec["hosts"]?.strings ?? []) + (spec["host"]?.strings ?? []) {
             result.append(try machine(named: reference))
         }
         if let group = spec["group"]?.string, !group.isEmpty {
-            result += TamioStore.shared.machineGroup.machines.filter { $0.group.caseInsensitiveCompare(group) == .orderedSame }
+            result += visibleMachines.filter { $0.group.caseInsensitiveCompare(group) == .orderedSame }
         }
         if let tag = spec["tag"]?.string, !tag.isEmpty {
-            result += TamioStore.shared.machineGroup.machines.filter { $0.tags.contains { $0.caseInsensitiveCompare(tag) == .orderedSame } }
+            result += visibleMachines.filter { $0.tags.contains { $0.caseInsensitiveCompare(tag) == .orderedSame } }
         }
         var seen = Set<RDMachine.ID>()
         result = result.filter { seen.insert($0.id).inserted }

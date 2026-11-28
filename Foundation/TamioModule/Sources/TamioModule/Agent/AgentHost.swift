@@ -30,6 +30,8 @@ public struct AgentHost: Codable, Equatable, Sendable {
     public var lastConnected: String?
     /// The command the connection goes through, empty when it connects directly.
     public var proxyCommand: String
+    /// Per-host MCP access level: "full" or "observe". ("disabled" hosts are omitted.)
+    public var agentAccess: String
 
     /// Built on the main thread, from the store.
     @MainActor
@@ -60,6 +62,7 @@ public struct AgentHost: Codable, Equatable, Sendable {
             ? ISO8601DateFormatter().string(from: machine.lastConnection)
             : nil
         proxyCommand = machine.proxyCommand
+        agentAccess = machine.agentAccess.rawValue
     }
 
     /// One `Host` block of an ssh_config, with no key or password in it.
