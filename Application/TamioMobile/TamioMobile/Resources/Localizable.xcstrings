@@ -53,6 +53,7 @@
       }
     },
     " ↑": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -70,6 +71,7 @@
       "shouldTranslate": false
     },
     " ↓": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -227,6 +229,7 @@
       }
     },
     "%@ Copy": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -296,6 +299,7 @@
       }
     },
     "%@ can't reach the Docker socket. Add the user to the docker group.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -330,6 +334,7 @@
       }
     },
     "%@ could not be downloaded.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -364,6 +369,7 @@
       }
     },
     "%@ could not be made.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -398,6 +404,7 @@
       }
     },
     "%@ could not be moved.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -432,6 +439,7 @@
       }
     },
     "%@ could not be read.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -466,6 +474,7 @@
       }
     },
     "%@ could not be replaced.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -500,6 +509,7 @@
       }
     },
     "%@ could not be uploaded.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -534,6 +544,7 @@
       }
     },
     "%@ could not be written.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -670,6 +681,7 @@
       }
     },
     "%@ does not offer SFTP.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -704,6 +716,7 @@
       }
     },
     "%@ does not offer SFTP. Enable its sftp subsystem in sshd_config.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -773,6 +786,7 @@
       }
     },
     "%@ of %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -877,6 +891,7 @@
       }
     },
     "%@ used, %@ cache, %@ free": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -978,6 +993,16 @@
         }
       }
     },
+    "%@ · %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ · %@ open": {
       "extractionState": "stale",
       "localizations": {
@@ -1065,6 +1090,7 @@
       }
     },
     "%@ → %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1099,6 +1125,7 @@
       }
     },
     "%@ → this Mac": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1133,6 +1160,7 @@
       }
     },
     "%@ → this device": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1167,6 +1195,7 @@
       }
     },
     "%@% sent, %@% received": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1658,6 +1687,7 @@
       }
     },
     "%lld items": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2315,6 +2345,7 @@
       }
     },
     "(Interrupted)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2349,6 +2380,7 @@
       }
     },
     "(No response)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2383,6 +2415,7 @@
       }
     },
     "(Stopped)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2451,6 +2484,7 @@
       }
     },
     "/ %lld running": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2485,6 +2519,7 @@
       }
     },
     "/6m": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2519,6 +2554,7 @@
       }
     },
     "/mo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2553,6 +2589,7 @@
       }
     },
     "/qtr": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2587,6 +2624,7 @@
       }
     },
     "/yr": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2655,6 +2693,7 @@
       }
     },
     "1": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2689,6 +2728,7 @@
       }
     },
     "1 Hour": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2826,6 +2866,7 @@
       }
     },
     "1 server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2927,6 +2968,7 @@
         }
       }
     },
+    "1080": {},
     "127.0.0.1": {
       "localizations": {
         "en": {
@@ -3216,6 +3258,41 @@
         }
       }
     },
+    "5 Languages & Upgraded Live Activities": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 Languages & Upgraded Live Activities"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 言語の完全ローカライズとライブアクティビティ強化"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5개 언어 완벽 지원 및 실시간 현황 업그레이드"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "五语完整本地化与实时活动增强"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "五語完整在地化與即時動態強化"
+          }
+        }
+      }
+    },
     "5 minutes": {
       "localizations": {
         "en": {
@@ -3354,6 +3431,7 @@
         }
       }
     },
+    "9.99": {},
     "999+": {
       "shouldTranslate": false
     },
@@ -3375,6 +3453,7 @@
       }
     },
     ":%lld → %@:%lld": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3420,6 +3499,7 @@
       }
     },
     "A": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3454,6 +3534,7 @@
       }
     },
     "A %@ key the agent provided": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3488,6 +3569,7 @@
       }
     },
     "A Host alias at %@:%lld cannot safely be imported.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3522,6 +3604,7 @@
       }
     },
     "A configured jump host no longer exists.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3556,6 +3639,7 @@
       }
     },
     "A matching server was added during review. Review the import again.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3589,7 +3673,42 @@
         }
       }
     },
+    "A native welcome sheet highlights what changed after each update and on first setup, and can be reopened anytime from About or the app menu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A native welcome sheet highlights what changed after each update and on first setup, and can be reopened anytime from About or the app menu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生风格欢迎页会在首次设置和每次版本更新后自动展示变化，也可随时在“关于”或应用菜单中重新查看。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生風格歡迎頁會在首次設定和每次版本更新後自動展示變更，也可隨時在「關於」或 App 選單中重新檢視。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初回セットアップ後やアップデートごとに変更点をネイティブ画面でご案内します。「Tamio について」やアプリメニューからいつでも再表示できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "초기 설정 후와 업데이트마다 변경 사항을 네이티브 안내 화면으로 보여주며, 정보 화면이나 앱 메뉴에서 언제든 다시 열 수 있습니다."
+          }
+        }
+      }
+    },
     "A new Ed25519 key, made by Tamio": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3659,6 +3778,7 @@
       }
     },
     "A private key the agent provided": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3693,6 +3813,7 @@
       }
     },
     "A saved server changed during review. Review the import again.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3727,6 +3848,7 @@
       }
     },
     "A saved server matches this alias but was not imported from this source. Updating it requires explicit permission.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3944,6 +4066,7 @@
       }
     },
     "AI Copilot": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4080,6 +4203,7 @@
       }
     },
     "AI request failed (HTTP %lld).": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4388,6 +4512,7 @@
       }
     },
     "Actions": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4558,6 +4683,7 @@
       }
     },
     "Activity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4694,6 +4820,7 @@
       }
     },
     "Add Attachment": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4728,6 +4855,7 @@
       }
     },
     "Add Identity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4796,6 +4924,7 @@
       }
     },
     "Add More Details": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4830,6 +4959,7 @@
       }
     },
     "Add Port Forward": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4864,6 +4994,7 @@
       }
     },
     "Add SSH key %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4898,6 +5029,7 @@
       }
     },
     "Add Server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -4932,6 +5064,7 @@
       }
     },
     "Add Snippet": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5069,6 +5202,7 @@
       }
     },
     "Add a password or key to see live status.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5103,6 +5237,7 @@
       }
     },
     "Add a password or key to this server to see it.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5239,6 +5374,7 @@
       }
     },
     "Add port forward through %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5273,6 +5409,7 @@
       }
     },
     "Add server %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5376,6 +5513,7 @@
       }
     },
     "Add/edit servers, SSH keys, snippets & port forwards": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5410,6 +5548,7 @@
       }
     },
     "Adding server…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5523,6 +5662,7 @@
       }
     },
     "Addresses hidden": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5557,6 +5697,7 @@
       }
     },
     "Addresses, names, groups and comments.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5659,6 +5800,7 @@
       }
     },
     "Again": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5693,6 +5835,7 @@
       }
     },
     "Agent": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5727,6 +5870,7 @@
       }
     },
     "Agent (Tools & Commands)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5761,6 +5905,7 @@
       }
     },
     "Agent History": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -5795,6 +5940,7 @@
       }
     },
     "Agent activity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6322,6 +6468,7 @@
       }
     },
     "Allow 1 Hour": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6356,6 +6503,7 @@
       }
     },
     "Allow Destructive": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6424,6 +6572,7 @@
       }
     },
     "Allow for 1 Hour": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6574,6 +6723,7 @@
       }
     },
     "An Include at %@:%lld uses expansion that cannot be inspected safely.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6608,6 +6758,7 @@
       }
     },
     "An SSH Include pattern matches too many files.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6642,6 +6793,7 @@
       }
     },
     "An identity path contains expansion tokens Tamio cannot resolve. Choose its private key explicitly.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -6812,6 +6964,7 @@
       }
     },
     "Anthropic Compatible": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7016,6 +7169,7 @@
       }
     },
     "Appearance, the terminal's configuration, sessions, hidden files, the connection timeout and live status.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7186,6 +7340,7 @@
       }
     },
     "Apple Intelligence Private Cloud Compute is currently unavailable.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7220,6 +7375,7 @@
       }
     },
     "Apple Intelligence is currently unavailable. Configure a remote AI provider instead.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7254,6 +7410,7 @@
       }
     },
     "Apple Intelligence model is downloading. You can also configure a remote AI provider.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7322,6 +7479,7 @@
       }
     },
     "Apple Private Cloud Compute is temporarily unavailable. Try again in a moment.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7356,6 +7514,7 @@
       }
     },
     "Apple Private Cloud Compute usage limit reached. Try again later or switch to On-Device / another provider.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7560,6 +7719,7 @@
       }
     },
     "Approval Required": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7594,6 +7754,7 @@
       }
     },
     "Approval-gated shell commands, background jobs & snippets": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7663,6 +7824,7 @@
       }
     },
     "Approve": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7697,6 +7859,7 @@
       }
     },
     "Arguments": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7765,6 +7928,7 @@
       }
     },
     "Ask": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7799,6 +7963,7 @@
       }
     },
     "Ask (Read-Only)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -7867,6 +8032,7 @@
       }
     },
     "Ask AI or generate command…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8004,6 +8170,7 @@
       }
     },
     "Ask to check metrics, run batch commands, or manage servers…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8106,6 +8273,7 @@
       }
     },
     "At least %lld characters.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8139,7 +8307,78 @@
         }
       }
     },
+    "Atomic writes with edit conflict detection, on-demand sudo SFTP, open remote folders in VS Code/Cursor/Zed, plus PuTTY .ppk and multi-client host import.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atomic writes with edit conflict detection, on-demand sudo SFTP, open remote folders in VS Code/Cursor/Zed, plus PuTTY .ppk and multi-client host import."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集競合検出付きのアトミック書き込み、オンデマンド sudo SFTP、VS Code / Cursor / Zed でのリモートフォルダ表示、PuTTY .ppk・各種クライアントからのインポートに対応。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집 충돌 감지를 포함한 원자적 쓰기, 요청 시 세션 sudo SFTP, VS Code/Cursor/Zed에서 원격 폴더 열기 및 PuTTY .ppk·다중 클라이언트 가져오기를 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持原子写入与编辑冲突检测、按需启用会话级 sudo SFTP、在 VS Code / Cursor / Zed 中打开远程目录，以及 PuTTY .ppk 与多客户端配置导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援原子寫入與編輯衝突偵測、依需求啟用工作階段 sudo SFTP、於 VS Code / Cursor / Zed 開啟遠端資料夾，以及 PuTTY .ppk 與多用戶端匯入。"
+          }
+        }
+      }
+    },
+    "Atomic writes with edit conflict detection, session-only sudo for remote files, automatic PuTTY .ppk key conversion, and terminal folder sync.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atomic writes with edit conflict detection, session-only sudo for remote files, automatic PuTTY .ppk key conversion, and terminal folder sync."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集競合検出付きのアトミック書き込み、リモートファイル用セッション sudo、PuTTY .ppk 鍵の自動変換、ターミナルのフォルダ連動に対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집 충돌 감지를 포함한 원자적 쓰기, 원격 파일용 세션 sudo, PuTTY .ppk 키 자동 변환 및 터미널 폴더 동기화를 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持原子写入与编辑冲突检测、远程文件会话级 sudo 提权、PuTTY .ppk 密钥自动转换以及终端与文件目录联动。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援原子寫入與編輯衝突偵測、遠端檔案工作階段 sudo 提權、PuTTY .ppk 金鑰自動轉換及終端機目錄同步。"
+          }
+        }
+      }
+    },
     "Attach File": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8174,6 +8413,7 @@
       }
     },
     "Attach File or Image…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8208,6 +8448,7 @@
       }
     },
     "Attach Terminal Snapshot": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8242,6 +8483,7 @@
       }
     },
     "Attach terminal screen": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8276,6 +8518,7 @@
       }
     },
     "Audit crontabs and systemd timers across my servers and highlight any broken or suspicious scheduled jobs.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8345,6 +8588,7 @@
       }
     },
     "Audit listening ports, SSH authentication policy, root login, sudoers, and recent failed SSH logins.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8413,6 +8657,7 @@
       }
     },
     "Audit root/system crontabs and systemd timers to spot broken scheduled jobs or suspicious entries.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8560,6 +8805,7 @@
       }
     },
     "Auto-detect": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8628,6 +8874,7 @@
       }
     },
     "Automatic": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -8657,6 +8904,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "自動"
+          }
+        }
+      }
+    },
+    "Automatically scrubs private keys and tokens before AI calls, grades shell command risk locally, and supports Ask/Agent modes and per-host access rules.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically scrubs private keys and tokens before AI calls, grades shell command risk locally, and supports Ask/Agent modes and per-host access rules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 呼び出し前に秘密鍵やトークンを自動で除去し、ローカルでコマンドの危険度を判定。Ask / Agent モードやホストごとのアクセス制御にも対応しています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 호출 전 개인 키와 토큰을 자동으로 제거하고 로컬에서 명령 위험도를 평가하며, Ask/Agent 모드 및 호스트별 접근 규칙을 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在发送给 AI 前自动擦除私钥与 Token，本地评估命令风险等级，并支持 Ask / Agent 模式切换与按主机精细权限控制。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "傳送給 AI 前自動清除私鑰與權杖，本機評估指令風險等級，並支援 Ask / Agent 模式切換與依主機設定存取權限。"
           }
         }
       }
@@ -8999,6 +9281,7 @@
       }
     },
     "Batch Ops": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9044,6 +9327,7 @@
       }
     },
     "Batch-check Let's Encrypt, Nginx, and Caddy TLS certificate expiration dates and auto-renewal timers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9078,6 +9362,7 @@
       }
     },
     "Batch-inspect disk usage, large directories, systemd journal size, and Docker reclaimable space.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9146,6 +9431,7 @@
       }
     },
     "Billing cycle": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9180,6 +9466,7 @@
       }
     },
     "Bind": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9283,6 +9570,7 @@
       }
     },
     "Block R / W": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9624,6 +9912,7 @@
       }
     },
     "Browse, upload and download files over SFTP": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -9909,6 +10198,7 @@
       }
     },
     "CPU & Memory Bottleneck": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10011,6 +10301,7 @@
       }
     },
     "CSV": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10080,6 +10371,7 @@
       }
     },
     "Called %lld tools": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10114,6 +10406,7 @@
       }
     },
     "Called 1 tool": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10148,6 +10441,7 @@
       }
     },
     "Can't connect": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10250,6 +10544,7 @@
       }
     },
     "Cancelled by user.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10318,6 +10613,7 @@
       }
     },
     "Cannot safely inspect SSH configuration syntax at %@:%lld.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10385,7 +10681,43 @@
         }
       }
     },
+    "Chain connections through multi-hop Jump Hosts with per-hop host-key checks, and launch local SOCKS5 (-D) dynamic port forwards.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chain connections through multi-hop Jump Hosts with per-hop host-key checks, and launch local SOCKS5 (-D) dynamic port forwards."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホップごとのホスト鍵検証を備えたマルチホップ踏み台接続と、ローカル SOCKS5 (-D) 動的ポートフォワードに対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "홉별 호스트 키 검증을 포함한 다중 홉 점프 호스트 연결과 로컬 SOCKS5 (-D) 동적 포트 포워딩을 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持跨平台原生多跳跳板机连接与逐跳主机密钥校验，并可启动本机 SOCKS5 (-D) 动态端口转发。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援跨平台原生多跳跳板主機連線與逐跳主機金鑰驗證，並可啟動本機 SOCKS5 (-D) 動態連接埠轉發。"
+          }
+        }
+      }
+    },
     "Change server %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10420,6 +10752,7 @@
       }
     },
     "Change snippet %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10454,6 +10787,7 @@
       }
     },
     "Changes firewall rules": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10488,6 +10822,7 @@
       }
     },
     "Change…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10624,6 +10959,7 @@
       }
     },
     "Check Nginx and Caddy status, config validity, and recent error logs across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10658,6 +10994,7 @@
       }
     },
     "Check PostgreSQL, MySQL, and Redis health, active connections, memory usage, and recent backup files across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10692,6 +11029,7 @@
       }
     },
     "Check PostgreSQL, MySQL/MariaDB, and Redis service health, active connections, memory, and backup freshness.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10726,6 +11064,7 @@
       }
     },
     "Check TLS/SSL certificate expiration dates and auto-renewal timers across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10760,6 +11099,7 @@
       }
     },
     "Check disk & memory": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10828,6 +11168,7 @@
       }
     },
     "Check failed systemd services, recent unexpected reboots, and kernel OOM kills across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10862,6 +11203,7 @@
       }
     },
     "Check failed systemd units, kernel OOM kills, and recent unexpected reboots across server groups.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -10896,6 +11238,7 @@
       }
     },
     "Check firewall status and publicly exposed listening ports across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11035,6 +11378,7 @@
       }
     },
     "Check pending package and security updates and see which servers require a reboot.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11069,6 +11413,7 @@
       }
     },
     "Check running, exited, and unhealthy Docker containers plus per-container CPU and memory across servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11103,6 +11448,7 @@
       }
     },
     "Check services & ports": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11172,6 +11518,7 @@
       }
     },
     "Checking background command…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11343,6 +11690,7 @@
       }
     },
     "Choose a New Passphrase": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11377,6 +11725,7 @@
       }
     },
     "Choose a Passphrase": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11722,6 +12071,7 @@
       }
     },
     "Choose…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -11931,6 +12281,7 @@
       }
     },
     "Clear Draft": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -12043,6 +12394,40 @@
         }
       }
     },
+    "Clear Search": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索を消去"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "검색 지우기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除搜索"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除搜尋"
+          }
+        }
+      }
+    },
     "Clear Selection": {
       "localizations": {
         "en": {
@@ -12113,6 +12498,7 @@
       }
     },
     "Clear search": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -12216,6 +12602,7 @@
       }
     },
     "Close (Esc)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -12315,6 +12702,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "關閉檔案傳輸"
+          }
+        }
+      }
+    },
+    "Close Find": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close Find"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索を閉じる"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "찾기 닫기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭查找"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉尋找"
           }
         }
       }
@@ -12779,6 +13200,7 @@
       }
     },
     "Comment": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -12915,7 +13337,43 @@
         }
       }
     },
+    "Complete 5-Language Localization": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete 5-Language Localization"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 言語への完全ローカライズ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5개 언어 완벽 현지화"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全应用五语完整本地化"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全應用程式五語完整在地化"
+          }
+        }
+      }
+    },
     "Completed multiple tool rounds. Send a follow-up to continue.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -12950,6 +13408,7 @@
       }
     },
     "Compress": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13018,6 +13477,7 @@
       }
     },
     "Compressed from \"%@\"": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13052,6 +13512,7 @@
       }
     },
     "Concurrency": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13508,6 +13969,7 @@
       }
     },
     "Connected · %lld models available": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13542,6 +14004,7 @@
       }
     },
     "Connecting": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13576,6 +14039,7 @@
       }
     },
     "Connecting...": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13747,6 +14211,7 @@
       }
     },
     "Connection interrupted, retrying (%lld/%lld)…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -13894,7 +14359,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "続行"
+            "value": "続ける"
           }
         },
         "ko": {
@@ -13906,13 +14371,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "继续执行"
+            "value": "继续"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "繼續執行"
+            "value": "繼續"
           }
         }
       }
@@ -14054,6 +14519,7 @@
       }
     },
     "Copied": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14474,6 +14940,7 @@
       }
     },
     "Copy Tool Output": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14799,6 +15266,7 @@
       }
     },
     "Could not connect": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14833,6 +15301,7 @@
       }
     },
     "Could not connect to %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14936,6 +15405,7 @@
       }
     },
     "Could not create the private SSH configuration snapshot.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -14970,6 +15440,7 @@
       }
     },
     "Could not inspect Include directory %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15004,6 +15475,7 @@
       }
     },
     "Could not inspect SSH Include path %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15038,6 +15510,7 @@
       }
     },
     "Could not open folder": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15106,6 +15579,7 @@
       }
     },
     "Could not reach %@:%@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15140,6 +15614,7 @@
       }
     },
     "Could not reach jump host %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15174,6 +15649,7 @@
       }
     },
     "Could not read SSH configuration file %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15243,6 +15719,7 @@
       }
     },
     "Could not sign in": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15277,6 +15754,7 @@
       }
     },
     "Could not sign in as %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15311,6 +15789,7 @@
       }
     },
     "Could not sign in to jump host %@ as %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15345,6 +15824,7 @@
       }
     },
     "Could not start privileged SFTP on %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15379,6 +15859,7 @@
       }
     },
     "Could not start privileged SFTP with sudo.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15499,6 +15980,7 @@
       }
     },
     "Couldn't read %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15533,6 +16015,7 @@
       }
     },
     "Couldn't save %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15784,6 +16267,7 @@
       }
     },
     "Creating Folder %@...": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15818,6 +16302,7 @@
       }
     },
     "Creating SSH identity…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -15949,6 +16434,7 @@
       }
     },
     "Cron & Systemd Timers": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16153,6 +16639,7 @@
       }
     },
     "Custom": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16187,6 +16674,7 @@
       }
     },
     "Custom /v1 endpoint": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16221,6 +16709,7 @@
       }
     },
     "Custom AI": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16255,6 +16744,7 @@
       }
     },
     "Custom Messages API": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16357,6 +16847,7 @@
       }
     },
     "Custom server operations skill": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16425,6 +16916,7 @@
       }
     },
     "DISK": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16493,6 +16985,7 @@
       }
     },
     "Data in iCloud": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16527,6 +17020,7 @@
       }
     },
     "Database": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16561,6 +17055,7 @@
       }
     },
     "Database & Redis Health": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -16971,6 +17466,7 @@
       }
     },
     "Delete Completed": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17243,6 +17739,7 @@
       }
     },
     "Delete w/ After": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17277,6 +17774,7 @@
       }
     },
     "Delete what Tamio keeps in iCloud?": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17311,6 +17809,7 @@
       }
     },
     "Deletes Kubernetes resources or drains node": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17345,6 +17844,7 @@
       }
     },
     "Deletes files": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17379,6 +17879,7 @@
       }
     },
     "Deletes files recursively or in system paths": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17482,6 +17983,7 @@
       }
     },
     "Deleting...": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17516,6 +18018,7 @@
       }
     },
     "Denied": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17550,6 +18053,7 @@
       }
     },
     "Deny": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17756,6 +18260,7 @@
       }
     },
     "Destroys ZFS pool or dataset": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17790,6 +18295,7 @@
       }
     },
     "Destructive git operation (%@)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18039,6 +18545,7 @@
       }
     },
     "Did you forget to add identity or enable auto authentication?": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18136,6 +18643,7 @@
       }
     },
     "Disable All Tools": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18170,6 +18678,7 @@
       }
     },
     "Disabled": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18204,6 +18713,7 @@
       }
     },
     "Disables or resets UFW firewall": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18478,6 +18988,7 @@
       }
     },
     "Disk & Log Cleanup": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18512,6 +19023,7 @@
       }
     },
     "Disk & Logs": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18546,6 +19058,7 @@
       }
     },
     "Disks": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18614,6 +19127,7 @@
       }
     },
     "Display each server's notes on Home cards and inside the Server Inspector.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18648,6 +19162,7 @@
       }
     },
     "Display renewal countdown badges and billing details on Home cards and in the Server Inspector.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18716,6 +19231,7 @@
       }
     },
     "Docker": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18750,6 +19266,7 @@
       }
     },
     "Docker Compose & Image Prune": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18852,6 +19369,7 @@
       }
     },
     "Don't Allow": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19195,6 +19713,7 @@
       }
     },
     "Downloading...": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19229,6 +19748,7 @@
       }
     },
     "Driver %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19263,6 +19783,7 @@
       }
     },
     "Drops or truncates database data": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19365,6 +19886,7 @@
       }
     },
     "Due today": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19501,6 +20023,40 @@
         }
       }
     },
+    "Dynamic Island, Lock Screen & StandBy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island, Lock Screen & StandBy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "灵动岛、锁屏与待机显示"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動態島、鎖定畫面與待機模式"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island・ロック画面・スタンバイ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island, 잠금 화면 및 스탠바이"
+          }
+        }
+      }
+    },
     "E000": {
       "extractionState": "stale",
       "localizations": {
@@ -19589,6 +20145,7 @@
       }
     },
     "Earlier turns were condensed to fit the context window.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19691,6 +20248,7 @@
       }
     },
     "Edit & Resend": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -19838,6 +20396,7 @@
       }
     },
     "Edit Prompt": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20077,6 +20636,7 @@
       }
     },
     "Empty SKILL.md": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20179,6 +20739,7 @@
       }
     },
     "Enable Apple Intelligence in Settings, or configure a remote AI provider.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20281,6 +20842,7 @@
       }
     },
     "Enable Tools": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20554,6 +21116,7 @@
       }
     },
     "Encryption": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20725,6 +21288,7 @@
       }
     },
     "Enter Passphrase…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20759,6 +21323,7 @@
       }
     },
     "Enter Your Passphrase": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20930,6 +21495,7 @@
       }
     },
     "Error Details": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -20964,6 +21530,7 @@
       }
     },
     "Error Occurred": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21239,6 +21806,7 @@
       }
     },
     "Executing %@ tools…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21273,6 +21841,7 @@
       }
     },
     "Executing tool…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21514,6 +22083,7 @@
       }
     },
     "Expired %lldd": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21582,6 +22152,7 @@
       }
     },
     "Explain current screen & errors": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21786,6 +22357,7 @@
       }
     },
     "Export SSH Config": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21854,6 +22426,7 @@
       }
     },
     "Exporting SSH config…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -21922,6 +22495,7 @@
       }
     },
     "Extract Command Checklist": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22076,6 +22650,7 @@
       }
     },
     "Failed to Create": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22110,6 +22685,7 @@
       }
     },
     "Failed to Rename": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22144,6 +22720,7 @@
       }
     },
     "Failed to authenticate connection": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22178,6 +22755,7 @@
       }
     },
     "Failed to authenticate connection, did you forget to add identity or enable auto authentication?": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22212,6 +22790,7 @@
       }
     },
     "Failed to decode AI response: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22314,6 +22893,7 @@
       }
     },
     "Failed to setup file transfer protocol": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22382,6 +22962,7 @@
       }
     },
     "Fan %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22850,6 +23431,7 @@
       }
     },
     "FinalShell (JSON)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -22949,6 +23531,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "定位高佔用目錄、systemd 日誌與 Docker 垃圾空間"
+          }
+        }
+      }
+    },
+    "Find in SSH terminals now toggles cleanly and includes a dedicated glass close button that dismisses search and the keyboard immediately.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find in SSH terminals now toggles cleanly and includes a dedicated glass close button that dismisses search and the keyboard immediately."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 终端查找现可顺畅切换开关，并配备独立的毛玻璃关闭按钮，点击即可立即退出查找并收起键盘。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 終端機尋找現可順暢切換開關，並配備獨立的玻璃質感關閉按鈕，點一下即可立即結束尋找並收起鍵盤。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH ターミナルの検索バーがスムーズに開閉できるようになり、検索とキーボードを即座に閉じる専用ボタンを追加しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 터미널 찾기 막대가 깔끔하게 전환되며, 검색과 키보드를 즉시 닫는 전용 글래스 닫기 버튼이 추가되었습니다."
           }
         }
       }
@@ -23056,6 +23672,7 @@
       }
     },
     "Find top CPU and memory consuming processes, swap usage, and zombie processes across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23090,6 +23707,7 @@
       }
     },
     "Firewall & Port Exposure": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23124,6 +23742,7 @@
       }
     },
     "Fleet Health": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23192,6 +23811,7 @@
       }
     },
     "Fleet Management": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23225,7 +23845,43 @@
         }
       }
     },
+    "FlowDown-style streaming Markdown, folded Activity Summary with live Trace inspection, inline tool approvals, and quick command injection.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown-style streaming Markdown, folded Activity Summary with live Trace inspection, inline tool approvals, and quick command injection."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown スタイルのストリーミング Markdown、リアルタイム Trace を確認できる折りたたみアクティビティ概要、インラインツール承認、ワンタップコマンド挿入に対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown 스타일 스트리밍 Markdown, 실시간 Trace 검사가 가능한 접이식 활동 요약, 인라인 도구 승인 및 빠른 명령 삽입을 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown 风格流式 Markdown 渲染、可展开实时 Trace 的折叠活动摘要、内联工具审批卡片以及一键命令注入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown 風格串流 Markdown 算繪、可檢視即時 Trace 的摺疊活動摘要、內嵌工具核准卡片與一鍵指令注入。"
+          }
+        }
+      }
+    },
     "Flushes or deletes nftables rules": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23260,6 +23916,7 @@
       }
     },
     "Flushes or resets firewall rules": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23294,6 +23951,7 @@
       }
     },
     "Folder Created": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23500,6 +24158,7 @@
       }
     },
     "Force-removes containers or images": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23534,6 +24193,7 @@
       }
     },
     "Force-terminates processes": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23818,6 +24478,7 @@
       }
     },
     "Fork Conversation Here": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -23909,6 +24570,7 @@
       }
     },
     "Forward ended": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24012,6 +24674,7 @@
       }
     },
     "Full Access": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24045,7 +24708,78 @@
         }
       }
     },
+    "Full English, Simplified Chinese, Traditional Chinese, Japanese, and Korean support across the app, terminal configuration, and shared modules.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full English, Simplified Chinese, Traditional Chinese, Japanese, and Korean support across the app, terminal configuration, and shared modules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリ全体、ターミナル設定パネル、共有モジュールにわたり、日本語・英語・簡体字中国語・繁体字中国語・韓国語に完全対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱 전체, 터미널 설정 패널 및 공유 모듈 전반에 걸쳐 한국어, 영어, 중국어 간체/번체 및 일본어를 완벽히 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整覆盖 macOS 主界面、终端配置面板与全部共享模块的简体中文、繁体中文、英语、日语与韩语支持。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整涵蓋 macOS 主介面、終端機設定面板與所有共用模組的繁體中文、簡體中文、英語、日語與韓語支援。"
+          }
+        }
+      }
+    },
+    "Full English, Simplified/Traditional Chinese, Japanese, and Korean localization, plus Dynamic Island, Lock Screen, and StandBy session status.": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full English, Simplified/Traditional Chinese, Japanese, and Korean localization, plus Dynamic Island, Lock Screen, and StandBy session status."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日本語・英語・簡体字中国語・繁体字中国語・韓国語に完全対応し、Dynamic Island・ロック画面・スタンバイでセッション状態を表示できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한국어, 영어, 중국어 간체/번체, 일본어를 완벽 지원하며 Dynamic Island, 잠금 화면 및 스탠바이에서 세션 상태를 표시합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整支持简体中文、繁体中文、英语、日语与韩语界面，并在灵动岛、锁屏与待机显示中呈现会话状态。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整支援繁體中文、簡體中文、英語、日語與韓語介面，並在動態島、鎖定畫面與待機顯示呈現工作階段狀態。"
+          }
+        }
+      }
+    },
     "GPU": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24182,6 +24916,7 @@
       }
     },
     "Generation stopped.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24622,6 +25357,7 @@
       }
     },
     "Graphics · %lld GPUs": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24656,6 +25392,7 @@
       }
     },
     "Graphics · 1 GPU": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24792,6 +25529,7 @@
       }
     },
     "Group<%@>": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24962,6 +25700,7 @@
       }
     },
     "Hidden": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -24996,6 +25735,7 @@
       }
     },
     "Hide": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -25098,6 +25838,7 @@
       }
     },
     "Hide Keyboard": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -25195,6 +25936,7 @@
       }
     },
     "Hide Names and Addresses": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -25275,6 +26017,7 @@
       }
     },
     "High Risk": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -25570,6 +26313,7 @@
       }
     },
     "Hosts & Metrics": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -25813,6 +26557,7 @@
       }
     },
     "IO wait": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -25983,6 +26728,7 @@
       }
     },
     "Identity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -26051,6 +26797,7 @@
       }
     },
     "If the server was reinstalled or its keys were replaced, choose Forget Host Key for it and connect again. If not, something may be intercepting the connection.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -26657,6 +27404,7 @@
       }
     },
     "Importing OpenSSH private keys is available on macOS.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -26771,6 +27519,7 @@
       }
     },
     "Incomplete": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -26805,6 +27554,7 @@
       }
     },
     "Incorrect passphrase or corrupted PuTTY key file.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -26906,7 +27656,9 @@
         }
       }
     },
+    "Inline Activity Steps": {},
     "Insert": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -26976,6 +27728,7 @@
       }
     },
     "Insert into Terminal": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27044,6 +27797,7 @@
       }
     },
     "Inspect CPU, memory, root disk, load average, and uptime across all servers and rank risks.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27112,6 +27866,7 @@
       }
     },
     "Inspect Server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27146,6 +27901,7 @@
       }
     },
     "Inspect TCP socket states (TIME_WAIT/CLOSE_WAIT), NIC packet drops, DNS resolution, and outbound latency.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27215,6 +27971,7 @@
       }
     },
     "Inspect ufw, firewalld, nftables, or iptables rules and cross-check against public listening sockets.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27249,6 +28006,7 @@
       }
     },
     "Inspecting server details…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27353,6 +28111,7 @@
       }
     },
     "Invalid Base64 key body": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27387,6 +28146,7 @@
       }
     },
     "Invalid Ed25519 key lengths": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27421,6 +28181,7 @@
       }
     },
     "Invalid Forward": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27455,6 +28216,7 @@
       }
     },
     "Invalid Info": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27489,6 +28251,7 @@
       }
     },
     "Invalid SSH string length": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27625,6 +28388,7 @@
       }
     },
     "Invalid provider URL: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27659,6 +28423,7 @@
       }
     },
     "Inventory pending apt/dnf/yum/apk security updates and check whether any server requires a reboot.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27780,6 +28545,7 @@
       }
     },
     "Its live load, CPU, memory, disk and traffic show here, and it opens a terminal or files in one click.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27848,6 +28614,7 @@
       }
     },
     "Job ID": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27950,6 +28717,7 @@
       }
     },
     "Jump host %@ could not reach %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -27984,6 +28752,7 @@
       }
     },
     "Jump host %@ could not reach %@:%@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28018,6 +28787,7 @@
       }
     },
     "Jump host chain exceeds the maximum of 8 hops.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28052,6 +28822,7 @@
       }
     },
     "Jump host configuration contains a cycle.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28223,6 +28994,7 @@
       }
     },
     "Key": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28257,6 +29029,7 @@
       }
     },
     "Key Pair": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28291,6 +29064,7 @@
       }
     },
     "Key pair": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28325,6 +29099,7 @@
       }
     },
     "Key pair · %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28598,6 +29373,7 @@
       }
     },
     "Known hosts": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28666,6 +29442,7 @@
       }
     },
     "LAN / self-hosted": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -28976,6 +29753,7 @@
       }
     },
     "Last used": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29336,6 +30114,7 @@
       }
     },
     "List Docker Compose stacks and reclaimable image/cache space across my servers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29370,6 +30149,7 @@
       }
     },
     "List Identities": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29404,6 +30184,7 @@
       }
     },
     "List Key Points": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29438,6 +30219,7 @@
       }
     },
     "List Port Forwards": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29472,6 +30254,7 @@
       }
     },
     "List Servers": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29506,6 +30289,7 @@
       }
     },
     "List Snippets": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29540,6 +30324,7 @@
       }
     },
     "List active Compose stacks, dangling images, unused volumes, and prepare safe image updates or cleanup.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29585,6 +30370,7 @@
       }
     },
     "Listen local": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29619,6 +30405,7 @@
       }
     },
     "Listen remote": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29653,6 +30440,7 @@
       }
     },
     "Listing SSH identities…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29687,6 +30475,7 @@
       }
     },
     "Listing port forwards…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29721,6 +30510,7 @@
       }
     },
     "Listing saved servers…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29755,6 +30545,7 @@
       }
     },
     "Listing saved snippets…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29822,7 +30613,42 @@
         }
       }
     },
+    "Live Activities now stay in sync across Dynamic Island, Lock Screen, and StandBy with live CPU and memory updates and dimmed night-mode contrast.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Activities now stay in sync across Dynamic Island, Lock Screen, and StandBy with live CPU and memory updates and dimmed night-mode contrast."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时活动现已支持在灵动岛、锁屏与待机显示中保持同步，实时更新 CPU 与内存用量，并适配夜间低亮度显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即時動態現已支援在動態島、鎖定畫面與待機模式中保持同步，即時更新 CPU 與記憶體用量，並支援夜間低亮度顯示。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブアクティビティが Dynamic Island・ロック画面・スタンバイで常に同期され、CPU とメモリ使用量をリアルタイム表示し、常時表示の減光にも対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 현황이 Dynamic Island, 잠금 화면 및 스탠바이에서 항상 동기화되며 실시간 CPU·메모리 업데이트와 야간 저휘도 대비를 지원합니다."
+          }
+        }
+      }
+    },
     "Live Metrics": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -29994,6 +30820,7 @@
       }
     },
     "Live status is off in Settings.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30130,6 +30957,7 @@
       }
     },
     "Load %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30181,6 +31009,7 @@
       }
     },
     "Load Complete": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30215,6 +31044,7 @@
       }
     },
     "Load Ops Skill": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30249,6 +31079,7 @@
       }
     },
     "Load built-in and custom server operations runbooks": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30352,6 +31183,7 @@
       }
     },
     "Loading operations skill…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30386,6 +31218,7 @@
       }
     },
     "Loading... %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30556,6 +31389,7 @@
       }
     },
     "Local AI gateway": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30590,6 +31424,7 @@
       }
     },
     "Local Forward (-L)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30658,6 +31493,7 @@
       }
     },
     "Local and remote forwards, and the server each uses.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30896,6 +31732,7 @@
       }
     },
     "Log Activity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31303,6 +32140,7 @@
       }
     },
     "Malformed PuTTY key: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31337,6 +32175,7 @@
       }
     },
     "Malformed machine or identity data": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31473,6 +32312,7 @@
       }
     },
     "Match conditions can depend on this Mac, its network, and the time of import. Review the resolved settings.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31507,6 +32347,7 @@
       }
     },
     "Match exec can run local commands while OpenSSH resolves this configuration. Resolve only if you trust every included file.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31541,6 +32382,7 @@
       }
     },
     "Match rules are resolved only for this import. Tamio does not reevaluate them when connecting.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31745,6 +32587,7 @@
       }
     },
     "Memory · %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31813,6 +32656,7 @@
       }
     },
     "Missing": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31847,6 +32691,7 @@
       }
     },
     "Missing API key for %@. Configure it in AI Providers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31881,6 +32726,7 @@
       }
     },
     "Missing Argon2 parameters": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31915,6 +32761,7 @@
       }
     },
     "Missing Encryption header": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31983,6 +32830,7 @@
       }
     },
     "Mode": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32119,6 +32967,7 @@
       }
     },
     "Modifies critical system authentication or boot files": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32153,6 +33002,7 @@
       }
     },
     "Modify": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32221,6 +33071,7 @@
       }
     },
     "Monitor closed": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32323,6 +33174,7 @@
       }
     },
     "Monthly": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32426,6 +33278,7 @@
       }
     },
     "More actions": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32460,6 +33313,7 @@
       }
     },
     "Multi-model router": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32573,6 +33427,7 @@
       }
     },
     "Names and addresses hidden": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32636,6 +33491,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "原生 GPU 終端引擎與主題目錄（MIT）"
+          }
+        }
+      }
+    },
+    "Native Jump Hosts & SOCKS5 Proxies": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Native Jump Hosts & SOCKS5 Proxies"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネイティブ踏み台ホストと SOCKS5 プロキシ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "네이티브 점프 호스트 및 SOCKS5 프록시"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生多跳跳板机与 SOCKS5 代理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生多跳跳板主機與 SOCKS5 代理"
           }
         }
       }
@@ -32853,6 +33743,7 @@
       }
     },
     "Net ↑ ↓": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32887,6 +33778,7 @@
       }
     },
     "Net ↓ / ↑": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32921,6 +33813,7 @@
       }
     },
     "Network": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32955,6 +33848,7 @@
       }
     },
     "Network & TCP Diagnostics": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -32989,6 +33883,7 @@
       }
     },
     "Network & Web": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -33023,6 +33918,7 @@
       }
     },
     "Never": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -33744,7 +34640,42 @@
         }
       }
     },
+    "Next Match": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next Match"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の一致項目"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음 일치 항목"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一个匹配项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一個符合項目"
+          }
+        }
+      }
+    },
     "Nginx & Caddy Proxy Audit": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -33813,6 +34744,7 @@
       }
     },
     "No": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -33915,6 +34847,7 @@
       }
     },
     "No Banner": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34017,6 +34950,7 @@
       }
     },
     "No Group": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34378,6 +35312,7 @@
       }
     },
     "No agent activity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34482,6 +35417,7 @@
       }
     },
     "No containers": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34550,6 +35486,7 @@
       }
     },
     "No credential is selected. You may explicitly save this server as a draft and choose credentials before connecting.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34584,6 +35521,7 @@
       }
     },
     "No credentials": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34618,6 +35556,7 @@
       }
     },
     "No data": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34721,6 +35660,7 @@
       }
     },
     "No live status": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34789,6 +35729,7 @@
       }
     },
     "No model selected. Choose or enter a model in AI Providers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34857,6 +35798,7 @@
       }
     },
     "No password or key": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -34960,6 +35902,7 @@
       }
     },
     "No server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35028,6 +35971,7 @@
       }
     },
     "No server to download from.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35062,6 +36006,7 @@
       }
     },
     "No server to upload to.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35228,6 +36173,7 @@
       }
     },
     "No swap": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35296,6 +36242,7 @@
       }
     },
     "Non-UTF8 SSH string": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35444,6 +36391,7 @@
       }
     },
     "Not connected to the server.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35478,6 +36426,7 @@
       }
     },
     "Not everything could be deleted.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35547,6 +36496,7 @@
       }
     },
     "Not used by any server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35717,6 +36667,7 @@
       }
     },
     "Now": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35830,6 +36781,7 @@
       }
     },
     "Offered: %@ %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35949,6 +36901,7 @@
       }
     },
     "Offline: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -35983,6 +36936,7 @@
       }
     },
     "Ollama (Local)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -36068,6 +37022,7 @@
       }
     },
     "On-Device": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -36102,6 +37057,7 @@
       }
     },
     "On-device context refreshed with recent summary.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -36378,6 +37334,7 @@
       }
     },
     "Open Assistant": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -36870,6 +37827,7 @@
       }
     },
     "Open an SSH terminal on this server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -36972,6 +37930,7 @@
         }
       }
     },
+    "Open the AI Assistant tab to configure Apple Intelligence or a remote AI provider.": {},
     "Open the terminal as soon as it connects.": {
       "extractionState": "stale",
       "localizations": {
@@ -36984,6 +37943,7 @@
       }
     },
     "OpenAI Compatible": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37053,6 +38013,7 @@
       }
     },
     "OpenSSH did not resolve a valid host, port and user.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37157,6 +38118,7 @@
       }
     },
     "OpenSSH lists multiple identity files. Choose one credential explicitly; Tamio does not try this list in order.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37191,6 +38153,7 @@
       }
     },
     "OpenSSH local and remote commands are not imported.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37260,6 +38223,7 @@
       }
     },
     "OpenSSH port, X11 and tunnel forwarding settings are not imported.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37502,6 +38466,7 @@
       }
     },
     "Ops Skill": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37706,6 +38671,7 @@
       }
     },
     "Optional notes (shown on card & inspector)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37853,6 +38819,7 @@
       }
     },
     "Organize as Table": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -37887,6 +38854,7 @@
       }
     },
     "Orientation": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -38025,6 +38993,7 @@
       }
     },
     "Output": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -38127,6 +39096,7 @@
       }
     },
     "Package & Security Updates": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39015,6 +39985,7 @@
       }
     },
     "Performance": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39288,6 +40259,7 @@
       }
     },
     "Pinpoint top CPU/memory consumers, zombie processes, swap thrashing, and I/O wait hotspots.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39322,6 +40294,7 @@
       }
     },
     "Pipes remote script directly into an interpreter": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39356,6 +40329,7 @@
       }
     },
     "Plain Key Pair": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39390,6 +40364,7 @@
       }
     },
     "Plain Private Key": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39424,6 +40399,7 @@
       }
     },
     "Plain Text": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39458,6 +40434,7 @@
       }
     },
     "Please enter an API key first.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39521,6 +40498,7 @@
       }
     },
     "Poll Background Command": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -39691,6 +40669,7 @@
       }
     },
     "Port forwards": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40105,6 +41084,40 @@
         }
       }
     },
+    "Previous Match": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous Match"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の一致項目"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전 일치 항목"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上一个匹配项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上一個符合項目"
+          }
+        }
+      }
+    },
     "Previous proxy: %@": {
       "extractionState": "stale",
       "localizations": {
@@ -40175,6 +41188,7 @@
       }
     },
     "Privacy": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40272,6 +41286,7 @@
       }
     },
     "Private Cloud Compute": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40306,6 +41321,7 @@
       }
     },
     "Private Cloud Compute is not ready yet. Check your network, iCloud sign-in, or app entitlement.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40546,6 +41562,7 @@
       }
     },
     "Private-Lines truncated": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40580,6 +41597,7 @@
       }
     },
     "Private-key validation was cancelled or timed out.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40716,6 +41734,7 @@
       }
     },
     "Processor": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40750,6 +41769,7 @@
       }
     },
     "Processor · %lld cores": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -40784,6 +41804,7 @@
       }
     },
     "Processor · 1 core": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41058,6 +42079,7 @@
       }
     },
     "Proxy commands that pass file descriptors are not supported.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41092,6 +42114,7 @@
       }
     },
     "ProxyCommand": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41126,6 +42149,7 @@
       }
     },
     "Prunes all unused container images or volumes": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41229,6 +42253,7 @@
       }
     },
     "Public key algorithm mismatch (%@ != %@)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41263,6 +42288,7 @@
       }
     },
     "Public-Lines truncated": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41331,6 +42357,7 @@
       }
     },
     "Quarterly": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41607,6 +42634,7 @@
       }
     },
     "RAM": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41641,6 +42669,7 @@
       }
     },
     "Raw Markdown": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41675,6 +42704,7 @@
       }
     },
     "Raw disk or filesystem write (%@)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41709,6 +42739,7 @@
       }
     },
     "Reached %lld tool rounds in one pass. Click Continue to keep going.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41743,6 +42774,7 @@
       }
     },
     "Reached %lld tool rounds in one pass. Tap Continue to keep going.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41874,6 +42906,7 @@
       }
     },
     "Read-Only": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41908,6 +42941,7 @@
       }
     },
     "Read-only": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41942,6 +42976,7 @@
       }
     },
     "Read-only server inventory, live status & activity history": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -41976,6 +43011,7 @@
       }
     },
     "Reading agent history…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42010,6 +43046,7 @@
       }
     },
     "Reading live server metrics…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42159,6 +43196,7 @@
       }
     },
     "Reason": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42193,6 +43231,7 @@
       }
     },
     "Reboots or powers off the server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42227,6 +43266,7 @@
       }
     },
     "Receive": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42434,6 +43474,7 @@
       }
     },
     "Recording activity…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42468,6 +43509,7 @@
       }
     },
     "Recursively changes permissions/ownership on system directory": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42580,6 +43622,41 @@
         }
       }
     },
+    "Redesigned AI Assistant & Copilot": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redesigned AI Assistant & Copilot"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新された AI アシスタントと Copilot"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로워진 AI 어시스턴트 및 Copilot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全新设计的 AI 助手与终端 Copilot"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全新設計的 AI 助理與終端機 Copilot"
+          }
+        }
+      }
+    },
     "Redirect log": {
       "extractionState": "stale",
       "localizations": {
@@ -42592,6 +43669,7 @@
       }
     },
     "Redo (Edit)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42728,6 +43806,7 @@
       }
     },
     "Regenerate": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -42864,6 +43943,40 @@
         }
       }
     },
+    "Reliable Terminal Find Bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reliable Terminal Find Bar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更可靠的终端查找栏"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更可靠的終端機尋找列"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安定したターミナル検索バー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 안정적인 터미널 찾기 막대"
+          }
+        }
+      }
+    },
     "Reload Remote": {
       "localizations": {
         "en": {
@@ -42944,6 +44057,7 @@
       }
     },
     "Remind before": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43046,6 +44160,7 @@
       }
     },
     "Remote Commands": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43114,6 +44229,7 @@
       }
     },
     "Remote Forward (-R)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43148,6 +44264,7 @@
       }
     },
     "Remove Identity": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43182,6 +44299,7 @@
       }
     },
     "Remove Port Forward": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43250,6 +44368,7 @@
       }
     },
     "Remove SSH key %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43284,6 +44403,7 @@
       }
     },
     "Remove Server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43318,6 +44438,7 @@
       }
     },
     "Remove Snippet": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43352,6 +44473,7 @@
       }
     },
     "Remove attachment": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43432,6 +44554,7 @@
       }
     },
     "Remove it and stop syncing on this device.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43466,6 +44589,7 @@
       }
     },
     "Remove port forward through %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43500,6 +44624,7 @@
       }
     },
     "Remove server %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43534,6 +44659,7 @@
       }
     },
     "Remove snippet %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43568,6 +44694,7 @@
       }
     },
     "Removes saved item": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43602,6 +44729,7 @@
       }
     },
     "Removing SSH identity…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43636,6 +44764,7 @@
       }
     },
     "Removing server…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43670,6 +44799,7 @@
       }
     },
     "Removing snippet…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43772,6 +44902,7 @@
       }
     },
     "Renamed Successfully": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43840,6 +44971,7 @@
       }
     },
     "Renaming...": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43908,6 +45040,7 @@
       }
     },
     "Renewal date": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -43942,6 +45075,7 @@
       }
     },
     "Renewal reminder": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44010,6 +45144,7 @@
       }
     },
     "Renews in %lldd": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44319,6 +45454,7 @@
       }
     },
     "Requesting Agent mode…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44433,6 +45569,7 @@
       }
     },
     "Requires iOS 26 or later. Configure a remote AI provider instead.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44467,6 +45604,7 @@
       }
     },
     "Requires iOS 27 or later with Private Cloud Compute entitlement.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44501,6 +45639,7 @@
       }
     },
     "Requires macOS 26 or later. Configure a remote AI provider instead.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44535,6 +45674,7 @@
       }
     },
     "Requires macOS 27 or later with Private Cloud Compute entitlement.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44569,6 +45709,7 @@
       }
     },
     "Resending replaces messages after this prompt and generates a fresh response.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44842,6 +45983,7 @@
       }
     },
     "Restart nginx": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -44910,6 +46052,7 @@
       }
     },
     "Result": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45115,6 +46258,7 @@
       }
     },
     "Review and acknowledge this host's warnings before importing.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45219,6 +46363,7 @@
       }
     },
     "Rewrite": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45253,6 +46398,7 @@
       }
     },
     "Rewriting…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45390,6 +46536,7 @@
       }
     },
     "Run Command": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45594,6 +46741,7 @@
       }
     },
     "Run in SSH": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45628,6 +46776,7 @@
       }
     },
     "Run network diagnostics across my servers: check TCP socket states, interface packet drops, and DNS resolvers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45662,6 +46811,7 @@
       }
     },
     "Run on %lld servers": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45696,6 +46846,7 @@
       }
     },
     "Run on %lld servers with sudo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45730,6 +46881,7 @@
       }
     },
     "Run on 1 server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45764,6 +46916,7 @@
       }
     },
     "Run on 1 server with sudo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45833,6 +46986,7 @@
       }
     },
     "Run saved snippet \"%@\"": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45867,6 +47021,7 @@
       }
     },
     "Run with sudo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45935,6 +47090,7 @@
       }
     },
     "Running": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -45969,6 +47125,7 @@
       }
     },
     "Running %@…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46003,6 +47160,7 @@
       }
     },
     "Running command on servers…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46037,6 +47195,7 @@
       }
     },
     "Running saved snippet…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46105,6 +47264,7 @@
       }
     },
     "Runs on Apple's Private Cloud Compute with end-to-end privacy and no API key required.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46139,6 +47299,7 @@
       }
     },
     "Runs on device with no API key required.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46173,6 +47334,7 @@
       }
     },
     "Runs with sudo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46515,6 +47677,7 @@
       }
     },
     "SOCKS5 proxy on localhost:%lld through %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46549,6 +47712,7 @@
       }
     },
     "SPEED": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46941,6 +48105,7 @@
       }
     },
     "SSH certificates and hardware-backed security keys are not supported by Tamio's connection engine.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -46975,6 +48140,7 @@
       }
     },
     "SSH configuration file %@ is larger than 1 MB.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47009,6 +48175,7 @@
       }
     },
     "SSH configuration file %@ is not valid UTF-8 text.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47043,6 +48210,7 @@
       }
     },
     "SSH configuration path %@ is not a regular file.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47243,6 +48411,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "SSH、SFTP 與伺服器監控流量均由你的裝置直連目標伺服器，不經過任何第三方中轉伺服器。"
+          }
+        }
+      }
+    },
+    "Safer SFTP, Session sudo & .ppk Import": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safer SFTP, Session sudo & .ppk Import"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全な SFTP、セッション sudo、.ppk インポート"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 안전한 SFTP, 세션 sudo 및 .ppk 가져오기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、会话级 sudo 与 .ppk 导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、工作階段 sudo 與 .ppk 匯入"
+          }
+        }
+      }
+    },
+    "Safer SFTP, Session sudo & External Editors": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safer SFTP, Session sudo & External Editors"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全な SFTP、セッション sudo、外部エディタ連携"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 안전한 SFTP, 세션 sudo 및 외부 편집기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、会话级 sudo 与外部编辑器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、工作階段 sudo 與外部編輯器"
           }
         }
       }
@@ -47453,6 +48691,7 @@
       }
     },
     "Save a server to reach it in one click": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47556,6 +48795,7 @@
       }
     },
     "Save as Snippet": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47658,6 +48898,7 @@
       }
     },
     "Save snippet %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47727,6 +48968,7 @@
       }
     },
     "Saved commands and their groups.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47899,6 +49141,7 @@
       }
     },
     "Saved: %@ %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47933,6 +49176,7 @@
       }
     },
     "Saving snippet…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -47967,6 +49211,7 @@
       }
     },
     "Saving without credentials requires explicit acknowledgement.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -48001,6 +49246,7 @@
       }
     },
     "Scan the SSH configuration again before resolving it.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -48409,6 +49655,41 @@
         }
       }
     },
+    "Secret Redaction & Command Risk Grading": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secret Redaction & Command Risk Grading"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機密情報の自動マスキングとコマンド危険度判定"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "민감 정보 자동 마스킹 및 명령 위험도 등급"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感信息脱敏与命令风险分级"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機敏資訊去識別化與指令風險分級"
+          }
+        }
+      }
+    },
     "Security": {
       "localizations": {
         "en": {
@@ -48444,6 +49725,7 @@
       }
     },
     "Security & SSH Audit": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -48924,6 +50206,7 @@
       }
     },
     "Selected AI provider was not found. Choose one in AI Providers.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -48969,6 +50252,7 @@
       }
     },
     "Semi-Annual": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -49105,6 +50389,7 @@
       }
     },
     "Send Message": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -49670,6 +50955,7 @@
       }
     },
     "Servers: ": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -49704,6 +50990,7 @@
       }
     },
     "Service & Crash Triage": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -49910,6 +51197,7 @@
       }
     },
     "Several saved servers match this host. Resolve the duplicates before importing.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50149,6 +51437,7 @@
       }
     },
     "Show %lld lines": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50183,6 +51472,7 @@
       }
     },
     "Show %lld steps": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50217,6 +51507,7 @@
       }
     },
     "Show Activity Steps Inline": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50285,6 +51576,7 @@
       }
     },
     "Show Everything": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50466,6 +51758,7 @@
       }
     },
     "Show VPS renewal reminders": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50535,6 +51828,7 @@
       }
     },
     "Show every server, or one group's": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50674,6 +51968,7 @@
       }
     },
     "Show or hide SSH AI Copilot (⇧⌘A)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -50743,6 +52038,7 @@
       }
     },
     "Show server notes": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51055,6 +52351,7 @@
       }
     },
     "Since the server booted": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51191,6 +52488,7 @@
       }
     },
     "Snippet": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51738,6 +53036,7 @@
       }
     },
     "Start Background Command": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51807,6 +53106,7 @@
       }
     },
     "Start Port Forward": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51875,6 +53175,7 @@
       }
     },
     "Start background job on %lld servers": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51909,6 +53210,7 @@
       }
     },
     "Start background job on %lld servers with sudo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51943,6 +53245,7 @@
       }
     },
     "Start background job on 1 server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -51977,6 +53280,7 @@
       }
     },
     "Start background job on 1 server with sudo": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52057,6 +53361,7 @@
       }
     },
     "Start port forward through %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52091,6 +53396,7 @@
       }
     },
     "Starting": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52125,6 +53431,7 @@
       }
     },
     "Starting background command…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52295,6 +53602,7 @@
       }
     },
     "Stay in Ask": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52397,6 +53705,7 @@
       }
     },
     "Stop Background Command": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52465,6 +53774,7 @@
       }
     },
     "Stop Port Forward": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52534,6 +53844,7 @@
       }
     },
     "Stop port forward through %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52603,6 +53914,7 @@
       }
     },
     "Stopped": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52637,6 +53949,7 @@
       }
     },
     "Stopped after %@ tool rounds. Continue to keep going.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52671,6 +53984,7 @@
       }
     },
     "Stopping background command…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52705,6 +54019,7 @@
       }
     },
     "Stops or disables critical connectivity service": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52773,6 +54088,7 @@
       }
     },
     "Streaming": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52841,6 +54157,7 @@
       }
     },
     "Summarize": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52875,6 +54192,7 @@
       }
     },
     "Summary": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -52943,6 +54261,7 @@
       }
     },
     "Switch & Retry": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53046,6 +54365,7 @@
       }
     },
     "Switch to Agent Mode": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53080,6 +54400,7 @@
       }
     },
     "Switch to Agent mode?": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53217,6 +54538,7 @@
       }
     },
     "Sync Now": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53251,6 +54573,7 @@
       }
     },
     "Sync with iCloud": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53524,6 +54847,7 @@
       }
     },
     "System power state change (%@)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53592,6 +54916,7 @@
       }
     },
     "TLS Certificate Expiry": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53626,6 +54951,7 @@
       }
     },
     "TOTAL": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53912,6 +55238,7 @@
       }
     },
     "Tamio Built-in": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -53980,6 +55307,7 @@
       }
     },
     "Tamio could not read its key from the keychain, so nothing is saved or synced.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54049,6 +55377,7 @@
       }
     },
     "Tamio does not forward the SSH agent, add keys to it, or read keys from the macOS keychain.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54203,6 +55532,7 @@
       }
     },
     "Tamio uses its own connection and host-trust policy; these OpenSSH settings are not imported: %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54289,6 +55619,7 @@
       }
     },
     "Target": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54334,6 +55665,7 @@
       }
     },
     "Target Host": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54368,6 +55700,7 @@
       }
     },
     "Target Port": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54506,6 +55839,7 @@
       }
     },
     "Targets": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54540,6 +55874,7 @@
       }
     },
     "Task": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -54643,6 +55978,7 @@
       }
     },
     "Tears down Docker Compose stack and removes volumes": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55089,6 +56425,7 @@
       }
     },
     "Termius (JSON)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55261,6 +56598,7 @@
       }
     },
     "Text Size (%lld pt)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55329,6 +56667,7 @@
       }
     },
     "The AI provider returned an unreadable response.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55363,6 +56702,7 @@
       }
     },
     "The Mac's SSH configuration at %@ could not be inspected, so its defaults are not applied: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55397,6 +56737,7 @@
       }
     },
     "The SSH Include patterns inspect too many directory entries.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55534,6 +56875,7 @@
       }
     },
     "The SSH agent this host names uses expansion Tamio cannot resolve. Choose its socket in an SSH agent identity.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55568,6 +56910,7 @@
       }
     },
     "The SSH configuration contains an Include cycle at %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55602,6 +56945,7 @@
       }
     },
     "The SSH configuration contains more than 512 server aliases.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55636,6 +56980,7 @@
       }
     },
     "The SSH configuration exceeds the 4 MB import limit or the 1 MB per-file limit.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55670,6 +57015,7 @@
       }
     },
     "The SSH configuration includes too many files or too many nested Includes.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55774,6 +57120,7 @@
       }
     },
     "The command ended without an exit code.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55843,6 +57190,7 @@
       }
     },
     "The data in iCloud could not be removed: %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55911,6 +57259,7 @@
       }
     },
     "The host key of %@:%lld has changed, so the connection was refused.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -55980,6 +57329,7 @@
       }
     },
     "The import selection is invalid. Review the configuration again.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56049,6 +57399,7 @@
       }
     },
     "The key file is too large or is not UTF-8 text.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56083,6 +57434,7 @@
       }
     },
     "The key must be a regular file smaller than 1 MB.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56203,6 +57555,7 @@
       }
     },
     "The private key could not be opened. Check its format and passphrase.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56237,6 +57590,7 @@
       }
     },
     "The private key could not be validated.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56271,6 +57625,7 @@
       }
     },
     "The proxy command cannot be represented safely.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56305,6 +57660,7 @@
       }
     },
     "The proxy jump cannot be represented safely.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56339,6 +57695,7 @@
       }
     },
     "The proxy jump has an unsupported host, user or port.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56493,6 +57850,7 @@
       }
     },
     "The selected file is not a supported private key.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56527,6 +57885,7 @@
       }
     },
     "The selected identity is no longer available or has no credentials.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56561,6 +57920,7 @@
       }
     },
     "The selected key file could not be read.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56697,6 +58057,7 @@
       }
     },
     "The server did not let %@ in without a password or key.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56731,6 +58092,7 @@
       }
     },
     "The servers' keys: one trusted on a device is trusted on the others.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56800,6 +58162,7 @@
       }
     },
     "The temporary folder cannot safely hold an SSH configuration snapshot.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56869,6 +58232,7 @@
       }
     },
     "The two do not match.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -56988,6 +58352,7 @@
       }
     },
     "There is more to sync than iCloud keeps for an app (1 MB).": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57090,6 +58455,7 @@
       }
     },
     "These identity files are missing on this Mac: %@. Choose another credential or save a draft.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57159,6 +58525,7 @@
       }
     },
     "Thinking Process": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57193,6 +58560,7 @@
       }
     },
     "Thinking…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57227,6 +58595,7 @@
       }
     },
     "This Mac": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57296,6 +58665,7 @@
       }
     },
     "This PuTTY key is encrypted. Enter its passphrase to import it.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57365,6 +58735,7 @@
       }
     },
     "This build is signed without Apple's managed Private Cloud Compute entitlement.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57399,6 +58770,7 @@
       }
     },
     "This configuration requires trust and may run local commands. Resolved settings are a snapshot, not live OpenSSH rules.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57468,6 +58840,7 @@
       }
     },
     "This copy of Tamio is not signed for iCloud, so it cannot sync.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57502,6 +58875,7 @@
       }
     },
     "This device does not support Apple Intelligence Private Cloud Compute.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57536,6 +58910,7 @@
       }
     },
     "This device does not support Apple Intelligence. Configure a remote AI provider instead.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57638,6 +59013,7 @@
       }
     },
     "This does not look like a private key: it starts with -----BEGIN … PRIVATE KEY-----.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57672,6 +59048,7 @@
       }
     },
     "This file changed on the server after you opened it. Reload the remote version or overwrite it anyway.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57706,6 +59083,7 @@
       }
     },
     "This file is %@; files up to %@ open in the editor. Download it instead.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57740,6 +59118,7 @@
       }
     },
     "This file is not a PuTTY (.ppk) private key.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57842,6 +59221,7 @@
       }
     },
     "This file isn't UTF-8 text, so it can't be edited here. Download it instead.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -57978,6 +59358,7 @@
       }
     },
     "This private key uses an algorithm Tamio does not support.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58012,6 +59393,7 @@
       }
     },
     "This proxy command uses tokens Tamio does not support. Only %h, %p and %% are supported.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58046,6 +59428,7 @@
       }
     },
     "This proxy runs a local command when connecting. It depends on local OpenSSH configuration, programs and keys; jump-host trust is managed separately from Tamio.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58148,6 +59531,7 @@
       }
     },
     "This request needs to inspect live server state or run commands.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58252,6 +59636,7 @@
       }
     },
     "This server's details could not be read.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58435,6 +59820,7 @@
       }
     },
     "Thought for %lld seconds": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58469,6 +59855,7 @@
       }
     },
     "Thought for %lld seconds and called %lld tools": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58503,6 +59890,7 @@
       }
     },
     "Thought for %lld seconds and called 1 tool": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58537,6 +59925,7 @@
       }
     },
     "Thought for 1 second": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58571,6 +59960,7 @@
       }
     },
     "Thought for 1 second and called %lld tools": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58605,6 +59995,7 @@
       }
     },
     "Thought for 1 second and called 1 tool": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58639,6 +60030,7 @@
       }
     },
     "Thoughts": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58673,6 +60065,7 @@
       }
     },
     "Through": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58775,6 +60168,7 @@
       }
     },
     "Timed out after %lld s.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -58809,6 +60203,7 @@
       }
     },
     "Timeout (s)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59048,6 +60443,7 @@
       }
     },
     "Tool call denied by user.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59082,6 +60478,7 @@
       }
     },
     "Tools": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59116,6 +60513,7 @@
       }
     },
     "Tools (%lld)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59150,6 +60548,7 @@
       }
     },
     "Tools Off": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59184,6 +60583,7 @@
       }
     },
     "Tools changed. The next reply may take a little longer.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59435,6 +60835,7 @@
       }
     },
     "Transmit": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59607,6 +61008,7 @@
       }
     },
     "Turn On": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59641,6 +61043,7 @@
       }
     },
     "Turn on Apple Intelligence in System Settings to use Private Cloud Compute.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59710,6 +61113,7 @@
       }
     },
     "Two selected hosts would update the same saved server. Choose only one.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59744,6 +61148,7 @@
       }
     },
     "Two servers are needed.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59863,6 +61268,7 @@
       }
     },
     "Unable to connect for %@:%@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59897,6 +61303,7 @@
       }
     },
     "Unable to connect or authenticate": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59931,6 +61338,7 @@
       }
     },
     "Unable to download SKILL.md": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -59965,6 +61373,7 @@
       }
     },
     "Unable to reach Apple Private Cloud Compute. Check your network connection and retry.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60067,6 +61476,7 @@
       }
     },
     "Unexpected EOF": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60254,6 +61664,7 @@
       }
     },
     "Unknown Command": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60288,6 +61699,7 @@
       }
     },
     "Unknown Error": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60322,6 +61734,7 @@
       }
     },
     "Unknown Key": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60681,6 +62094,7 @@
       }
     },
     "Unsupported Key-Derivation %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60715,6 +62129,7 @@
       }
     },
     "Unsupported PuTTY key encryption: %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60749,6 +62164,7 @@
       }
     },
     "Unsupported PuTTY key version (%lld). Versions 2 and 3 are supported.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60783,6 +62199,7 @@
       }
     },
     "Unsupported SSH key algorithm: %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60817,6 +62234,7 @@
       }
     },
     "Untitled": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60885,6 +62303,7 @@
       }
     },
     "Up to date. Last synced at %@.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60919,6 +62338,7 @@
       }
     },
     "Update Server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -60953,6 +62373,7 @@
       }
     },
     "Update Snippet": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61022,6 +62443,7 @@
       }
     },
     "Updating a saved server requires explicit permission.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61056,6 +62478,7 @@
       }
     },
     "Updating port forward…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61090,6 +62513,7 @@
       }
     },
     "Updating server…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61192,6 +62616,7 @@
       }
     },
     "Upload Completed": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61364,6 +62789,7 @@
       }
     },
     "Uploading...": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61637,6 +63063,7 @@
       }
     },
     "Use the \"%@\" ops skill to inspect my target servers and summarize findings.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61775,6 +63202,7 @@
       }
     },
     "Used by %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61877,6 +63305,7 @@
       }
     },
     "User %@ with %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61911,6 +63340,7 @@
       }
     },
     "User names, passwords and private keys.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -61979,6 +63409,7 @@
       }
     },
     "Username Only": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62047,6 +63478,7 @@
       }
     },
     "VRAM": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62081,6 +63513,7 @@
       }
     },
     "Validate Nginx/Caddy configs, inspect recent 5xx errors and upstream timeouts across web nodes.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62115,6 +63548,7 @@
       }
     },
     "Value": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62217,6 +63651,41 @@
         }
       }
     },
+    "Version %@": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "버전 %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        }
+      }
+    },
     "Version %@ (%@)": {
       "localizations": {
         "en": {
@@ -62268,7 +63737,43 @@
         }
       }
     },
+    "View Full Release Notes": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View Full Release Notes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リリースノートの全文を見る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전체 릴리스 노트 보기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看完整更新日志"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢視完整更新日誌"
+          }
+        }
+      }
+    },
     "View Raw": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62406,6 +63911,7 @@
       }
     },
     "WAIT": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62543,6 +64049,7 @@
       }
     },
     "Watch CPU, memory, disk and network usage": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62612,6 +64119,7 @@
       }
     },
     "What agents did on each server, so agents on other devices know.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62681,6 +64189,7 @@
       }
     },
     "What agents run or change here, through Tamio or reported by them, shows here.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62715,6 +64224,7 @@
       }
     },
     "What is in iCloud cannot be read. Replace it with this device's data to go on.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62766,6 +64276,7 @@
       }
     },
     "What is in iCloud was written by a newer version of Tamio. Update Tamio on this device.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62834,6 +64345,144 @@
         }
       }
     },
+    "What’s New": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新機能"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로운 기능"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能"
+          }
+        }
+      }
+    },
+    "What’s New in Tamio": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New in Tamio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio の新機能"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio의 새로운 기능"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio 新功能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio 新功能"
+          }
+        }
+      }
+    },
+    "What’s New on Every Update": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New on Every Update"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次更新的新功能亮点"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次更新的新功能亮點"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートごとの新機能案内"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트마다 확인하는 새로운 기능"
+          }
+        }
+      }
+    },
+    "What’s New…": {
+      "extractionState": "stale",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新機能…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로운 기능…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能…"
+          }
+        }
+      }
+    },
     "When you use the AI Assistant with a remote provider, only your prompts and approved tool outputs are sent to the provider you configured—never passwords or private keys.": {
       "localizations": {
         "en": {
@@ -62869,6 +64518,7 @@
       }
     },
     "Why": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -62903,6 +64553,7 @@
       }
     },
     "WindTerm (.sessions)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63074,6 +64725,7 @@
       }
     },
     "Writes directly to system configuration or device": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63108,6 +64760,7 @@
       }
     },
     "Xshell (.xsh)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63143,6 +64796,7 @@
       "shouldTranslate": false
     },
     "Yearly": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63177,6 +64831,7 @@
       }
     },
     "Yes": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63342,6 +64997,7 @@
       }
     },
     "Your other devices take it from iCloud Keychain, or ask for it.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63461,6 +65117,7 @@
       }
     },
     "[*] Connection Closed": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63495,6 +65152,7 @@
       }
     },
     "[*] Creating Connection": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63699,6 +65357,7 @@
       }
     },
     "[i] Connection lost. Reconnecting in %lld s (attempt %lld of %lld)…": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63733,6 +65392,7 @@
       }
     },
     "[i] Could not reconnect after %lld attempts. Reconnect tries again.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -63767,6 +65427,7 @@
       }
     },
     "[i] Last Error Provided By Backend": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -65588,6 +67249,7 @@
       }
     },
     "exit %lld": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -66727,6 +68389,7 @@
       }
     },
     "iCloud already holds data from one of your devices. Enter the passphrase you chose there.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -68597,6 +70260,7 @@
       }
     },
     "localhost:%lld → %@:%lld (from the server)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -68716,6 +70380,7 @@
       }
     },
     "no exit code": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -68785,6 +70450,7 @@
       }
     },
     "of": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -69227,6 +70893,7 @@
       }
     },
     "peak %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -69431,6 +71098,7 @@
       }
     },
     "s": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -69618,6 +71286,7 @@
       }
     },
     "server": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -69652,6 +71321,7 @@
       }
     },
     "server port %lld → %@:%lld (from this Mac)": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -71964,6 +73634,7 @@
         }
       }
     },
+    "sudo": {},
     "theme.no_theme_help": {
       "extractionState": "stale",
       "localizations": {
@@ -72153,6 +73824,7 @@
       }
     },
     "vbios %@": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -72190,7 +73862,6 @@
       "shouldTranslate": false
     },
     "· %@": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -72225,6 +73896,7 @@
       }
     },
     "—": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -72274,9 +73946,6 @@
           }
         }
       }
-    },
-    "•": {
-      "shouldTranslate": false
     },
     "••••••": {
       "localizations": {

@@ -21,7 +21,12 @@ class TerminalManager: ObservableObject {
         }
     }
 
-    @Published var activeTerminalID: UUID?
+    @Published var activeTerminalID: UUID? {
+        didSet {
+            guard activeTerminalID != oldValue else { return }
+            SessionActivityController.shared.sync()
+        }
+    }
 
     private var observers: [NSObjectProtocol] = []
 

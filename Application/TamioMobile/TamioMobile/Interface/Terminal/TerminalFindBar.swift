@@ -39,6 +39,14 @@ final class TerminalFindState: ObservableObject {
         _ = terminal.performBindingAction("end_search")
     }
 
+    func toggle(on terminal: TamioTerminalView) {
+        if isPresented {
+            dismiss(on: terminal)
+        } else {
+            present(on: terminal)
+        }
+    }
+
     func applyQuery(on terminal: TamioTerminalView) {
         let trimmed = query.trimmingCharacters(in: .newlines)
         if trimmed.isEmpty {
@@ -112,75 +120,99 @@ struct TerminalFindBar: View {
                 }
             }
 
-            HStack(spacing: RX.Space.s2) {
-                Image(rx: "magnifyingglass")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.rxInkSecondary)
+            GlassBarContainer(spacing: 8) {
+                HStack(spacing: 8) {
+                    HStack(spacing: RX.Space.s2) {
+                        Image(rx: "magnifyingglass")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.rxInkSecondary)
 
-                TextField("Find in terminal", text: $state.query)
-                    .font(.rxBody)
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .submitLabel(.search)
-                    .focused($fieldFocused)
-                    .onSubmit {
-                        state.next(on: terminal)
-                    }
-                    .onChange(of: state.query) { _, _ in
-                        state.applyQuery(on: terminal)
-                    }
+                        TextField("Find in terminal", text: $state.query)
+                            .font(.rxBody)
+                            .textInputAutocapitalization(.never)
+                            .disableAutocorrection(true)
+                            .submitLabel(.search)
+                            .focused($fieldFocused)
+                            .onSubmit {
+                                state.next(on: terminal)
+                            }
+                            .onChange(of: state.query) { _, _ in
+                                state.applyQuery(on: terminal)
+                            }
 
-                if !state.query.isEmpty {
-                    Text(state.matchCount >= 999 ? "999+" : "\(state.matchCount)")
-                        .font(.rxCaption.monospacedDigit())
-                        .foregroundStyle(state.matchCount == 0 ? Color.rxWarning : Color.rxInkSecondary)
-                        .padding(.horizontal, 6)
+                        if !state.query.isEmpty {
+                            Text(state.matchCount >= 999 ? "999+" : "\(state.matchCount)")
+                                .font(.rxCaption.monospacedDigit())
+                                .foregroundStyle(state.matchCount == 0 ? Color.rxWarning : Color.rxInkSecondary)
+                                .padding(.horizontal, 6)
+
+                            Button {
+                                state.query = ""
+                                state.applyQuery(on: terminal)
+                            } label: {
+                                Image(rx: "xmark.circle.fill")
+                                    .foregroundStyle(.rxInkTertiary)
+                                    .frame(width: 28, height: 36)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(String(localized: "Clear Search"))
+                        }
+
+                        Divider().frame(height: 18)
+
+                        Button { state.previous(on: terminal) } label: {
+                            Image(rx: "chevron.up")
+                                .frame(width: 32, height: 36)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(state.query.isEmpty)
+                        .keyboardShortcut("g", modifiers: [.command, .shift])
+                        .accessibilityLabel(String(localized: "Previous Match"))
+
+                        Button { state.next(on: terminal) } label: {
+                            Image(rx: "chevron.down")
+                                .frame(width: 32, height: 36)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(state.query.isEmpty)
+                        .keyboardShortcut("g", modifiers: .command)
+                        .accessibilityLabel(String(localized: "Next Match"))
+                    }
+                    .padding(.horizontal, RX.Space.s3)
+                    .frame(height: 44)
+                    .barGlass(in: Capsule(), interactive: false)
 
                     Button {
-                        state.query = ""
-                        state.applyQuery(on: terminal)
+                        closeFindBar()
                     } label: {
-                        Image(rx: "xmark.circle.fill")
-                            .foregroundStyle(.rxInkTertiary)
+                        Image(rx: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.rxInk)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Circle())
+                            .barGlass(in: Circle(), interactive: true)
                     }
                     .buttonStyle(.plain)
+                    .keyboardShortcut(.escape, modifiers: [])
+                    .accessibilityLabel(String(localized: "Close Find"))
                 }
-
-                Divider().frame(height: 18)
-
-                Button { state.previous(on: terminal) } label: {
-                    Image(rx: "chevron.up")
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .disabled(state.query.isEmpty)
-                .keyboardShortcut("g", modifiers: [.command, .shift])
-
-                Button { state.next(on: terminal) } label: {
-                    Image(rx: "chevron.down")
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .disabled(state.query.isEmpty)
-                .keyboardShortcut("g", modifiers: .command)
-
-                Button {
-                    state.dismiss(on: terminal)
-                } label: {
-                    Image(rx: "xmark")
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(.escape, modifiers: [])
+                .padding(.horizontal, RX.Space.s3)
             }
-            .padding(.horizontal, RX.Space.s3)
-            .frame(height: 44)
-            .barGlass(in: Capsule(), interactive: true)
-            .padding(.horizontal, RX.Space.s3)
         }
         .padding(.bottom, RX.Space.s2)
         .onAppear {
             fieldFocused = true
+        }
+    }
+
+    private func closeFindBar() {
+        fieldFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        withAnimation(.snappy(duration: 0.2)) {
+            state.dismiss(on: terminal)
         }
     }
 }

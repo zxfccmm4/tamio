@@ -143,10 +143,11 @@ struct TamioSessionLiveActivity: Widget {
     }
 }
 
-// MARK: - Lock Screen & Notification Banner View
+// MARK: - Lock Screen, StandBy & Notification Banner View
 
 private struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<TamioSessionAttributes>
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     var body: some View {
         VStack(alignment: .leading, spacing: 11) {
@@ -232,6 +233,7 @@ private struct LockScreenLiveActivityView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+        .opacity(isLuminanceReduced ? 0.85 : 1)
     }
 }
 

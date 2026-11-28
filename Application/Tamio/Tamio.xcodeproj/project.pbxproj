@@ -45,6 +45,7 @@
 		84A5501750B14CA6BA883C24 /* MacChartsDashboard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1331A09CA06BF20442B6E738 /* MacChartsDashboard.swift */; };
 		8766A75FC53E74F9069FC9A2 /* AppRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAB94544BDE15E396B57A48 /* AppRouter.swift */; };
 		8A07521B9F79187B9B9B0F83 /* IdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70FA3DE75DF8292D67006F07 /* IdentitiesView.swift */; };
+		8CC0979B7DEC125C655332DE /* MacWhatsNewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC89F7033831411B082F36D /* MacWhatsNewSheet.swift */; };
 		8ED6DCE83F8FD7FBA2CED5C8 /* AgentSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D77332CA29BD257A4BA5AD0 /* AgentSettings.swift */; };
 		999E1CACAB34648AEC5D82D5 /* TamioShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04861C651FF022994A33251 /* TamioShortcuts.swift */; };
 		9F47B627FDC40959A351D89B /* DoubleConfirm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18038823C6B06193E1A8D86A /* DoubleConfirm.swift */; };
@@ -161,6 +162,7 @@
 		F5BD85D2A70187112CEC7FAB /* MachineStatus */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MachineStatus; path = ../../Foundation/MachineStatus; sourceTree = SOURCE_ROOT; };
 		F83F1AFF22EB00B4B6D74EEF /* AlignedWithContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlignedWithContent.swift; sourceTree = "<group>"; };
 		FB9E4DDA19C6E86B44842578 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		FBC89F7033831411B082F36D /* MacWhatsNewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacWhatsNewSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -366,6 +368,7 @@
 			children = (
 				F83F1AFF22EB00B4B6D74EEF /* AlignedWithContent.swift */,
 				2EAB94544BDE15E396B57A48 /* AppRouter.swift */,
+				FBC89F7033831411B082F36D /* MacWhatsNewSheet.swift */,
 				85358DC98DB406C6FB6D164E /* MainView.swift */,
 				9DDE29F5CD9A23175CCFBCF3 /* PageScaffold.swift */,
 				63796B4E4DBEEC81D63678D4 /* SidebarSlide.swift */,
@@ -615,6 +618,7 @@
 				0106C680569D727EDE45CEAC /* MacTerminalAIPanel.swift in Sources */,
 				008E9FBC042818DE1C7C7460 /* MacTerminalFindBar.swift in Sources */,
 				BEB4DE2C2050BCC4316E8C40 /* MacUpdates.swift in Sources */,
+				8CC0979B7DEC125C655332DE /* MacWhatsNewSheet.swift in Sources */,
 				6847782BF8AA67783B857696 /* MainView.swift in Sources */,
 				6AC16DD7B59C49A3DE4CAF35 /* MenubarTool.swift in Sources */,
 				B347AFC662FEA41D342D2394 /* MonitorPage.swift in Sources */,

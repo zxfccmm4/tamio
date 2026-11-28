@@ -71,6 +71,8 @@ final class AppRouter: ObservableObject {
         get { serverEditor == .new }
         set { serverEditor = newValue ? .new : nil }
     }
+    /// Presents the Apple-native What's New sheet in the main window.
+    @Published var presentWhatsNew = false
     /// Settings category to show when Settings opens.
     /// Settings follows this itself, so a change of category does not go
     /// through every view that watches the router.

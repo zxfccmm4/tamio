@@ -40,6 +40,7 @@ struct TerminalView: View {
 
     init(context: TerminalContext) {
         _currentContext = State(initialValue: context)
+        _findStates = State(initialValue: [context.id: TerminalFindState()])
     }
 
     private var activeContext: TerminalContext {
@@ -308,6 +309,7 @@ private struct TerminalSessionHost: View {
 
                 if findState.isPresented {
                     TerminalFindBar(state: findState, terminal: activeContext.termInterface)
+                        .zIndex(10)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 } else if showsFloatingBottomBar {
                     TerminalFloatingBar(
@@ -318,7 +320,11 @@ private struct TerminalSessionHost: View {
                         isKeyboardLocked: activeContext.isSoftwareKeyboardLocked,
                         onSwipePrevious: onSwipePrevious,
                         onSwipeNext: onSwipeNext,
-                        onToggleFind: { findState.present(on: activeContext.termInterface) },
+                        onToggleFind: {
+                            withAnimation(.snappy(duration: 0.2)) {
+                                findState.toggle(on: activeContext.termInterface)
+                            }
+                        },
                         onOpenSnippets: { showsSnippets = true },
                         onOpenSwitcher: { showsTabSwitcher = true },
                         onOpenThemes: { showsThemeSettings = true },
@@ -328,6 +334,7 @@ private struct TerminalSessionHost: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+            .animation(.snappy(duration: 0.2), value: findState.isPresented)
 
             if let session = monitors.session(for: activeContext.machine.id), session.status.hasData {
                 TerminalLiveMetricsStrip(session: session)
@@ -339,6 +346,7 @@ private struct TerminalSessionHost: View {
         }
         .onChange(of: activeContext.closed) { _, _ in
             activeContext.syncBannerState()
+            SessionActivityController.shared.sync()
         }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
@@ -408,7 +416,9 @@ private struct TerminalSessionHost: View {
                 if sizeClass == .regular {
                     Button {
                         HapticsPreference.impact()
-                        findState.present(on: activeContext.termInterface)
+                        withAnimation(.snappy(duration: 0.2)) {
+                            findState.toggle(on: activeContext.termInterface)
+                        }
                     } label: {
                         Label("Find in Terminal", systemImage: "magnifyingglass")
                     }
@@ -436,9 +446,14 @@ private struct TerminalSessionHost: View {
                 Menu {
                     Section {
                         Button {
-                            findState.present(on: activeContext.termInterface)
+                            withAnimation(.snappy(duration: 0.2)) {
+                                findState.toggle(on: activeContext.termInterface)
+                            }
                         } label: {
-                            Label("Find in Terminal…", systemImage: "magnifyingglass")
+                            Label(
+                                findState.isPresented ? String(localized: "Close Find") : String(localized: "Find in Terminal…"),
+                                systemImage: findState.isPresented ? "xmark" : "magnifyingglass"
+                            )
                         }
                         .keyboardShortcut("f", modifiers: .command)
 

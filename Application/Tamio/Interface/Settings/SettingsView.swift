@@ -306,6 +306,7 @@ private struct MonitorSettings: View {
 
 private struct AboutSettings: View {
     @State private var document: AboutDocument?
+    @State private var showWhatsNew = false
 
     var version: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
@@ -328,10 +329,18 @@ private struct AboutSettings: View {
                     .textSelection(.enabled)
             }
             RXFormRow("What's new", description: "This version's release notes. New versions show theirs before they install.") {
-                Link(destination: UpdateCenter.releaseNotesURL) {
-                    Label("Release Notes", rx: "arrow.up.right.square")
+                HStack(spacing: RX.Space.s2) {
+                    Button {
+                        showWhatsNew = true
+                    } label: {
+                        Label("What’s New…", rx: "sparkles")
+                    }
+                    .buttonStyle(.rx)
+                    Link(destination: UpdateCenter.releaseNotesURL) {
+                        Label("Release Notes", rx: "arrow.up.right.square")
+                    }
+                    .buttonStyle(.rx)
                 }
-                .buttonStyle(.rx)
             }
             RXFormRow("Source code", description: "zxfccmm4/tamio on GitHub (forked from missuo/tamio)") {
                 Link(destination: URL(string: "https://github.com/zxfccmm4/tamio")!) {
@@ -358,6 +367,12 @@ private struct AboutSettings: View {
         .sheet(item: $document) { item in
             LicenseSheet(document: item) { document = nil }
         }
+        .background(
+            Color.clear
+                .sheet(isPresented: $showWhatsNew) {
+                    MacWhatsNewSheet(showsCloseButton: true)
+                }
+        )
     }
 }
 

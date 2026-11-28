@@ -11,6 +11,7 @@
 //
 
 import SwiftUI
+import TamioDesign
 import UIKit
 
 // MARK: - About Screen
@@ -18,6 +19,7 @@ import UIKit
 struct AboutView: View {
     @ScaledMetric private var iconColumnWidth: CGFloat = 28
     @State private var loveCount = 0
+    @State private var showingWhatsNew = false
 
     var body: some View {
         Form {
@@ -44,6 +46,37 @@ struct AboutView: View {
                 .padding(.vertical, 2)
             } header: {
                 Text("Overview")
+            }
+
+            Section {
+                Button {
+                    HapticsPreference.impact()
+                    showingWhatsNew = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "sparkles")
+                            .font(.title3.weight(.medium))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.indigo)
+                            .frame(width: min(iconColumnWidth, 38), height: min(iconColumnWidth, 38))
+                            .accessibilityHidden(true)
+
+                        Text("What’s New")
+                            .font(.body)
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        Text("v\(WhatsNewCatalog.currentAppVersion)")
+                            .font(.subheadline.monospacedDigit())
+                            .foregroundStyle(.secondary)
+
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 1)
+                }
             }
 
             Section("Core Capabilities") {
@@ -120,6 +153,9 @@ struct AboutView: View {
         }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingWhatsNew) {
+            MobileWhatsNewSheet(showsCloseButton: true)
+        }
     }
 
     private func capabilityRow(_ capability: TamioCapability) -> some View {

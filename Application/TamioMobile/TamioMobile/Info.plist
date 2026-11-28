@@ -37,6 +37,10 @@
 	<array>
 		<string>_ighostvt._tcp</string>
 	</array>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 </dict>

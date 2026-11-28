@@ -3002,6 +3002,40 @@
         }
       }
     },
+    "5 Languages & Upgraded Live Activities": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 Languages & Upgraded Live Activities"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 言語の完全ローカライズとライブアクティビティ強化"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5개 언어 완벽 지원 및 실시간 현황 업그레이드"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "五语完整本地化与实时活动增强"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "五語完整在地化與即時動態強化"
+          }
+        }
+      }
+    },
     "5432": {
       "localizations": {
         "en": {
@@ -3395,6 +3429,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "檢查期間新增了相符的伺服器。請重新檢查匯入內容。"
+          }
+        }
+      }
+    },
+    "A native welcome sheet highlights what changed after each update and on first setup, and can be reopened anytime from About or the app menu.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A native welcome sheet highlights what changed after each update and on first setup, and can be reopened anytime from About or the app menu."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生风格欢迎页会在首次设置和每次版本更新后自动展示变化，也可随时在“关于”或应用菜单中重新查看。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生風格歡迎頁會在首次設定和每次版本更新後自動展示變更，也可隨時在「關於」或 App 選單中重新檢視。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初回セットアップ後やアップデートごとに変更点をネイティブ画面でご案内します。「Tamio について」やアプリメニューからいつでも再表示できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "초기 설정 후와 업데이트마다 변경 사항을 네이티브 안내 화면으로 보여주며, 정보 화면이나 앱 메뉴에서 언제든 다시 열 수 있습니다."
           }
         }
       }
@@ -6748,6 +6816,74 @@
         }
       }
     },
+    "Atomic writes with edit conflict detection, on-demand sudo SFTP, open remote folders in VS Code/Cursor/Zed, plus PuTTY .ppk and multi-client host import.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atomic writes with edit conflict detection, on-demand sudo SFTP, open remote folders in VS Code/Cursor/Zed, plus PuTTY .ppk and multi-client host import."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集競合検出付きのアトミック書き込み、オンデマンド sudo SFTP、VS Code / Cursor / Zed でのリモートフォルダ表示、PuTTY .ppk・各種クライアントからのインポートに対応。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집 충돌 감지를 포함한 원자적 쓰기, 요청 시 세션 sudo SFTP, VS Code/Cursor/Zed에서 원격 폴더 열기 및 PuTTY .ppk·다중 클라이언트 가져오기를 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持原子写入与编辑冲突检测、按需启用会话级 sudo SFTP、在 VS Code / Cursor / Zed 中打开远程目录，以及 PuTTY .ppk 与多客户端配置导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援原子寫入與編輯衝突偵測、依需求啟用工作階段 sudo SFTP、於 VS Code / Cursor / Zed 開啟遠端資料夾，以及 PuTTY .ppk 與多用戶端匯入。"
+          }
+        }
+      }
+    },
+    "Atomic writes with edit conflict detection, session-only sudo for remote files, automatic PuTTY .ppk key conversion, and terminal folder sync.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atomic writes with edit conflict detection, session-only sudo for remote files, automatic PuTTY .ppk key conversion, and terminal folder sync."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集競合検出付きのアトミック書き込み、リモートファイル用セッション sudo、PuTTY .ppk 鍵の自動変換、ターミナルのフォルダ連動に対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "편집 충돌 감지를 포함한 원자적 쓰기, 원격 파일용 세션 sudo, PuTTY .ppk 키 자동 변환 및 터미널 폴더 동기화를 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持原子写入与编辑冲突检测、远程文件会话级 sudo 提权、PuTTY .ppk 密钥自动转换以及终端与文件目录联动。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援原子寫入與編輯衝突偵測、遠端檔案工作階段 sudo 提權、PuTTY .ppk 金鑰自動轉換及終端機目錄同步。"
+          }
+        }
+      }
+    },
     "Attach File": {
       "localizations": {
         "en": {
@@ -7152,6 +7288,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "自動加上 /v1 後綴"
+          }
+        }
+      }
+    },
+    "Automatically scrubs private keys and tokens before AI calls, grades shell command risk locally, and supports Ask/Agent modes and per-host access rules.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatically scrubs private keys and tokens before AI calls, grades shell command risk locally, and supports Ask/Agent modes and per-host access rules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 呼び出し前に秘密鍵やトークンを自動で除去し、ローカルでコマンドの危険度を判定。Ask / Agent モードやホストごとのアクセス制御にも対応しています。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "AI 호출 전 개인 키와 토큰을 자동으로 제거하고 로컬에서 명령 위험도를 평가하며, Ask/Agent 모드 및 호스트별 접근 규칙을 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在发送给 AI 前自动擦除私钥与 Token，本地评估命令风险等级，并支持 Ask / Agent 模式切换与按主机精细权限控制。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "傳送給 AI 前自動清除私鑰與權杖，本機評估指令風險等級，並支援 Ask / Agent 模式切換與依主機設定存取權限。"
           }
         }
       }
@@ -8360,6 +8530,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "類別"
+          }
+        }
+      }
+    },
+    "Chain connections through multi-hop Jump Hosts with per-hop host-key checks, and launch local SOCKS5 (-D) dynamic port forwards.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chain connections through multi-hop Jump Hosts with per-hop host-key checks, and launch local SOCKS5 (-D) dynamic port forwards."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホップごとのホスト鍵検証を備えたマルチホップ踏み台接続と、ローカル SOCKS5 (-D) 動的ポートフォワードに対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "홉별 호스트 키 검증을 포함한 다중 홉 점프 호스트 연결과 로컬 SOCKS5 (-D) 동적 포트 포워딩을 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支持跨平台原生多跳跳板机连接与逐跳主机密钥校验，并可启动本机 SOCKS5 (-D) 动态端口转发。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支援跨平台原生多跳跳板主機連線與逐跳主機金鑰驗證，並可啟動本機 SOCKS5 (-D) 動態連接埠轉發。"
           }
         }
       }
@@ -10506,6 +10710,40 @@
         }
       }
     },
+    "Complete 5-Language Localization": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete 5-Language Localization"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 言語への完全ローカライズ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5개 언어 완벽 현지화"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全应用五语完整本地化"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全應用程式五語完整在地化"
+          }
+        }
+      }
+    },
     "Completed multiple tool rounds. Send a follow-up to continue.": {
       "localizations": {
         "en": {
@@ -11469,7 +11707,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "続行"
+            "value": "続ける"
           }
         },
         "ko": {
@@ -11481,13 +11719,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "继续执行"
+            "value": "继续"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "繼續執行"
+            "value": "繼續"
           }
         }
       }
@@ -15674,6 +15912,40 @@
         }
       }
     },
+    "Dynamic Island, Lock Screen & StandBy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island, Lock Screen & StandBy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "灵动岛、锁屏与待机显示"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動態島、鎖定畫面與待機模式"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island・ロック画面・スタンバイ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dynamic Island, 잠금 화면 및 스탠바이"
+          }
+        }
+      }
+    },
     "E000": {
       "extractionState": "stale",
       "localizations": {
@@ -18193,6 +18465,40 @@
         }
       }
     },
+    "Find in SSH terminals now toggles cleanly and includes a dedicated glass close button that dismisses search and the keyboard immediately.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find in SSH terminals now toggles cleanly and includes a dedicated glass close button that dismisses search and the keyboard immediately."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 终端查找现可顺畅切换开关，并配备独立的毛玻璃关闭按钮，点击即可立即退出查找并收起键盘。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 終端機尋找現可順暢切換開關，並配備獨立的玻璃質感關閉按鈕，點一下即可立即結束尋找並收起鍵盤。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH ターミナルの検索バーがスムーズに開閉できるようになり、検索とキーボードを即座に閉じる専用ボタンを追加しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 터미널 찾기 막대가 깔끔하게 전환되며, 검색과 키보드를 즉시 닫는 전용 글래스 닫기 버튼이 추가되었습니다."
+          }
+        }
+      }
+    },
     "Find in terminal": {
       "localizations": {
         "en": {
@@ -18427,6 +18733,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "叢集管理"
+          }
+        }
+      }
+    },
+    "FlowDown-style streaming Markdown, folded Activity Summary with live Trace inspection, inline tool approvals, and quick command injection.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown-style streaming Markdown, folded Activity Summary with live Trace inspection, inline tool approvals, and quick command injection."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown スタイルのストリーミング Markdown、リアルタイム Trace を確認できる折りたたみアクティビティ概要、インラインツール承認、ワンタップコマンド挿入に対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown 스타일 스트리밍 Markdown, 실시간 Trace 검사가 가능한 접이식 활동 요약, 인라인 도구 승인 및 빠른 명령 삽입을 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown 风格流式 Markdown 渲染、可展开实时 Trace 的折叠活动摘要、内联工具审批卡片以及一键命令注入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FlowDown 風格串流 Markdown 算繪、可檢視即時 Trace 的摺疊活動摘要、內嵌工具核准卡片與一鍵指令注入。"
           }
         }
       }
@@ -19277,6 +19617,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "完整存取"
+          }
+        }
+      }
+    },
+    "Full English, Simplified Chinese, Traditional Chinese, Japanese, and Korean support across the app, terminal configuration, and shared modules.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full English, Simplified Chinese, Traditional Chinese, Japanese, and Korean support across the app, terminal configuration, and shared modules."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリ全体、ターミナル設定パネル、共有モジュールにわたり、日本語・英語・簡体字中国語・繁体字中国語・韓国語に完全対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "앱 전체, 터미널 설정 패널 및 공유 모듈 전반에 걸쳐 한국어, 영어, 중국어 간체/번체 및 일본어를 완벽히 지원합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整覆盖 macOS 主界面、终端配置面板与全部共享模块的简体中文、繁体中文、英语、日语与韩语支持。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整涵蓋 macOS 主介面、終端機設定面板與所有共用模組的繁體中文、簡體中文、英語、日語與韓語支援。"
+          }
+        }
+      }
+    },
+    "Full English, Simplified/Traditional Chinese, Japanese, and Korean localization, plus Dynamic Island, Lock Screen, and StandBy session status.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Full English, Simplified/Traditional Chinese, Japanese, and Korean localization, plus Dynamic Island, Lock Screen, and StandBy session status."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日本語・英語・簡体字中国語・繁体字中国語・韓国語に完全対応し、Dynamic Island・ロック画面・スタンバイでセッション状態を表示できます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "한국어, 영어, 중국어 간체/번체, 일본어를 완벽 지원하며 Dynamic Island, 잠금 화면 및 스탠바이에서 세션 상태를 표시합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整支持简体中文、繁体中文、英语、日语与韩语界面，并在灵动岛、锁屏与待机显示中呈现会话状态。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完整支援繁體中文、簡體中文、英語、日語與韓語介面，並在動態島、鎖定畫面與待機顯示呈現工作階段狀態。"
           }
         }
       }
@@ -24058,6 +24466,40 @@
         }
       }
     },
+    "Live Activities now stay in sync across Dynamic Island, Lock Screen, and StandBy with live CPU and memory updates and dimmed night-mode contrast.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Activities now stay in sync across Dynamic Island, Lock Screen, and StandBy with live CPU and memory updates and dimmed night-mode contrast."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实时活动现已支持在灵动岛、锁屏与待机显示中保持同步，实时更新 CPU 与内存用量，并适配夜间低亮度显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "即時動態現已支援在動態島、鎖定畫面與待機模式中保持同步，即時更新 CPU 與記憶體用量，並支援夜間低亮度顯示。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブアクティビティが Dynamic Island・ロック画面・スタンバイで常に同期され、CPU とメモリ使用量をリアルタイム表示し、常時表示の減光にも対応しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "실시간 현황이 Dynamic Island, 잠금 화면 및 스탠바이에서 항상 동기화되며 실시간 CPU·메모리 업데이트와 야간 저휘도 대비를 지원합니다."
+          }
+        }
+      }
+    },
     "Live Metrics": {
       "localizations": {
         "en": {
@@ -26043,6 +26485,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "名稱與位址已隱藏"
+          }
+        }
+      }
+    },
+    "Native Jump Hosts & SOCKS5 Proxies": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Native Jump Hosts & SOCKS5 Proxies"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネイティブ踏み台ホストと SOCKS5 プロキシ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "네이티브 점프 호스트 및 SOCKS5 프록시"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生多跳跳板机与 SOCKS5 代理"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生多跳跳板主機與 SOCKS5 代理"
           }
         }
       }
@@ -33527,6 +34003,40 @@
         }
       }
     },
+    "Redesigned AI Assistant & Copilot": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redesigned AI Assistant & Copilot"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新された AI アシスタントと Copilot"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로워진 AI 어시스턴트 및 Copilot"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全新设计的 AI 助手与终端 Copilot"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全新設計的 AI 助理與終端機 Copilot"
+          }
+        }
+      }
+    },
     "Redo (Edit)": {
       "localizations": {
         "en": {
@@ -33727,6 +34237,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "版本資訊"
+          }
+        }
+      }
+    },
+    "Reliable Terminal Find Bar": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reliable Terminal Find Bar"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更可靠的终端查找栏"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更可靠的終端機尋找列"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安定したターミナル検索バー"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 안정적인 터미널 찾기 막대"
           }
         }
       }
@@ -37182,6 +37726,74 @@
         }
       }
     },
+    "Safer SFTP, Session sudo & .ppk Import": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safer SFTP, Session sudo & .ppk Import"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全な SFTP、セッション sudo、.ppk インポート"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 안전한 SFTP, 세션 sudo 및 .ppk 가져오기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、会话级 sudo 与 .ppk 导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、工作階段 sudo 與 .ppk 匯入"
+          }
+        }
+      }
+    },
+    "Safer SFTP, Session sudo & External Editors": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Safer SFTP, Session sudo & External Editors"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全な SFTP、セッション sudo、外部エディタ連携"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 안전한 SFTP, 세션 sudo 및 외부 편집기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、会话级 sudo 与外部编辑器"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更安全的 SFTP、工作階段 sudo 與外部編輯器"
+          }
+        }
+      }
+    },
     "Sampling sockets…": {
       "localizations": {
         "en": {
@@ -38164,6 +38776,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "搜尋程式碼片段"
+          }
+        }
+      }
+    },
+    "Secret Redaction & Command Risk Grading": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Secret Redaction & Command Risk Grading"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機密情報の自動マスキングとコマンド危険度判定"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "민감 정보 자동 마스킹 및 명령 위험도 등급"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感信息脱敏与命令风险分级"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "機敏資訊去識別化與指令風險分級"
           }
         }
       }
@@ -49491,6 +50137,40 @@
         }
       }
     },
+    "Version %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン %@"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "버전 %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本 %@"
+          }
+        }
+      }
+    },
     "View": {
       "extractionState": "stale",
       "localizations": {
@@ -49504,6 +50184,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "视图"
+          }
+        }
+      }
+    },
+    "View Full Release Notes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View Full Release Notes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リリースノートの全文を見る"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전체 릴리스 노트 보기"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看完整更新日志"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢視完整更新日誌"
           }
         }
       }
@@ -49929,6 +50643,142 @@
           "stringUnit": {
             "state": "translated",
             "value": "新增功能"
+          }
+        }
+      }
+    },
+    "What’s New": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新機能"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로운 기능"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能"
+          }
+        }
+      }
+    },
+    "What’s New in Tamio": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New in Tamio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio の新機能"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio의 새로운 기능"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio 新功能"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamio 新功能"
+          }
+        }
+      }
+    },
+    "What’s New on Every Update": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New on Every Update"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次更新的新功能亮点"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次更新的新功能亮點"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップデートごとの新機能案内"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "업데이트마다 확인하는 새로운 기능"
+          }
+        }
+      }
+    },
+    "What’s New…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What’s New…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新機能…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새로운 기능…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能…"
           }
         }
       }

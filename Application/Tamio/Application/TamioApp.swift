@@ -75,6 +75,10 @@ struct TamioCommands: Commands {
             Button("About Tamio") { Mac.showAbout() }
         }
         CommandGroup(after: .appInfo) {
+            Button("What’s New…") {
+                MainWindow.show()
+                AppRouter.shared.presentWhatsNew = true
+            }
             if UpdateCenter.shared.isSupported {
                 Button("Check for Updates…") { UpdateCenter.shared.checkNow() }
             }

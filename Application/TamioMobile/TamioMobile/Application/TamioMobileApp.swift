@@ -10,6 +10,7 @@ import MachineStatusView
 import SPIndicator
 import SwiftUI
 import TamioAssistant
+import TamioDesign
 import TamioModule
 import TamioTerminal
 
@@ -20,6 +21,7 @@ struct TamioMobileApp: App {
     private let store = TamioStore.shared
     @Environment(\.scenePhase) private var scenePhase
     @State private var showingAgreement = false
+    @State private var showingWhatsNew = false
     @State private var incomingBackup: PendingBackupImport?
 
     init() {
@@ -124,14 +126,30 @@ struct TamioMobileApp: App {
             .onAppear {
                 AppearancePreference.applyStored()
                 showingAgreement = !store.licenseAgreed
+                SessionActivityController.shared.sync()
+                presentWhatsNewIfNeeded()
             }
             .onReceive(store.$licenseAgreed.removeDuplicates()) { agreed in
                 showingAgreement = !agreed
+            }
+            .onChange(of: showingAgreement) { _, isShowing in
+                guard !isShowing, store.licenseAgreed else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    presentWhatsNewIfNeeded()
+                }
             }
             .sheet(isPresented: $showingAgreement) {
                 AgreementView()
                     .interactiveDismissDisabled(true)
             }
+            .background(
+                Color.clear
+                    .sheet(isPresented: $showingWhatsNew, onDismiss: {
+                        WhatsNewStore.markSeen()
+                    }) {
+                        MobileWhatsNewSheet(showsCloseButton: false)
+                    }
+            )
             .background(
                 Color.clear
                     .sheet(item: $incomingBackup) { item in
@@ -148,8 +166,18 @@ struct TamioMobileApp: App {
                 if phase == .active, MobileTerminalPreferences.autoReconnect {
                     TerminalManager.shared.reconnectDroppedSessions()
                 }
+                SessionActivityController.shared.sync()
             }
         }
+    }
+
+    private func presentWhatsNewIfNeeded() {
+        guard store.licenseAgreed, !showingAgreement, incomingBackup == nil else { return }
+        #if DEBUG
+            guard ProcessInfo.processInfo.environment["TAMIO_PREVIEW_EDITOR"] == nil else { return }
+        #endif
+        guard WhatsNewStore.shouldPresent() else { return }
+        showingWhatsNew = true
     }
 
     private func handleIncomingURL(_ url: URL) {

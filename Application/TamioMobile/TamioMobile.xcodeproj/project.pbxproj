@@ -43,6 +43,7 @@
 		6F7125F21381B0EDE216BF28 /* AIProviderSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41BA6368FDE84EDA3C212815 /* AIProviderSettingsView.swift */; };
 		6FC5E8A328C093CE3A767F49 /* SessionActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2520C07CB5D78A5BDEB9373C /* SessionActivityController.swift */; };
 		708ADFDE878FF809811ED19F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0AB61E60BFB0A594CA2A312 /* ContentView.swift */; };
+		717F4EC66929C82A190EA15A /* MobileWhatsNewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55250178314D28BA44B2C7D7 /* MobileWhatsNewSheet.swift */; };
 		7389E46B31EA042FB01EAB58 /* GlassStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42119825202958FD07542C3A /* GlassStyle.swift */; };
 		768BFE4157ED6BECBF0A80D3 /* Tamio.icon in Resources */ = {isa = PBXBuildFile; fileRef = DFB9091DE12F1E34169C64BA /* Tamio.icon */; };
 		7846B52A805FF7AF463609F7 /* SymbolPicker in Frameworks */ = {isa = PBXBuildFile; productRef = 49626C328E61CE9EBF9A0B29 /* SymbolPicker */; };
@@ -145,6 +146,7 @@
 		4AE9E9BD07E130BBBA5E95BB /* StripedTextTable */ = {isa = PBXFileReference; lastKnownFileType = folder; name = StripedTextTable; path = ../../Foundation/StripedTextTable; sourceTree = SOURCE_ROOT; };
 		4D14EAFB815940E54499D0A1 /* TamioMobileWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TamioMobileWidgets.swift; sourceTree = "<group>"; };
 		4DE6806A829E6F28EF6C393D /* View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View.swift; sourceTree = "<group>"; };
+		55250178314D28BA44B2C7D7 /* MobileWhatsNewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileWhatsNewSheet.swift; sourceTree = "<group>"; };
 		5730A2E7A605BD59C14B9BCA /* LogRedirect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogRedirect.swift; sourceTree = "<group>"; };
 		6094102DDA369188B7AB4E64 /* TerminalSnippetSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminalSnippetSheet.swift; sourceTree = "<group>"; };
 		65075A1779401EEEF376382D /* PickMachineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickMachineView.swift; sourceTree = "<group>"; };
@@ -325,6 +327,7 @@
 				00376C3726FC4B078A5AE552 /* AgreementView.swift */,
 				EA04D6102BBF2D1161E9A113 /* AppleChrome.swift */,
 				D62132759EDA9D53C8FD2D8A /* LicenseView.swift */,
+				55250178314D28BA44B2C7D7 /* MobileWhatsNewSheet.swift */,
 			);
 			path = Generic;
 			sourceTree = "<group>";
@@ -691,6 +694,7 @@
 				A685A139E69615E15B5C3FEE /* LogRedirect.swift in Sources */,
 				3CDC5599B14331975E4092C5 /* LogView.swift in Sources */,
 				1EB33FAF0DDFDD7297F5F5B6 /* MobileTerminalLifecycle.swift in Sources */,
+				717F4EC66929C82A190EA15A /* MobileWhatsNewSheet.swift in Sources */,
 				08BB76C8D795EBF5D6F339C9 /* MonitorView.swift in Sources */,
 				B7ED363D470AA0C5022B133A /* PickIdentityView.swift in Sources */,
 				F2DC9ADD464C60FC448CD314 /* PickMachineView.swift in Sources */,

@@ -91,11 +91,46 @@ struct MainView: View {
         .sheet(isPresented: $openLicenseAgreement) {
             AgreementSheet()
         }
-        .onAppear {
-            onMainThread(delay: 0.5) {
-                if !store.licenseAgreed { openLicenseAgreement = true }
+        .background(
+            Color.clear
+                .sheet(isPresented: $router.presentWhatsNew, onDismiss: {
+                    WhatsNewStore.markSeen()
+                }) {
+                    MacWhatsNewSheet(showsCloseButton: false)
+                }
+        )
+        .onChange(of: openLicenseAgreement) { isShowing in
+            guard !isShowing, store.licenseAgreed else { return }
+            onMainThread(delay: 0.35) {
+                presentWhatsNewIfNeeded()
             }
         }
+        .onAppear {
+            onMainThread(delay: 0.5) {
+                if !store.licenseAgreed {
+                    openLicenseAgreement = true
+                } else {
+                    presentWhatsNewIfNeeded()
+                }
+            }
+        }
+    }
+
+    private func presentWhatsNewIfNeeded() {
+        guard store.licenseAgreed, !openLicenseAgreement else { return }
+        #if DEBUG
+            let env = ProcessInfo.processInfo.environment
+            if env["TAMIO_PREVIEW_WHATS_NEW"] == nil,
+               env["TAMIO_PREVIEW_TERMINAL"] != nil
+               || env["TAMIO_PREVIEW_SETTINGS"] != nil
+               || env["TAMIO_PREVIEW_MENUBAR"] != nil
+               || env["TAMIO_BENCH"] != nil
+            {
+                return
+            }
+        #endif
+        guard WhatsNewStore.shouldPresent() else { return }
+        router.presentWhatsNew = true
     }
 
     /// The pages, on a backdrop of their own that covers the sidebar as the
