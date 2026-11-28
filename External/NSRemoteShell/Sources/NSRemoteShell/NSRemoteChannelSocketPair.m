@@ -7,6 +7,10 @@
 
 #import "NSRemoteChannelSocketPair.h"
 
+@interface NSRemoteChannelSocketPair ()
+@property (nonatomic, nullable, strong) dispatch_source_t socketReadSource;
+@end
+
 @implementation NSRemoteChannelSocketPair
 
 - (instancetype)initWithSocket:(int)socket
@@ -20,6 +24,25 @@
         setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &(int){1}, sizeof(int));
     }
     return self;
+}
+
+- (void)setOnSocketReadable:(nullable dispatch_block_t)handler {
+    if (self.socketReadSource) {
+        dispatch_source_cancel(self.socketReadSource);
+        self.socketReadSource = nil;
+    }
+    if (!handler || self.socket <= 0) { return; }
+    dispatch_source_t source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ,
+                                                      (uintptr_t)self.socket,
+                                                      0,
+                                                      dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0));
+    if (!source) { return; }
+    dispatch_block_t copied = [handler copy];
+    dispatch_source_set_event_handler(source, ^{
+        copied();
+    });
+    dispatch_resume(source);
+    self.socketReadSource = source;
 }
 
 - (void)unsafeCallNonblockingOperations {
@@ -50,6 +73,9 @@
                 }
                 wr += i;
             }
+        } else if (len == 0 || (len < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR)) {
+            self.completed = YES;
+            return;
         }
     } while (0);
     do {
@@ -98,6 +124,10 @@
 
 - (void)unsafeDisconnectAndPrepareForRelease {
     if (!self.completed) { self.completed = YES; }
+    if (self.socketReadSource) {
+        dispatch_source_cancel(self.socketReadSource);
+        self.socketReadSource = nil;
+    }
     if (!self.channel) { return; }
     if (!self.socket) { return; }
     LIBSSH2_CHANNEL *channel = self.channel;

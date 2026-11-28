@@ -11,10 +11,13 @@
 
 #import "NSRemoteChannel.h"
 #import "NSLocalForward.h"
+#import "NSDynamicForward.h"
 #import "NSRemoteForward.h"
+#import "NSRemoteChannelSocketPair.h"
 
 #import "GenericHeaders.h"
 #import "GenericNetworking.h"
+#import <fcntl.h>
 
 #import "Constructor.h"
 
@@ -28,6 +31,8 @@
 @property (nonatomic, readwrite, nonnull, strong) NSNumber *remotePort;
 @property (nonatomic, readwrite, nonnull, strong) NSNumber *operationTimeout;
 @property (nonatomic, readwrite, nullable, copy) NSString *proxyCommand;
+@property (nonatomic, readwrite, assign) int preconnectedTunnelSocket;
+@property (nonatomic, readwrite, nullable, strong) NSRemoteShell *ownedParentShell;
 
 @property (nonatomic, readwrite, nullable, strong) NSString *resolvedRemoteIpAddress;
 @property (nonatomic, readwrite, nullable, strong) NSString *remoteBanner;
@@ -38,6 +43,7 @@
 @property (nonatomic, readwrite, getter=isConnected) BOOL connected;
 @property (nonatomic, readwrite, getter=isConnectedFileTransfer) BOOL connectedFileTransfer;
 @property (nonatomic, readwrite, getter=isAuthenticated) BOOL authenticated;
+@property (nonatomic, readwrite, getter=isPrivilegedFileTransfer) BOOL privilegedFileTransfer;
 
 @property (nonatomic, readwrite, assign) int associatedSocket;
 @property (nonatomic, readwrite, nullable, assign) LIBSSH2_SESSION *associatedSession;
@@ -109,6 +115,8 @@ static NSString *NSRemoteShellHostKeyTypeName(int type) {
         _operationTimeout = @(8);
         _proxyCommand = NULL;
         _connected = NO;
+        _connectedFileTransfer = NO;
+        _privilegedFileTransfer = NO;
         _authenticated = NO;
         _resolvedRemoteIpAddress = NULL;
         _lastError = NULL;
@@ -182,6 +190,44 @@ static NSString *NSRemoteShellHostKeyTypeName(int type) {
         self.proxyCommand = trimmed.length > 0 ? trimmed : NULL;
     }
     return self;
+}
+
+- (instancetype)setupTunnelSocket:(int)socketDescriptor
+                 ownedParentShell:(nullable NSRemoteShell *)parentShell
+{
+    @synchronized(self) {
+        if (self.preconnectedTunnelSocket > 0 && self.preconnectedTunnelSocket != socketDescriptor) {
+            close(self.preconnectedTunnelSocket);
+        }
+        self.preconnectedTunnelSocket = socketDescriptor;
+        if (self.ownedParentShell && self.ownedParentShell != parentShell) {
+            NSRemoteShell *oldParent = self.ownedParentShell;
+            dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                [oldParent requestDisconnectAndWait];
+                [oldParent destroyPermanently];
+            });
+        }
+        self.ownedParentShell = parentShell;
+    }
+    return self;
+}
+
+- (int)requestOpenDirectTunnelSocketToHost:(NSString *)targetHost
+                                      port:(NSNumber *)targetPort
+{
+    if (self.destroyed) return -1;
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    __block int resultFD = -1;
+    @synchronized (self.requestInvokations) {
+        id block = [^{
+            resultFD = [self unsafeOpenDirectTunnelSocketToHost:targetHost port:targetPort];
+            DISPATCH_SEMAPHORE_CHECK_SIGNLE(sem);
+        } copy];
+        [self.requestInvokations addObject:block];
+    }
+    [self.associatedLoop explicitRequestHandle];
+    MakeDispatchSemaphoreWaitWithTimeout(sem);
+    return resultFD;
 }
 
 - (instancetype)setupConnectionTimeout:(NSNumber*)timeout {
@@ -444,6 +490,25 @@ continue; \
     dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
 }
 
+- (void)createDynamicPortForwardWithLocalPort:(NSNumber *)localPort
+                                 withOnCreate:(dispatch_block_t)withOnCreate
+                      withContinuationHandler:(BOOL (^)(void))continuationBlock
+{
+    if (self.destroyed) return;
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    @synchronized (self.requestInvokations) {
+        id block = [^{
+            [self unsafeCreateDynamicPortForwardWithLocalPort:localPort
+                                                 withOnCreate:withOnCreate
+                                      withContinuationHandler:continuationBlock
+                                      withCompletionSemaphore:sem];
+        } copy];
+        [self.requestInvokations addObject:block];
+    }
+    [self.associatedLoop explicitRequestHandle];
+    dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
+}
+
 #pragma sftp
 
 - (void)requestConnectFileTransferAndWait {
@@ -460,6 +525,22 @@ continue; \
     [self.associatedLoop explicitRequestHandle];
     MakeDispatchSemaphoreWaitWithTimeout(sem);
 }
+- (BOOL)requestConnectPrivilegedFileTransferWithSudoPassword:(nullable NSString *)password {
+    if (self.destroyed) return NO;
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    __block BOOL success = NO;
+    @synchronized (self.requestInvokations) {
+        id block = [^{
+            success = [self unsafeConnectPrivilegedFileTransferWithSudoPassword:password];
+            DISPATCH_SEMAPHORE_CHECK_SIGNLE(sem);
+        } copy];
+        [self.requestInvokations addObject:block];
+    }
+    [self.associatedLoop explicitRequestHandle];
+    MakeDispatchSemaphoreWaitWithTimeout(sem);
+    return success;
+}
+
 - (void)requestDisconnectFileTransferAndWait {
     if (self.destroyed) return;
     dispatch_semaphore_t sem = dispatch_semaphore_create(0);
@@ -468,6 +549,7 @@ continue; \
             [self unsafeFileTransferCloseFor:self.associatedFileTransfer];
             self.associatedFileTransfer = NULL;
             self.connectedFileTransfer = NO;
+            self.privilegedFileTransfer = NO;
             DISPATCH_SEMAPHORE_CHECK_SIGNLE(sem);
         } copy];
         [self.requestInvokations addObject:block];
@@ -505,6 +587,22 @@ continue; \
     [self.associatedLoop explicitRequestHandle];
     MakeDispatchSemaphoreWaitWithTimeout(sem);
     return result;
+}
+
+- (BOOL)requestSetPermissionsAndWait:(unsigned long)mode atPath:(NSString *)atPath {
+    if (self.destroyed) return NO;
+    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+    __block BOOL success = NO;
+    @synchronized (self.requestInvokations) {
+        id block = [^{
+            success = [self unsafeSetPermissions:mode atPath:atPath];
+            DISPATCH_SEMAPHORE_CHECK_SIGNLE(sem);
+        } copy];
+        [self.requestInvokations addObject:block];
+    }
+    [self.associatedLoop explicitRequestHandle];
+    MakeDispatchSemaphoreWaitWithTimeout(sem);
+    return success;
 }
 
 - (BOOL) requestRenameFileAndWait:(NSString *)atPath
@@ -707,7 +805,14 @@ continue; \
     }
 
     int sock = 0;
-    if (self.proxyCommand.length > 0) {
+    int tunnelSock = 0;
+    @synchronized (self) {
+        tunnelSock = self.preconnectedTunnelSocket;
+        self.preconnectedTunnelSocket = 0;
+    }
+    if (tunnelSock > 0) {
+        sock = tunnelSock;
+    } else if (self.proxyCommand.length > 0) {
         NSString *failure = nil;
         sock = [GenericNetworking createSocketWithProxyCommand:self.proxyCommand
                                                      targetHost:self.remoteHost
@@ -846,6 +951,22 @@ continue; \
         [GenericNetworking destroyNativeSocket:self.associatedSocket];
     }
     self.associatedSocket = 0;
+
+    NSRemoteShell *parentToClose = nil;
+    @synchronized (self) {
+        if (self.preconnectedTunnelSocket > 0) {
+            close(self.preconnectedTunnelSocket);
+            self.preconnectedTunnelSocket = 0;
+        }
+        parentToClose = self.ownedParentShell;
+        self.ownedParentShell = nil;
+    }
+    if (parentToClose) {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            [parentToClose requestDisconnectAndWait];
+            [parentToClose destroyPermanently];
+        });
+    }
     
     self.resolvedRemoteIpAddress = NULL;
     self.remoteBanner = NULL;
@@ -1562,6 +1683,114 @@ static NSData *NSRAgentKeyBlob(NSString *publicKey) {
     if (withOnCreate) { withOnCreate(); }
 }
 
+- (void)unsafeCreateDynamicPortForwardWithLocalPort:(NSNumber *)localPort
+                                       withOnCreate:(dispatch_block_t)withOnCreate
+                            withContinuationHandler:(BOOL (^)(void))continuationBlock
+                            withCompletionSemaphore:(dispatch_semaphore_t)completionSemaphore
+{
+    NSRLog(@"requested dynamic SOCKS5 port forward on localhost:%@", [localPort stringValue]);
+    if (![GenericNetworking isValidateWithPort:localPort]) {
+        DISPATCH_SEMAPHORE_CHECK_SIGNLE(completionSemaphore);
+        return;
+    }
+    if (![self unsafeValidateSession]) {
+        [self unsafeDisconnect];
+        DISPATCH_SEMAPHORE_CHECK_SIGNLE(completionSemaphore);
+        return;
+    }
+    if (!self.authenticated) {
+        DISPATCH_SEMAPHORE_CHECK_SIGNLE(completionSemaphore);
+        return;
+    }
+    int sock4 = [GenericNetworking createSocketNonblockingListenerWithLocalPort:localPort];
+    if (sock4 <= 0) {
+        DISPATCH_SEMAPHORE_CHECK_SIGNLE(completionSemaphore);
+        return;
+    }
+
+    LIBSSH2_SESSION *session = self.associatedSession;
+    NSDynamicForward *operator = [[NSDynamicForward alloc] initWithRepresentedSession:session
+                                                                withRepresentedSocket:sock4
+                                                                        withLocalPort:localPort
+                                                                          withTimeout:self.operationTimeout];
+    [operator setContinuationChain:continuationBlock];
+    __weak typeof(self) weakSelf = self;
+    [operator setWakeHandler:^{
+        [weakSelf.associatedLoop explicitRequestHandle];
+    }];
+    if (completionSemaphore) {
+        [operator onTermination:^{
+            DISPATCH_SEMAPHORE_CHECK_SIGNLE(completionSemaphore);
+        }];
+    }
+    [self.operableObjects addObject:operator];
+    if (withOnCreate) { withOnCreate(); }
+}
+
+- (int)unsafeOpenDirectTunnelSocketToHost:(NSString *)targetHost port:(NSNumber *)targetPort {
+    if (![self unsafeValidateSession] || !self.authenticated || targetHost.length == 0 || ![GenericNetworking isValidateWithPort:targetPort]) {
+        @synchronized (self) {
+            self.lastError = @"Jump host session is not authenticated.";
+        }
+        return -1;
+    }
+
+    LIBSSH2_SESSION *session = self.associatedSession;
+    NSDate *deadline = [[NSDate alloc] initWithTimeIntervalSinceNow:MAX([self.operationTimeout doubleValue], 8.0)];
+    LIBSSH2_CHANNEL *channel = NULL;
+    while (true) {
+        if ([deadline timeIntervalSinceNow] < 0) {
+            libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
+            break;
+        }
+        LIBSSH2_CHANNEL *opened = libssh2_channel_direct_tcpip_ex(session,
+                                                                  [targetHost UTF8String],
+                                                                  [targetPort intValue],
+                                                                  "127.0.0.1",
+                                                                  0);
+        if (opened) {
+            channel = opened;
+            break;
+        }
+        long rc = libssh2_session_last_errno(session);
+        if (rc == LIBSSH2_ERROR_EAGAIN) {
+            usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+            continue;
+        }
+        break;
+    }
+    [self unsafeReadLastError];
+    if (!channel) {
+        @synchronized (self) {
+            if (self.lastError.length == 0) {
+                self.lastError = [NSString stringWithFormat:@"Jump host could not open tunnel to %@:%@.", targetHost, targetPort];
+            }
+        }
+        return -1;
+    }
+
+    int fds[2] = { -1, -1 };
+    if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds) != 0) {
+        LIBSSH2_CHANNEL_SHUTDOWN(channel);
+        return -1;
+    }
+    setsockopt(fds[0], SOL_SOCKET, SO_NOSIGPIPE, &(int){1}, sizeof(int));
+    setsockopt(fds[1], SOL_SOCKET, SO_NOSIGPIPE, &(int){1}, sizeof(int));
+    int flags = fcntl(fds[1], F_GETFL, 0);
+    if (flags >= 0) {
+        fcntl(fds[1], F_SETFL, flags | O_NONBLOCK);
+    }
+
+    NSRemoteChannelSocketPair *pair = [[NSRemoteChannelSocketPair alloc] initWithSocket:fds[1] withChannel:channel];
+    __weak typeof(self) weakSelf = self;
+    [pair setOnSocketReadable:^{
+        [weakSelf.associatedLoop explicitRequestHandle];
+    }];
+    [self.operableObjects addObject:pair];
+    [self unsafeDispatchSourceMakeDecision];
+    return fds[0];
+}
+
 #pragma sftp
 
 - (void)unsafeConnectFileTransferWithCompleteBlock:(dispatch_block_t)withComplete {
@@ -1605,8 +1834,163 @@ static NSData *NSRAgentKeyBlob(NSString *publicKey) {
     
     self.associatedFileTransfer = sftp;
     self.connectedFileTransfer = YES;
+    self.privilegedFileTransfer = NO;
     NSRLog(@"libssh2_sftp_init success");
     if (withComplete) withComplete();
+}
+
+- (BOOL)unsafeConnectPrivilegedFileTransferWithSudoPassword:(nullable NSString *)password {
+    if (![self unsafeValidateSession] || !self.authenticated) {
+        [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:@"SSH session is not authenticated"];
+        return NO;
+    }
+    if (self.associatedFileTransfer) {
+        [self unsafeFileTransferCloseFor:self.associatedFileTransfer];
+        self.associatedFileTransfer = NULL;
+        self.connectedFileTransfer = NO;
+        self.privilegedFileTransfer = NO;
+    }
+
+    LIBSSH2_SESSION *session = self.associatedSession;
+    NSDate *deadline = [[NSDate alloc] initWithTimeIntervalSinceNow:MAX([self.operationTimeout doubleValue], 10.0)];
+
+    LIBSSH2_CHANNEL *channel = NULL;
+    while (true) {
+        if ([deadline timeIntervalSinceNow] < 0) {
+            libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
+            break;
+        }
+        channel = libssh2_channel_open_session(session);
+        if (channel) { break; }
+        if (libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN) {
+            usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+            continue;
+        }
+        break;
+    }
+    if (!channel) {
+        [self unsafeReadLastError];
+        [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:@"Failed to open SSH channel for privileged SFTP"];
+        return NO;
+    }
+
+    BOOL hasPassword = password.length > 0;
+    const char *promptMarker = "__TAMIO_SUDO_PROMPT__";
+    NSString *sudoCmd = hasPassword
+        ? @"sh -c 'for p in /usr/lib/openssh/sftp-server /usr/libexec/openssh/sftp-server /usr/lib/ssh/sftp-server /usr/libexec/sftp-server \"$(command -v sftp-server 2>/dev/null)\"; do if [ -n \"$p\" ] && [ -x \"$p\" ]; then exec sudo -S -p \"__TAMIO_SUDO_PROMPT__\" \"$p\"; fi; done; echo \"__TAMIO_NO_SFTP_SERVER__\" >&2; exit 127'"
+        : @"sh -c 'for p in /usr/lib/openssh/sftp-server /usr/libexec/openssh/sftp-server /usr/lib/ssh/sftp-server /usr/libexec/sftp-server \"$(command -v sftp-server 2>/dev/null)\"; do if [ -n \"$p\" ] && [ -x \"$p\" ]; then exec sudo -n \"$p\"; fi; done; echo \"__TAMIO_NO_SFTP_SERVER__\" >&2; exit 127'";
+
+    int execRC = 0;
+    while (true) {
+        if ([deadline timeIntervalSinceNow] < 0) {
+            execRC = LIBSSH2_ERROR_TIMEOUT;
+            break;
+        }
+        execRC = libssh2_channel_exec(channel, [sudoCmd UTF8String]);
+        if (execRC == LIBSSH2_ERROR_EAGAIN) {
+            usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+            continue;
+        }
+        break;
+    }
+    if (execRC != 0) {
+        LIBSSH2_CHANNEL_SHUTDOWN(channel);
+        [self unsafeReadLastError];
+        [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:@"Failed to launch sudo sftp-server"];
+        return NO;
+    }
+
+    NSMutableString *stderrLog = [NSMutableString string];
+    BOOL sentPassword = NO;
+    NSDate *probeDeadline = [[NSDate alloc] initWithTimeIntervalSinceNow:hasPassword ? 0.6 : 0.4];
+    char errBuf[512];
+    while ([probeDeadline timeIntervalSinceNow] > 0 && [deadline timeIntervalSinceNow] > 0) {
+        ssize_t n = libssh2_channel_read_stderr(channel, errBuf, sizeof(errBuf) - 1);
+        if (n > 0) {
+            errBuf[n] = '\0';
+            NSString *chunk = [[NSString alloc] initWithBytes:errBuf length:(NSUInteger)n encoding:NSUTF8StringEncoding];
+            if (chunk) { [stderrLog appendString:chunk]; }
+            if ([stderrLog containsString:@"__TAMIO_NO_SFTP_SERVER__"]) {
+                LIBSSH2_CHANNEL_SHUTDOWN(channel);
+                [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:@"sftp-server was not found on the remote host"];
+                return NO;
+            }
+            if (hasPassword && !sentPassword && [stderrLog containsString:@(promptMarker)]) {
+                NSData *pwData = [[password stringByAppendingString:@"\n"] dataUsingEncoding:NSUTF8StringEncoding];
+                NSMutableData *mutablePW = [pwData mutableCopy];
+                const char *ptr = (const char *)mutablePW.bytes;
+                size_t remaining = mutablePW.length;
+                size_t sent = 0;
+                while (sent < remaining && [deadline timeIntervalSinceNow] > 0) {
+                    ssize_t w = libssh2_channel_write(channel, ptr + sent, remaining - sent);
+                    if (w == LIBSSH2_ERROR_EAGAIN) {
+                        usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+                        continue;
+                    }
+                    if (w < 0) { break; }
+                    sent += (size_t)w;
+                }
+                if (mutablePW.length > 0) {
+                    memset_s(mutablePW.mutableBytes, mutablePW.length, 0, mutablePW.length);
+                }
+                sentPassword = YES;
+                [stderrLog setString:@""];
+                probeDeadline = [[NSDate alloc] initWithTimeIntervalSinceNow:0.5];
+                continue;
+            }
+            if (sentPassword && ([stderrLog containsString:@(promptMarker)] || [stderrLog localizedCaseInsensitiveContainsString:@"incorrect password"] || [stderrLog localizedCaseInsensitiveContainsString:@"sorry, try again"])) {
+                LIBSSH2_CHANNEL_SHUTDOWN(channel);
+                [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:@"Incorrect sudo password"];
+                return NO;
+            }
+        } else if (n == LIBSSH2_ERROR_EAGAIN) {
+            if (libssh2_channel_eof(channel)) { break; }
+            usleep(10000);
+        } else {
+            break;
+        }
+    }
+
+    if (libssh2_channel_eof(channel)) {
+        LIBSSH2_CHANNEL_SHUTDOWN(channel);
+        NSString *trimmed = [stderrLog stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        NSString *reason = trimmed.length > 0 ? trimmed : (hasPassword ? @"sudo denied privileged SFTP" : @"Sudo password required");
+        [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:reason];
+        return NO;
+    }
+
+    LIBSSH2_SFTP *sftp = NULL;
+    while (true) {
+        if ([deadline timeIntervalSinceNow] < 0) {
+            libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
+            break;
+        }
+        LIBSSH2_SFTP *sftpBuilder = libssh2_sftp_init_with_channel(session, channel);
+        if (sftpBuilder) {
+            libssh2_session_set_last_error(session, 0, NULL);
+            sftp = sftpBuilder;
+            break;
+        }
+        long rc = libssh2_session_last_errno(session);
+        if (rc == LIBSSH2_ERROR_EAGAIN) {
+            usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+            continue;
+        }
+        break;
+    }
+    [self unsafeReadLastError];
+    if (!sftp) {
+        NSString *trimmed = [stderrLog stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+        NSString *reason = trimmed.length > 0 ? trimmed : @"Could not start privileged SFTP over sudo";
+        [self unsafeFileTransferSetErrorForFile:@"sudo" pathIsRemote:YES failureReason:reason];
+        return NO;
+    }
+
+    self.associatedFileTransfer = sftp;
+    self.connectedFileTransfer = YES;
+    self.privilegedFileTransfer = YES;
+    NSRLog(@"privileged sudo SFTP init success");
+    return YES;
 }
 
 - (nullable LIBSSH2_SFTP_HANDLE*)unsafeFileTransferOpenDirHandlerWithSession:(LIBSSH2_SESSION*)session
@@ -1856,6 +2240,95 @@ static NSData *NSRAgentKeyBlob(NSString *publicKey) {
         fclose(f);
         [self unsafeFileTransferSetErrorForFile:localFile.path pathIsRemote:NO failureReason:@"failed to read"];
         return NO;
+    }
+    if (self.isConnectedFileTransfer && self.associatedFileTransfer != NULL) {
+        LIBSSH2_SFTP *sftp = self.associatedFileTransfer;
+        LIBSSH2_SFTP_HANDLE *sftpHandle = [self unsafeFileTransferOpenFileHandlerWithSession:session
+                                                                                    withSFTP:sftp
+                                                                                    withPath:remoteFile.path
+                                                                                    withFlag:(LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC)
+                                                                                    withMode:(fi.st_mode & 0777) ?: 0644];
+        if (!sftpHandle) {
+            fclose(f);
+            [self unsafeFileTransferSetErrorForFile:remoteFile.path pathIsRemote:YES failureReason:@"remote permission denied"];
+            return NO;
+        }
+        NSDate *begin = [[NSDate alloc] init];
+        NSDate *previousProgressSent = [[NSDate alloc] initWithTimeIntervalSince1970:0];
+        char *buff = (char *)malloc(SFTP_BUFFER_SIZE);
+        if (!buff) {
+            fclose(f);
+            libssh2_sftp_close_handle(sftpHandle);
+            [self unsafeFileTransferSetErrorForFile:localFile.path pathIsRemote:NO failureReason:@"failed to allocate transfer buffer"];
+            return NO;
+        }
+        long long total_size = fi.st_size;
+        long long sent_size = 0;
+        BOOL writeOK = YES;
+        NSDate *stallDate = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
+        while (true) {
+            if (continuationBlock && !continuationBlock()) { writeOK = NO; break; }
+            if (!self.isConnectedFileTransfer) { writeOK = NO; break; }
+            size_t nread = fread(buff, 1, SFTP_BUFFER_SIZE, f);
+            if (nread == 0) { break; }
+            char *ptr = buff;
+            size_t left = nread;
+            while (left > 0) {
+                if (continuationBlock && !continuationBlock()) { writeOK = NO; break; }
+                ssize_t rc = libssh2_sftp_write(sftpHandle, ptr, left);
+                if (rc == LIBSSH2_ERROR_EAGAIN) {
+                    if ([stallDate timeIntervalSinceNow] < 0) {
+                        libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
+                        writeOK = NO;
+                        break;
+                    }
+                    usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+                    continue;
+                }
+                if (rc < 0) {
+                    writeOK = NO;
+                    break;
+                }
+                ptr += rc;
+                left -= (size_t)rc;
+                sent_size += rc;
+                stallDate = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
+            }
+            if (!writeOK) { break; }
+            if (onProgress) {
+                NSDate *now = [[NSDate alloc] init];
+                if ([now timeIntervalSinceDate:previousProgressSent] > 0.1) {
+                    previousProgressSent = now;
+                    NSTimeInterval interval = [now timeIntervalSinceDate:begin];
+                    double speed = interval > 0 ? (sent_size / interval) : 0;
+                    NSProgress *progress = [[NSProgress alloc] init];
+                    [progress setTotalUnitCount:total_size];
+                    [progress setCompletedUnitCount:sent_size];
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        onProgress(atPath, progress, speed);
+                    });
+                }
+            }
+        }
+        free(buff);
+        fclose(f);
+        libssh2_sftp_close_handle(sftpHandle);
+        [self unsafeReadLastError];
+        if (!writeOK || sent_size != total_size) {
+            [self unsafeFileTransferSetErrorForFile:remoteFile.path pathIsRemote:YES failureReason:@"transport sent did not write enough data"];
+            return NO;
+        }
+        if (onProgress) {
+            NSProgress *progress = [[NSProgress alloc] init];
+            [progress setTotalUnitCount:total_size];
+            [progress setCompletedUnitCount:total_size];
+            NSTimeInterval interval = [[[NSDate alloc] init] timeIntervalSinceDate:begin];
+            double speed = interval > 0 ? (sent_size / interval) : 0;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                onProgress(atPath, progress, speed);
+            });
+        }
+        return YES;
     }
     LIBSSH2_CHANNEL *channel = NULL;
     NSDate *date = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
@@ -2243,116 +2716,80 @@ static NSData *NSRAgentKeyBlob(NSString *publicKey) {
         return NO;
     }
 //    NSRLog(@"downloading file %@ to %@", atPath, toPath);
-    
-    struct stat fi;
-    memset(&fi, 0, sizeof(fi));
-    LIBSSH2_CHANNEL *channel = NULL;
+
+    LIBSSH2_SFTP_ATTRIBUTES attrs;
+    memset(&attrs, 0, sizeof(attrs));
     NSDate *date = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
+    int statRC = -1;
     while (true) {
         if ([date timeIntervalSinceNow] < 0) {
             libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
             break;
         }
-        LIBSSH2_CHANNEL *channelBuilder = libssh2_scp_recv(session, [atPath UTF8String], &fi);
-        if (channelBuilder) {
-            libssh2_session_set_last_error(session, 0, NULL);
-            channel = channelBuilder;
-            break;
-        }
-        long long rc = libssh2_session_last_errno(session);
-        if (rc == LIBSSH2_ERROR_EAGAIN) {
+        statRC = libssh2_sftp_fstat_ex(handle, &attrs, 0);
+        if (statRC == LIBSSH2_ERROR_EAGAIN) {
             usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
             continue;
         }
         break;
     }
-    [self unsafeReadLastError];
-    if (!channel) {
-        libssh2_sftp_close_handle(handle);
-        [self unsafeFileTransferSetErrorForFile:atFullPath pathIsRemote:YES failureReason:@"broken connection"];
-        return NO;
-    }
-    
-    int f = open([localFile.path UTF8String], O_WRONLY | O_CREAT, 0644);
+    long long expectedSize = (statRC == 0 && (attrs.flags & LIBSSH2_SFTP_ATTR_SIZE)) ? (long long)attrs.filesize : -1;
+
+    int f = open([localFile.path UTF8String], O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (f < 0) {
-        LIBSSH2_CHANNEL_SHUTDOWN(channel);
         libssh2_sftp_close_handle(handle);
-        [self unsafeFileTransferSetErrorForFile:atFullPath pathIsRemote:YES failureReason:@"broken connection"];
+        [self unsafeFileTransferSetErrorForFile:atFullPath pathIsRemote:NO failureReason:@"failed to open local file"];
         return NO;
     }
-    
+
     NSDate *begin = [[NSDate alloc] init];
     NSDate *lastProgress = [[NSDate alloc] initWithTimeIntervalSince1970:0];
-    
-    // do note that the file could be empty
-    // fi.st_size may be zero, the entire loop is going to be skipped
+
     long long recv_size = 0;
-    // 128k per transfer does not belong on the event loop thread stack
-    char *buff = (char*)malloc(SFTP_BUFFER_SIZE);
+    char *buff = (char *)malloc(SFTP_BUFFER_SIZE);
     if (!buff) {
         close(f);
-        LIBSSH2_CHANNEL_SHUTDOWN(channel);
         libssh2_sftp_close_handle(handle);
         [self unsafeFileTransferSetErrorForFile:atFullPath pathIsRemote:YES failureReason:@"failed to allocate transfer buffer"];
         return NO;
     }
-    // a read that stalls on eagain gives up after operationTimeout while
-    // any progress re-arms the deadline, so long transfers are unaffected
+    BOOL readOK = YES;
     date = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
-    while (recv_size < fi.st_size) {
-        if (continuationBlock && !continuationBlock()) { break; }
-        if (!self.isConnectedFileTransfer) { break; }
-        long long recv_decision = SFTP_BUFFER_SIZE;
-        memset(buff, 0, SFTP_BUFFER_SIZE);
-        if ((fi.st_size - recv_size) < recv_decision) {
-            // do not write over!
-            // libssh2_channel_read may have dirty data
-            recv_decision = (size_t)(fi.st_size - recv_size);
-        }
-        long long recv_write_size = libssh2_channel_read(channel, buff, recv_decision);
-        if (recv_write_size < 0) {
-            if (recv_write_size == LIBSSH2_ERROR_EAGAIN) {
-                // do not change anything
+    while (true) {
+        if (continuationBlock && !continuationBlock()) { readOK = NO; break; }
+        if (!self.isConnectedFileTransfer) { readOK = NO; break; }
+        ssize_t n = libssh2_sftp_read(handle, buff, SFTP_BUFFER_SIZE);
+        if (n < 0) {
+            if (n == LIBSSH2_ERROR_EAGAIN) {
                 if ([date timeIntervalSinceNow] < 0) {
                     libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
+                    readOK = NO;
                     break;
                 }
                 usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
                 continue;
             }
-            // error occurred
+            readOK = NO;
             break;
         }
-        if (recv_write_size == 0) {
-            // remote sent eof, no more data will arrive
+        if (n == 0) {
             break;
         }
-        if (recv_write_size > 0) {
-            long long f_write_size = write(f, buff, recv_write_size);
-            if (f_write_size < 0) {
-                NSRLog(@"failed to write returns %lld", f_write_size);
-                break;
-            }
-            if (f_write_size < recv_write_size) {
-                NSRLog(@"write call failed to write all buffer, required %lld returns %lld",
-                      f_write_size,
-                      recv_write_size);
-                break;
-            }
-            recv_size += f_write_size;
-            date = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
+        ssize_t written = write(f, buff, (size_t)n);
+        if (written != n) {
+            readOK = NO;
+            break;
         }
+        recv_size += written;
+        date = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
         if (onProgress) {
             NSDate *now = [[NSDate alloc] init];
             if ([now timeIntervalSinceDate:lastProgress] > 0.1) {
                 lastProgress = now;
                 NSTimeInterval interval = [now timeIntervalSinceDate:begin];
-                long long speed = 0;
-                if (interval) {
-                    speed = recv_size / interval;
-                }
+                long long speed = interval > 0 ? (long long)(recv_size / interval) : 0;
                 NSProgress *progress = [[NSProgress alloc] init];
-                [progress setTotalUnitCount:fi.st_size];
+                [progress setTotalUnitCount:expectedSize >= 0 ? expectedSize : recv_size];
                 [progress setCompletedUnitCount:recv_size];
                 dispatch_async(dispatch_get_main_queue(), ^{
                     onProgress(remoteFile.path, progress, speed);
@@ -2362,30 +2799,26 @@ static NSData *NSRAgentKeyBlob(NSString *publicKey) {
     }
     free(buff);
     [self unsafeReadLastError];
+    long long totalReported = expectedSize >= 0 ? expectedSize : recv_size;
     if (onProgress) {
         NSProgress *progress = [[NSProgress alloc] init];
-        [progress setTotalUnitCount:fi.st_size];
+        [progress setTotalUnitCount:totalReported];
         [progress setCompletedUnitCount:recv_size];
         NSTimeInterval interval = [[[NSDate alloc] init] timeIntervalSinceDate:begin];
-        long long speed = 0;
-        if (interval) {
-            speed = recv_size / interval;
-        }
+        long long speed = interval > 0 ? (long long)(recv_size / interval) : 0;
         dispatch_async(dispatch_get_main_queue(), ^{
             onProgress(remoteFile.path, progress, speed);
         });
     }
-    if (recv_size != fi.st_size) {
+    BOOL complete = readOK && (expectedSize < 0 || recv_size == expectedSize);
+    if (!complete) {
         [self unsafeFileTransferSetErrorForFile:atFullPath
                                    pathIsRemote:YES
                                   failureReason:@"transport receive did not write full data"];
     }
-    [self unsafeReadLastError];
-    
     close(f);
-    LIBSSH2_CHANNEL_SHUTDOWN(channel);
     libssh2_sftp_close_handle(handle);
-    return recv_size == fi.st_size;
+    return complete;
 }
 
 - (BOOL)unsafeDownloadRecursiveAtPath:(NSString*)atPath
@@ -2482,6 +2915,46 @@ static NSData *NSRAgentKeyBlob(NSString *publicKey) {
                                withContinuationHandler:continuationBlock];
         }
     }
+}
+
+- (BOOL)unsafeSetPermissions:(unsigned long)mode atPath:(NSString *)atPath {
+    if (![atPath hasPrefix:@"/"] || atPath.length < 2) {
+        [self unsafeFileTransferSetErrorForFile:atPath pathIsRemote:YES failureReason:@"invalid parameter"];
+        return NO;
+    }
+    if (![self unsafeValidateSessionSFTP]) {
+        [self unsafeFileTransferSetErrorForFile:atPath pathIsRemote:YES failureReason:@"connection broken"];
+        return NO;
+    }
+    LIBSSH2_SESSION *session = self.associatedSession;
+    LIBSSH2_SFTP *sftp = self.associatedFileTransfer;
+    LIBSSH2_SFTP_ATTRIBUTES attrs;
+    memset(&attrs, 0, sizeof(attrs));
+    attrs.flags = LIBSSH2_SFTP_ATTR_PERMISSIONS;
+    attrs.permissions = mode & 07777;
+
+    NSDate *date = [[NSDate alloc] initWithTimeIntervalSinceNow:[self.operationTimeout intValue]];
+    int rc = -1;
+    const char *path = [atPath UTF8String];
+    unsigned int pathLen = (unsigned int)strlen(path);
+    while (true) {
+        if ([date timeIntervalSinceNow] < 0) {
+            libssh2_session_set_last_error(session, LIBSSH2_ERROR_TIMEOUT, NULL);
+            break;
+        }
+        rc = libssh2_sftp_stat_ex(sftp, path, pathLen, LIBSSH2_SFTP_SETSTAT, &attrs);
+        if (rc == LIBSSH2_ERROR_EAGAIN) {
+            usleep(LIBSSH2_CONTINUE_EAGAIN_WAIT);
+            continue;
+        }
+        break;
+    }
+    [self unsafeReadLastError];
+    if (rc != 0) {
+        [self unsafeFileTransferSetErrorForFile:atPath pathIsRemote:YES failureReason:@"failed to set permissions"];
+        return NO;
+    }
+    return YES;
 }
 
 - (BOOL)unsafeRenameFileAndWait:(NSString *)atPath

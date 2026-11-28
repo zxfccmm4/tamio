@@ -38,6 +38,7 @@ typedef NSArray<NSString *> * _Nullable (^NSRemoteShellHostKeyPreference)(NSStri
 
 @property (nonatomic, readonly, getter=isConnected) BOOL connected;
 @property (nonatomic, readonly, getter=isConnectedFileTransfer) BOOL connectedFileTransfer;
+@property (nonatomic, readonly, getter=isPrivilegedFileTransfer) BOOL privilegedFileTransfer;
 @property (nonatomic, readonly, getter=isAuthenticated) BOOL authenticated;
 
 @property (nonatomic, readonly, strong) NSString *remoteHost;
@@ -60,6 +61,18 @@ typedef NSArray<NSString *> * _Nullable (^NSRemoteShellHostKeyPreference)(NSStri
 /// command connects directly, as before. %h and %p in the command are the host
 /// and the port.
 - (instancetype)setupProxyCommand:(nullable NSString *)command;
+
+/// Connects through a pre-established tunnel socket (for native multi-hop
+/// jump hosts across both macOS and iOS). When `parentShell` is supplied,
+/// disconnecting or destroying this shell tears down the parent jump chain too.
+- (instancetype)setupTunnelSocket:(int)socketDescriptor
+                 ownedParentShell:(nullable NSRemoteShell *)parentShell;
+
+/// Opens a direct-tcpip channel from this authenticated jump host to
+/// `targetHost:targetPort`, bridged over an in-process AF_UNIX socketpair.
+/// Returns the local socket descriptor (> 0) for the next hop, or -1 on error.
+- (int)requestOpenDirectTunnelSocketToHost:(NSString *)targetHost
+                                      port:(NSNumber *)targetPort;
 
 #pragma mark event loop
 
@@ -129,15 +142,25 @@ typedef NSArray<NSString *> * _Nullable (^NSRemoteShellHostKeyPreference)(NSStri
                            withOnCreate:(dispatch_block_t)withOnCreate
                 withContinuationHandler:(BOOL (^)(void))continuationBlock;
 
+/// Starts a loopback-only SOCKS5 dynamic port forward (`ssh -D <localPort>`).
+- (void)createDynamicPortForwardWithLocalPort:(NSNumber *)localPort
+                                 withOnCreate:(dispatch_block_t)withOnCreate
+                      withContinuationHandler:(BOOL (^)(void))continuationBlock;
+
 #pragma mark sftp
 
 typedef void (^NSRemoteFileTransferProgressBlock)(NSString *filename, NSProgress *uploadProgress, long bytesPerSecond);
 typedef void (^NSRemoteFileDeleteProgressBlock)(NSString *currentFile);
 
 - (void)requestConnectFileTransferAndWait;
+/// Opens a privileged SFTP channel through `sudo sftp-server` without
+/// elevating the interactive terminal. `password` is held only for the sudo
+/// handshake and cleared immediately; pass nil/empty to try passwordless sudo.
+- (BOOL)requestConnectPrivilegedFileTransferWithSudoPassword:(nullable NSString *)password;
 - (void)requestDisconnectFileTransferAndWait;
 - (nullable NSArray<NSRemoteFile*>*)requestFileListAt:(NSString*)atDirPath;
 - (nullable NSRemoteFile*)requestFileInfoAt:(NSString*)atPath;
+- (BOOL)requestSetPermissionsAndWait:(unsigned long)mode atPath:(NSString *)atPath;
 - (BOOL)requestRenameFileAndWait:(NSString*)atPath
                      withNewPath:(NSString*)newPath;
 - (BOOL)requestUploadForFileAndWait:(NSString*)atPath

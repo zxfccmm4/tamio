@@ -21,6 +21,7 @@
 @property (nonatomic, readonly, nullable, strong) NSDate *lastAccess;
 @property (nonatomic, readonly, assign) unsigned long ownerUID;
 @property (nonatomic, readonly, assign) unsigned long ownerGID;
+@property (nonatomic, readonly, assign) unsigned long permissions;
 @property (nonatomic, readonly, nonnull, strong) NSString *permissionDescription;
 
 - (nonnull instancetype)initWithFilename:(nonnull NSString *)filename;

@@ -1025,6 +1025,36 @@ LIBSSH2_SFTP *libssh2_sftp_init(LIBSSH2_SESSION *session)
     return ptr;
 }
 
+static LIBSSH2_SFTP *sftp_init_with_channel(LIBSSH2_SESSION *session,
+                                            LIBSSH2_CHANNEL *channel)
+{
+    if(session->sftpInit_state == ssh2_NB_state_idle) {
+        assert(!session->sftpInit_sftp);
+        session->sftpInit_sftp = NULL;
+        session->sftpInit_channel = channel;
+        session->sftpInit_state = ssh2_NB_state_sent1;
+    }
+    return sftp_init(session);
+}
+
+LIBSSH2_SFTP *libssh2_sftp_init_with_channel(LIBSSH2_SESSION *session,
+                                             LIBSSH2_CHANNEL *channel)
+{
+    LIBSSH2_SFTP *ptr;
+
+    if(!session || !channel)
+        return NULL;
+
+    if(!(session->state & SSH2_STATE_AUTHENTICATED)) {
+        ssh2_err(session, LIBSSH2_ERROR_INVAL,
+                 "session not authenticated yet");
+        return NULL;
+    }
+
+    BLOCK_ADJUST_ERRNO(ptr, session, sftp_init_with_channel(session, channel));
+    return ptr;
+}
+
 /*
  * Flush all remaining incoming SFTP packets and zombies.
  */

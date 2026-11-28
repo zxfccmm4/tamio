@@ -20,6 +20,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithSocket:(int)socket
                    withChannel:(LIBSSH2_CHANNEL*)channel;
 
+/// Optional callback invoked when the local socket becomes readable so the
+/// owning session event loop wakes immediately.
+- (void)setOnSocketReadable:(nullable dispatch_block_t)handler;
+
 @end
 
 NS_ASSUME_NONNULL_END

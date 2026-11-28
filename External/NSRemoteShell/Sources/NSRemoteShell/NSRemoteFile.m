@@ -18,6 +18,7 @@
 @property (nonatomic, readwrite, nullable, strong) NSDate *lastAccess;
 @property (nonatomic, readwrite, assign) unsigned long ownerUID;
 @property (nonatomic, readwrite, assign) unsigned long ownerGID;
+@property (nonatomic, readwrite, assign) unsigned long permissions;
 @property (nonatomic, readwrite, nonnull, strong) NSString *permissionDescription;
 
 @end
@@ -78,6 +79,7 @@
     self.size = @(fileAttributes.filesize);
     self.ownerUID = fileAttributes.uid;
     self.ownerGID = fileAttributes.gid;
+    self.permissions = fileAttributes.permissions;
     self.permissionDescription = [self permissionDescriptionForMode:fileAttributes.permissions];
     self.isRegularFile = LIBSSH2_SFTP_S_ISREG(fileAttributes.permissions);
     self.isDirectory = LIBSSH2_SFTP_S_ISDIR(fileAttributes.permissions);
